@@ -2,7 +2,7 @@
 * @Author: Kamil Rocki
 * @Date:   2017-02-28 11:25:34
 * @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-03-03 14:54:17
+* @Last Modified time: 2017-03-03 15:24:28
 */
 
 #include <iostream>
@@ -24,6 +24,8 @@
 #include <nanogui/graph.h>
 #include <nanogui/sq_graph.h>
 #include <nanogui/console.h>
+
+#include <utils.h>
 
 #include "aux.h"
 

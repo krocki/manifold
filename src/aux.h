@@ -2,11 +2,8 @@
 * @Author: kmrocki@us.ibm.com
 * @Date:   2017-03-03 14:00:12
 * @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-03-03 14:15:02
+* @Last Modified time: 2017-03-03 15:22:19
 */
-
-// to surpress warnings
-#define UNUSED(...) [__VA_ARGS__](){};
 
 // FPS
 #define FPS_HISTORY_SIZE 50
