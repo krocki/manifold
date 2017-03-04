@@ -2,7 +2,7 @@
 * @Author: Kamil Rocki
 * @Date:   2017-02-28 11:25:34
 * @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-03-03 16:22:44
+* @Last Modified time: 2017-03-03 16:26:19
 */
 
 #include <iostream>
@@ -189,12 +189,12 @@ class SurfacePlot : public nanogui::Screen {
 		// keyboard management
 		/*	TODO: move to nanogui - need to modify keyboardEvent to allow smooth opeartion */
 		// translation
-		if ( glfwGetKey ( glfwWindow(), 'A' ) == GLFW_PRESS ) position[0] -= 0.1 * keyboard_sensitivity;
-		if ( glfwGetKey ( glfwWindow(), 'D' ) == GLFW_PRESS ) position[0] += 0.1 * keyboard_sensitivity;
-		if ( glfwGetKey ( glfwWindow(), 'S' ) == GLFW_PRESS ) position[1] -= 0.1 * keyboard_sensitivity;
-		if ( glfwGetKey ( glfwWindow(), 'W' ) == GLFW_PRESS ) position[1] += 0.1 * keyboard_sensitivity;
-		if ( glfwGetKey ( glfwWindow(), 'Z' ) == GLFW_PRESS ) position[2] -= 0.1 * keyboard_sensitivity;
-		if ( glfwGetKey ( glfwWindow(), 'C' ) == GLFW_PRESS ) position[2] += 0.1 * keyboard_sensitivity;
+		if ( glfwGetKey ( glfwWindow(), 'A' ) == GLFW_PRESS ) position[0] -= 0.05 * keyboard_sensitivity;
+		if ( glfwGetKey ( glfwWindow(), 'D' ) == GLFW_PRESS ) position[0] += 0.05 * keyboard_sensitivity;
+		if ( glfwGetKey ( glfwWindow(), 'S' ) == GLFW_PRESS ) position[1] -= 0.05 * keyboard_sensitivity;
+		if ( glfwGetKey ( glfwWindow(), 'W' ) == GLFW_PRESS ) position[1] += 0.05 * keyboard_sensitivity;
+		if ( glfwGetKey ( glfwWindow(), 'Z' ) == GLFW_PRESS ) position[2] -= 0.5 * keyboard_sensitivity;
+		if ( glfwGetKey ( glfwWindow(), 'C' ) == GLFW_PRESS ) position[2] += 0.5 * keyboard_sensitivity;
 
 		// rotation around x, y, z axes
 		if ( glfwGetKey ( glfwWindow(), 'Q' ) == GLFW_PRESS ) angle[0] -= 0.025 * keyboard_sensitivity;
