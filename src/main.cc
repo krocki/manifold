@@ -2,7 +2,7 @@
 * @Author: Kamil Rocki
 * @Date:   2017-02-28 11:25:34
 * @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-03-04 13:54:24
+* @Last Modified time: 2017-03-04 14:08:58
 */
 
 #include <iostream>
@@ -241,6 +241,8 @@ class Manifold : public nanogui::Screen {
 };
 
 int compute() {
+
+	// TODO: option to suspend or kill this thread from GUI
 
 	size_t epochs = 100;
 	size_t batch_size = 250;
