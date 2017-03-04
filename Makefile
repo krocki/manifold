@@ -21,6 +21,6 @@ else
 endif
 
 all:
-	$(CC) -o nntest ./src/nntest.cc $(INCLUDES) $(CFLAGS) $(LFLAGS)
+	# $(CC) -o nntest ./src/nntest.cc $(INCLUDES) $(CFLAGS) $(LFLAGS)
 	$(CC) -o surftest ./src/surftest.cc $(INCLUDES) $(CFLAGS) $(LFLAGS)
 	$(CC) -o manifold ./src/main.cc $(INCLUDES) $(CFLAGS) $(LFLAGS)

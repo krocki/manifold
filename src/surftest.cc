@@ -2,7 +2,7 @@
 * @Author: Kamil Rocki
 * @Date:   2017-02-28 11:25:34
 * @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-03-03 15:24:28
+* @Last Modified time: 2017-03-03 16:22:44
 */
 
 #include <iostream>
@@ -14,19 +14,13 @@
 
 #include <nanogui/screen.h>
 #include <nanogui/window.h>
-#include <nanogui/layout.h>
-#include <nanogui/button.h>
 #include <nanogui/glutil.h>
-#include <nanogui/label.h>
-#include <nanogui/theme.h>
-#include <nanogui/formhelper.h>
-#include <nanogui/slider.h>
 #include <nanogui/graph.h>
-#include <nanogui/sq_graph.h>
 #include <nanogui/console.h>
 
 #include <utils.h>
 
+#include "fps.h"
 #include "aux.h"
 
 #define PASSTHROUGH_SHADER_NAME "pass"
@@ -37,23 +31,13 @@
 #define SCREEN_DEFAULT_HEIGHT 480
 #define SCREEN_NAME "Plot"
 
-using namespace std;
-using nanogui::Screen;
-using nanogui::Window;
-using nanogui::GroupLayout;
-using nanogui::Button;
-using nanogui::Vector2f;
-using nanogui::MatrixXu;
-using nanogui::MatrixXf;
-using nanogui::Label;
-
 // * for plotting function
 #define N 100000
 
-class Manifold : public nanogui::Screen {
+class SurfacePlot : public nanogui::Screen {
 
   public:
-	Manifold ( bool fullscreen = false, int aliasing_samples = 8 ) :
+	SurfacePlot ( bool fullscreen = false, int aliasing_samples = 8 ) :
 		nanogui::Screen ( Eigen::Vector2i ( SCREEN_DEFAULT_WIDTH, SCREEN_DEFAULT_HEIGHT ),
 		                  SCREEN_NAME, true, fullscreen, 8, 8, 24, 8, aliasing_samples, 3, 3 ) {
 
@@ -68,9 +52,9 @@ class Manifold : public nanogui::Screen {
 
 		//* FUNCTION */
 
-		MatrixXu indices ( 1, N );
-		MatrixXf positions ( 3, N );
-		MatrixXf colors ( 3, N );
+		nanogui::MatrixXu indices ( 1, N );
+		Eigen::MatrixXf positions ( 3, N );
+		Eigen::MatrixXf colors ( 3, N );
 
 		float yRange = 2.0;
 		float yMax = 1.0;
@@ -153,7 +137,7 @@ class Manifold : public nanogui::Screen {
 		/* console */
 		show_console = false;
 
-		console_window = new Window ( this, "" );
+		console_window = new nanogui::Window ( this, "" );
 		console_window->setVisible ( show_console );
 
 		// console_window->setLayout ( new GroupLayout ( 5, 5, 0, 0 ) );
@@ -169,7 +153,7 @@ class Manifold : public nanogui::Screen {
 
 	}
 
-	~Manifold() {
+	~SurfacePlot() {
 
 		mShader.free();
 	}
@@ -218,7 +202,7 @@ class Manifold : public nanogui::Screen {
 		if ( glfwGetKey ( glfwWindow(), GLFW_KEY_UP ) == GLFW_PRESS ) angle[1] -= 0.05 * keyboard_sensitivity;
 		if ( glfwGetKey ( glfwWindow(), GLFW_KEY_DOWN ) == GLFW_PRESS ) angle[1] += 0.05 * keyboard_sensitivity;
 		if ( glfwGetKey ( glfwWindow(), GLFW_KEY_LEFT ) == GLFW_PRESS ) angle[2] -= 0.1 * keyboard_sensitivity;
-		if ( glfwGetKey ( glfwWindow(), GLFW_KEY_RIGHT ) == GLFW_PRESS ) angle[2] -= 0.1 * keyboard_sensitivity;
+		if ( glfwGetKey ( glfwWindow(), GLFW_KEY_RIGHT ) == GLFW_PRESS ) angle[2] += 0.1 * keyboard_sensitivity;
 
 	}
 
@@ -262,7 +246,8 @@ class Manifold : public nanogui::Screen {
 		std::stringstream ss;
 		ss << std::setprecision ( 2 ) << "pos = (" << std::setw ( 5 ) << position[0] << ", " <<
 		   std::setw ( 5 ) << position[1] << ", " << std::setw ( 5 ) << position[2] <<
-		   ")" << ", ang: (" << angle[0] << ", " << std::setw ( 5 ) << angle[1] << ", " << std::setw ( 5 ) << angle[2] << ")" << "\nres = " << size() [0] << "x" << size() [1] <<
+		   ")" << ", ang: (" << angle[0] << ", " << std::setw ( 5 ) << angle[1] << ", " <<
+		   std::setw ( 5 ) << angle[2] << ")" << "\nres = " << size() [0] << "x" << size() [1] <<
 		   '\n' << "drag: " << mDragActive << '\n';
 
 		footer_message_string = ss.str();
@@ -338,7 +323,7 @@ int main ( int /* argc */, char ** /* argv */ ) {
 		nanogui::init();
 
 		/* scoped variables */ {
-			nanogui::ref<Manifold> app = new Manifold();
+			nanogui::ref<SurfacePlot> app = new SurfacePlot();
 			app->drawAll();
 			app->setVisible ( true );
 			nanogui::mainloop ( 1 );
@@ -350,7 +335,7 @@ int main ( int /* argc */, char ** /* argv */ ) {
 #if defined(_WIN32)
 		MessageBoxA ( nullptr, error_msg.c_str(), NULL, MB_ICONERROR | MB_OK );
 #else
-		std::cerr << error_msg << endl;
+		std::cerr << error_msg << std::endl;
 #endif
 		return -1;
 	}
