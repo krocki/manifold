@@ -2,7 +2,7 @@
 * @Author: kmrocki@us.ibm.com
 * @Date:   2017-03-03 15:06:37
 * @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-03-03 15:24:17
+* @Last Modified time: 2017-03-04 13:54:02
 */
 
 #ifndef __LAYERS_H__
@@ -39,6 +39,9 @@ class Layer {
 	virtual void applyGrads(float alpha) { UNUSED(alpha); };
 
 	virtual ~Layer() {};
+
+	// count number of operations for perf counters
+	long ops;
 
 };
 

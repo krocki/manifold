@@ -2,7 +2,7 @@
 * @Author: Kamil Rocki
 * @Date:   2017-02-28 11:25:34
 * @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-03-03 21:30:33
+* @Last Modified time: 2017-03-04 13:54:24
 */
 
 #include <iostream>
@@ -28,8 +28,9 @@
 #include <nn/layers.h>
 #include <nn/nn.h>
 
-//FPS counter
+//performance counters
 #include "fps.h"
+#include "perf.h"
 
 // rand
 #include "aux.h"
@@ -81,13 +82,23 @@ class Manifold : public nanogui::Screen {
 
 		console ( "glfwGetWindowSize(): %d x %d\n", glfw_window_width, glfw_window_height );
 
-		//bottom left graph
+		//FPS graph
 		graph_fps = add<nanogui::Graph> ( "" );
 		graph_fps->values().resize ( FPS.size() );
 		graph_fps->setGraphColor ( nanogui::Color ( 0, 160, 192, 255 ) );
 		graph_fps->setBackgroundColor ( nanogui::Color ( 0, 0, 0, 8 ) );
 
-		// TODO: add FlOP/s
+		//CPU graph
+		graph_cpu = add<nanogui::Graph> ( "" );
+		graph_cpu->values().resize ( cpu_util.size() );
+		graph_cpu->setGraphColor ( nanogui::Color ( 192, 0, 0, 255 ) );
+		graph_cpu->setBackgroundColor ( nanogui::Color ( 0, 0, 0, 8 ) );
+
+		// FlOP/s
+		graph_flops = add<nanogui::Graph> ( "" );
+		graph_flops->values().resize ( cpu_flops.size() );
+		graph_flops->setGraphColor ( nanogui::Color ( 0, 192, 0, 255 ) );
+		graph_flops->setBackgroundColor ( nanogui::Color ( 0, 0, 0, 8 ) );
 
 		/* console */
 		show_console = false;
@@ -145,13 +156,21 @@ class Manifold : public nanogui::Screen {
 	virtual void draw ( NVGcontext *ctx ) {
 
 		graph_fps->values() = Eigen::Map<Eigen::VectorXf> ( FPS.data(), FPS.size() );
+		graph_cpu->values() = Eigen::Map<Eigen::VectorXf> ( cpu_util.data(), cpu_util.size() );
+		graph_flops->values() = Eigen::Map<Eigen::VectorXf> ( cpu_flops.data(), cpu_flops.size() );
 
 		char str[16];
 		int last_avg = 10;
 
 		sprintf ( str, "%3.1f FPS\n", graph_fps->values().block ( FPS.size() - 1 - last_avg, 0, last_avg, 1 ).mean() );
-
 		graph_fps->setHeader ( str );
+
+		sprintf ( str, "%5.1f ms\n", 1000.0 * graph_cpu->values().block ( cpu_util.size() - 1 - last_avg, 0, last_avg, 1 ).mean() );
+		graph_cpu->setHeader ( str );
+
+		sprintf ( str, "%5.1f GF/s\n", graph_flops->values().block ( cpu_flops.size() - 1 - last_avg, 0, last_avg, 1 ).mean() );
+		graph_flops->setHeader ( str );
+
 		console_panel->setValue ( log_str );
 
 		/* temporary */
@@ -173,11 +192,20 @@ class Manifold : public nanogui::Screen {
 
 	virtual bool resizeEvent ( const Eigen::Vector2i &size ) {
 
-		// FPS graph
 		int graph_width = 110;
 		int graph_height = 15;
+
+		// FPS graph
 		graph_fps->setPosition ( {5, size[1] - graph_height - 5} );
 		graph_fps->setSize ( {graph_width, graph_height } );
+
+		// CPU graph
+		graph_cpu->setPosition ( {5 + graph_width + 5, size[1] - graph_height - 5} );
+		graph_cpu->setSize ( {graph_width, graph_height } );
+
+		// GFLOPS graph
+		graph_flops->setPosition ( {5 + (graph_width + 5) * 2, size[1] - graph_height - 5} );
+		graph_flops->setSize ( {graph_width, graph_height } );
 
 		// console
 		int console_width = 250;
@@ -202,7 +230,7 @@ class Manifold : public nanogui::Screen {
 
 	virtual void drawContents() { }
 
-	nanogui::Graph *graph_fps;
+	nanogui::Graph *graph_fps, *graph_cpu, *graph_flops;
 	nanogui::Window *console_window;
 	nanogui::Console *console_panel, *footer_message;
 	nanogui::MatrixPlot *mplot[4];

@@ -2,13 +2,15 @@
 * @Author: kmrocki
 * @Date:   2016-02-24 15:28:10
 * @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-03-03 21:28:13
+* @Last Modified time: 2017-03-04 14:03:27
 */
 
 #ifndef __NN_H__
 #define __NN_H__
 
 #include <nn/layers.h>
+
+#include "perf.h"
 
 /* temporary */
 extern Eigen::MatrixXf image_data[4];
@@ -25,6 +27,8 @@ class NN {
 
 	void forward(Matrix& input_data) {
 
+		tic();
+
 		//copy inputs to the lowest point in the network
 		layers[0]->x = input_data;
 
@@ -33,12 +37,14 @@ class NN {
 
 			//y = f(x)
 			layers[i]->forward();
+			flops_performed += 1000000; // just some number
 
 			//x(next layer) = y(current layer)
 			if (i + 1 < layers.size())
 				layers[i + 1]->x = layers[i]->y;
 		}
 
+		toc();
 	}
 
 	void backward(Matrix t) {
@@ -51,6 +57,8 @@ class NN {
 
 			layers[i]->resetGrads();
 			layers[i]->backward();
+
+			flops_performed += 1000000; // just some number
 
 			//dy(previous layer) = dx(current layer)
 			if (i > 0) {
@@ -68,6 +76,7 @@ class NN {
 		for (size_t i = 0; i < layers.size(); i++) {
 
 			layers[i]->applyGrads(alpha);
+			flops_performed += 10000; // just some number
 
 		}
 
@@ -95,6 +104,7 @@ class NN {
 			// }
 			/* temporary */
 
+			ticf();
 			//forward activations
 			forward(batch);
 
@@ -106,6 +116,8 @@ class NN {
 
 			//apply changes
 			update(alpha);
+
+			tocf();
 
 			if (quit) break;
 
