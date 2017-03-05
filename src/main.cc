@@ -2,7 +2,7 @@
 * @Author: Kamil Rocki
 * @Date:   2017-02-28 11:25:34
 * @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-03-04 14:08:58
+* @Last Modified time: 2017-03-04 22:40:17
 */
 
 #include <iostream>
@@ -82,23 +82,44 @@ class Manifold : public nanogui::Screen {
 
 		console ( "glfwGetWindowSize(): %d x %d\n", glfw_window_width, glfw_window_height );
 
+
+		graphs = new nanogui::Window ( this, "" );
+		graphs->setPosition({5, size()[1] - graphs->size()[1] - 5});
+		graphs->setPosition ( {5, size()[1] - graphs->size()[1] - 5} );
+		nanogui::GridLayout *layout = new nanogui::GridLayout(
+		    nanogui::Orientation::Horizontal, 1, nanogui::Alignment::Middle, 1, 1);
+		layout->setColAlignment( { nanogui::Alignment::Maximum, nanogui::Alignment::Fill });
+		layout->setSpacing(0, 5);
+		graphs->setLayout(layout);
+		nanogui::Theme *t = graphs->theme();
+		t->mWindowFillUnfocused = nanogui::Color (0, 0, 0, 0 );
+		t->mWindowFillFocused = nanogui::Color (128, 128, 128, 16 );
+		t->mDropShadow = nanogui::Color (0, 0, 0, 0 );
+		graphs->setTheme ( t );
+
+		int graph_width = 100;
+		int graph_height = 15;
+
 		//FPS graph
-		graph_fps = add<nanogui::Graph> ( "" );
+		graph_fps = graphs->add<nanogui::Graph> ( "" );
 		graph_fps->values().resize ( FPS.size() );
 		graph_fps->setGraphColor ( nanogui::Color ( 0, 160, 192, 255 ) );
 		graph_fps->setBackgroundColor ( nanogui::Color ( 0, 0, 0, 8 ) );
+		graph_fps->setSize ( {graph_width, graph_height } );
 
 		//CPU graph
-		graph_cpu = add<nanogui::Graph> ( "" );
+		graph_cpu = graphs->add<nanogui::Graph> ( "" );
 		graph_cpu->values().resize ( cpu_util.size() );
 		graph_cpu->setGraphColor ( nanogui::Color ( 192, 0, 0, 255 ) );
 		graph_cpu->setBackgroundColor ( nanogui::Color ( 0, 0, 0, 8 ) );
+		graph_cpu->setSize ( {graph_width, graph_height } );
 
 		// FlOP/s
-		graph_flops = add<nanogui::Graph> ( "" );
+		graph_flops = graphs->add<nanogui::Graph> ( "" );
 		graph_flops->values().resize ( cpu_flops.size() );
 		graph_flops->setGraphColor ( nanogui::Color ( 0, 192, 0, 255 ) );
 		graph_flops->setBackgroundColor ( nanogui::Color ( 0, 0, 0, 8 ) );
+		graph_flops->setSize ( {graph_width, graph_height } );
 
 		/* console */
 		show_console = false;
@@ -192,20 +213,8 @@ class Manifold : public nanogui::Screen {
 
 	virtual bool resizeEvent ( const Eigen::Vector2i &size ) {
 
-		int graph_width = 110;
-		int graph_height = 15;
-
-		// FPS graph
-		graph_fps->setPosition ( {5, size[1] - graph_height - 5} );
-		graph_fps->setSize ( {graph_width, graph_height } );
-
-		// CPU graph
-		graph_cpu->setPosition ( {5 + graph_width + 5, size[1] - graph_height - 5} );
-		graph_cpu->setSize ( {graph_width, graph_height } );
-
-		// GFLOPS graph
-		graph_flops->setPosition ( {5 + (graph_width + 5) * 2, size[1] - graph_height - 5} );
-		graph_flops->setSize ( {graph_width, graph_height } );
+		// // FPS graph
+		graphs->setPosition ( {1, size[1] - 50} );
 
 		// console
 		int console_width = 250;
@@ -231,7 +240,7 @@ class Manifold : public nanogui::Screen {
 	virtual void drawContents() { }
 
 	nanogui::Graph *graph_fps, *graph_cpu, *graph_flops;
-	nanogui::Window *console_window;
+	nanogui::Window *console_window, *graphs;
 	nanogui::Console *console_panel, *footer_message;
 	nanogui::MatrixPlot *mplot[4];
 
