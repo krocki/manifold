@@ -2,7 +2,7 @@
 * @Author: kmrocki
 * @Date:   2016-02-24 15:28:10
 * @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-03-04 14:03:27
+* @Last Modified time: 2017-03-06 12:37:44
 */
 
 #ifndef __NN_H__
@@ -11,11 +11,6 @@
 #include <nn/layers.h>
 
 #include "perf.h"
-
-/* temporary */
-extern Eigen::MatrixXf image_data[4];
-extern bool quit;
-/* temporary */
 
 class NN {
 
@@ -96,14 +91,6 @@ class NN {
 			Matrix batch = make_batch(data, random_numbers);
 			Matrix targets = make_targets(data, random_numbers, classes);
 
-			/* temporary */
-
-			// for (size_t i = 0; i < 4; i++) {
-			// 	Eigen::Map<Eigen::MatrixXf, Eigen::ColMajor> A(batch.col(i).data(), 28, 28);
-			// 	image_data[i] = A;
-			// }
-			/* temporary */
-
 			ticf();
 			//forward activations
 			forward(batch);
@@ -118,8 +105,6 @@ class NN {
 			update(alpha);
 
 			tocf();
-
-			if (quit) break;
 
 		}
 

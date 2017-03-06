@@ -2,7 +2,7 @@
 * @Author: kmrocki@us.ibm.com
 * @Date:   2017-03-03 16:20:38
 * @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-03-06 09:28:03
+* @Last Modified time: 2017-03-06 10:41:20
 */
 
 // FPS
@@ -35,7 +35,12 @@ void update_FPS ( void ) {
 
 void update_FPS ( nanogui::Graph* g ) {
 
-	if (g->values().rows() < FPS_HISTORY_SIZE) g->values().resize(FPS_HISTORY_SIZE, 1);
+	if (g->values().rows() == 0) {
+
+		g->values() = Eigen::VectorXf(FPS_HISTORY_SIZE);
+		g->values().setZero();
+
+	}
 
 	double current_time = glfwGetTime();
 	num_frames++;

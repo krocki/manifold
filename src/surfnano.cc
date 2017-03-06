@@ -2,7 +2,7 @@
 * @Author: Kamil Rocki
 * @Date:   2017-02-28 11:25:34
 * @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-03-06 12:17:11
+* @Last Modified time: 2017-03-06 13:39:10
 */
 
 #include <iostream>
@@ -37,11 +37,14 @@
 #define GRID_FRAG_FILE "./src/glsl/surf_grid.f.glsl"
 #define GRID_VERT_FILE "./src/glsl/surf_grid.v.glsl"
 
-#define DEF_WIDTH 640
-#define DEF_HEIGHT 480
+#define DEF_WIDTH 1024
+#define DEF_HEIGHT 768
 #define SCREEN_NAME "Plot"
 
-#define DEF_NUM_POINTS 100000
+// 10^
+#define DEF_NUM_POINTS 5.0f // 100k
+#define MIN_NUM_POINTS 1.0f // 10
+#define MAX_NUM_POINTS 7.0f // 10M
 
 class SurfacePlot : public nanogui::Screen {
 
@@ -68,9 +71,10 @@ class SurfacePlot : public nanogui::Screen {
 		/* Add a slider and set defaults */
 		m_pointCountSlider = new nanogui::Slider(m_window);
 		m_pointCountSlider->setFixedWidth(80);
+		m_pointCountSlider->setRange(std::pair<float, float>(MIN_NUM_POINTS, MAX_NUM_POINTS));
 		m_pointCountSlider->setCallback([&](float) { refresh(); });
 
-		m_pointCountSlider->setValue(7.f / 15.f);
+		m_pointCountSlider->setValue(DEF_NUM_POINTS);
 
 		/* Add a textbox and set defaults */
 		m_pointCountBox = new nanogui::TextBox(m_window);
@@ -127,7 +131,7 @@ class SurfacePlot : public nanogui::Screen {
 
 	void refresh() {
 
-		m_pointCount = (int) std::pow(2.f, 15 * m_pointCountSlider->value() + 5);
+		m_pointCount = (int) std::pow(10.0f, m_pointCountSlider->value());
 
 		generate_points();
 
@@ -171,7 +175,7 @@ class SurfacePlot : public nanogui::Screen {
 		}
 
 		m_pointCountBox->setValue(str);
-		m_pointCountSlider->setValue((std::log((float) m_pointCount) / std::log(2.f) - 5) / 15);
+		m_pointCountSlider->setValue(std::log((float) m_pointCount) / std::log(10.0f));
 	}
 
 	void framebufferSizeChanged() { m_arcball.setSize(mSize); }

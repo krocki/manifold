@@ -2,7 +2,7 @@
 * @Author: Kamil Rocki
 * @Date:   2017-02-28 11:25:34
 * @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-03-06 12:21:41
+* @Last Modified time: 2017-03-06 13:26:35
 */
 
 #include <iostream>
@@ -21,6 +21,7 @@
 #include <nanogui/graph.h>
 #include <nanogui/matrix.h>
 #include <nanogui/console.h>
+#include <nanogui/imageview.h>
 
 //for NN
 #include <io/import.h>
@@ -37,6 +38,7 @@
 
 //helpers
 #include <utils.h>
+#include <gl/tex.h>
 
 #define DEF_WIDTH 640
 #define DEF_HEIGHT 480
@@ -44,7 +46,7 @@
 
 bool quit = false;
 
-Eigen::MatrixXf image_data[4];
+NN* nn;
 
 class Manifold : public nanogui::Screen {
 
@@ -132,30 +134,33 @@ class Manifold : public nanogui::Screen {
 		footer_message->setFontSize ( 12 );
 		footer_message_string = "";
 
-		/* temporary */
-		// for (size_t i = 0; i < 4; i++) {
+		std::vector<std::pair<int, std::string>> icons = nanogui::loadImageDirectory(mNVGContext, "icons");
+		std::string resourcesFolderPath("./");
 
-		// 	image_data[i].resize(28, 28);
-		// 	mplot[i] = add<nanogui::MatrixPlot> ( "image" );
-		// 	mplot[i]->setPosition ( {50 + i * 100, 50} );
-		// 	mplot[i]->setSize ( {95, 95} );
-		// 	mplot[i]->setShadeColor ( nanogui::Color ( 64, 192, 160, 255 ) );
-		// 	mplot[i]->setBackgroundColor ( nanogui::Color ( 0, 0, 0, 0 ) );
-		// 	mplot[i]->values().resize ( image_data[i].rows(), image_data[i].cols() );
-		// }
-		/* temporary */
+		for (auto& icon : icons) {
 
-		glGenTextures(4, &m_textures[0]);
-		glBindTexture(GL_TEXTURE_2D, m_textures[0]);
+			GLTexture texture(icon.second);
+			auto data = texture.load(resourcesFolderPath + icon.second + ".png");
+			mImagesData.emplace_back(std::move(texture), std::move(data));
+
+		}
+
+		auto imageWindow = new nanogui::Window(this, "");
+		imageWindow->setPosition(Eigen::Vector2i(310, 15));
+		imageWindow->setLayout(new nanogui::GroupLayout());
+
+		auto imageView = new nanogui::ImageView(imageWindow, mImagesData[0].first.texture());
+		imageView->setVisible(true);
 
 		drawAll();
 		setVisible(true);
 
 		resizeEvent ( { glfw_window_width, glfw_window_height } );
 
+		performLayout();
 	}
 
-	~Manifold() { glDeleteTextures(4, &m_textures[0]); }
+	~Manifold() { }
 
 	virtual bool keyboardEvent ( int key, int scancode, int action, int modifiers ) {
 		if ( Screen::keyboardEvent ( key, scancode, action, modifiers ) )
@@ -191,10 +196,6 @@ class Manifold : public nanogui::Screen {
 		graph_flops->setHeader ( str );
 
 		console_panel->setValue ( log_str );
-
-		/* temporary */
-		// for (size_t i = 0; i < 4; i++)
-		// 	mplot[i]->values() = image_data[i];
 
 		// debug
 		std::stringstream ss;
@@ -238,7 +239,8 @@ class Manifold : public nanogui::Screen {
 	nanogui::Console *console_panel, *footer_message;
 	nanogui::MatrixPlot *mplot[4];
 
-	GLuint m_textures[4];
+	using imagesDataType = std::vector<std::pair<GLTexture, GLTexture::handleType>>;
+	imagesDataType mImagesData;
 
 	std::string log_str, footer_message_string;
 
@@ -253,16 +255,16 @@ int compute() {
 	size_t batch_size = 250;
 	double learning_rate = 1e-3;
 
-	NN nn(batch_size);
+	nn = new NN(batch_size);
 
-	nn.layers.push_back(new Linear(28 * 28, 256, batch_size));
-	nn.layers.push_back(new ReLU(256, 256, batch_size));
-	nn.layers.push_back(new Linear(256, 256, batch_size));
-	nn.layers.push_back(new ReLU(256, 256, batch_size));
-	nn.layers.push_back(new Linear(256, 100, batch_size));
-	nn.layers.push_back(new ReLU(100, 100, batch_size));
-	nn.layers.push_back(new Linear(100, 10, batch_size));
-	nn.layers.push_back(new Softmax(10, 10, batch_size));
+	nn->layers.push_back(new Linear(28 * 28, 256, batch_size));
+	nn->layers.push_back(new ReLU(256, 256, batch_size));
+	nn->layers.push_back(new Linear(256, 256, batch_size));
+	nn->layers.push_back(new ReLU(256, 256, batch_size));
+	nn->layers.push_back(new Linear(256, 100, batch_size));
+	nn->layers.push_back(new ReLU(100, 100, batch_size));
+	nn->layers.push_back(new Linear(100, 10, batch_size));
+	nn->layers.push_back(new Softmax(10, 10, batch_size));
 
 	//[60000, 784]
 	std::deque<datapoint> train_data =
@@ -274,12 +276,14 @@ int compute() {
 	for (size_t e = 0; e < epochs; e++) {
 
 		std::cout << "Epoch " << e + 1 << std::endl << std::endl;
-		nn.train(train_data, learning_rate, train_data.size() / batch_size);
+		nn->train(train_data, learning_rate, train_data.size() / batch_size);
 		if (quit) break; // still need to send this signal to the inner functions
 
-		nn.test(test_data);
+		nn->test(test_data);
 
 	}
+
+	delete nn;
 
 	return 0;
 
