@@ -54,7 +54,7 @@ void update_FPS ( nanogui::Graph* g ) {
 		last_time += interval;
 
 		// set header
-		char str[16];
+		char str[256];
 		int last_avg = 10;
 
 		sprintf ( str, "%3.1f FPS\n", g->values().tail(last_avg).mean() );
