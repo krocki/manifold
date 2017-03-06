@@ -2,7 +2,7 @@
 * @Author: Kamil Rocki
 * @Date:   2017-02-28 11:25:34
 * @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-03-04 22:40:17
+* @Last Modified time: 2017-03-05 19:45:56
 */
 
 #include <iostream>
@@ -81,7 +81,6 @@ class Manifold : public nanogui::Screen {
 		console ( "GLSL_VERSION: %s\n\n", glGetString ( GL_SHADING_LANGUAGE_VERSION ) );
 
 		console ( "glfwGetWindowSize(): %d x %d\n", glfw_window_width, glfw_window_height );
-
 
 		graphs = new nanogui::Window ( this, "" );
 		graphs->setPosition({5, size()[1] - graphs->size()[1] - 5});
