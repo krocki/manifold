@@ -2,7 +2,7 @@
 * @Author: Kamil Rocki
 * @Date:   2017-02-28 11:25:34
 * @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-03-06 10:11:38
+* @Last Modified time: 2017-03-06 10:14:48
 */
 
 #include <iostream>
@@ -86,8 +86,8 @@ class SurfacePlot : public nanogui::Screen {
 
 		for ( size_t i = 0; i < m_pointCount; i++ ) {
 
-			float x = rand_float(-1.0f, 1.0f);
-			float y = rand_float(-1.0f, 1.0f);
+			float x = rng.nextFloat() * 2.0f - 1.0f;//rand_float(-1.0f, 1.0f);
+			float y = rng.nextFloat() * 2.0f - 1.0f;//rand_float(-1.0f, 1.0f);
 			float z = hat ( x, y );
 
 			positions.col ( i ) << x, y, z;
