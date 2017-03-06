@@ -2,7 +2,7 @@
 * @Author: Kamil Rocki
 * @Date:   2017-02-28 11:25:34
 * @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-03-05 19:45:56
+* @Last Modified time: 2017-03-06 12:21:41
 */
 
 #include <iostream>
@@ -38,9 +38,9 @@
 //helpers
 #include <utils.h>
 
-#define SCREEN_DEFAULT_WIDTH 640
-#define SCREEN_DEFAULT_HEIGHT 480
-#define SCREEN_NAME "VAE"
+#define DEF_WIDTH 640
+#define DEF_HEIGHT 480
+#define SCREEN_NAME "vae"
 
 bool quit = false;
 
@@ -50,10 +50,8 @@ class Manifold : public nanogui::Screen {
 
   public:
 
-	Manifold ( bool fullscreen = false, int aliasing_samples = 8 ) :
+	Manifold ( ) : nanogui::Screen ( Eigen::Vector2i ( DEF_WIDTH, DEF_HEIGHT ), SCREEN_NAME ) {
 
-		nanogui::Screen ( Eigen::Vector2i ( SCREEN_DEFAULT_WIDTH, SCREEN_DEFAULT_HEIGHT ),
-		                  SCREEN_NAME, true, fullscreen, 8, 8, 24, 8, aliasing_samples, 3, 3 ) {
 		init();
 
 	}
@@ -101,7 +99,6 @@ class Manifold : public nanogui::Screen {
 
 		//FPS graph
 		graph_fps = graphs->add<nanogui::Graph> ( "" );
-		graph_fps->values().resize ( FPS.size() );
 		graph_fps->setGraphColor ( nanogui::Color ( 0, 160, 192, 255 ) );
 		graph_fps->setBackgroundColor ( nanogui::Color ( 0, 0, 0, 8 ) );
 		graph_fps->setSize ( {graph_width, graph_height } );
@@ -148,18 +145,24 @@ class Manifold : public nanogui::Screen {
 		// }
 		/* temporary */
 
+		glGenTextures(4, &m_textures[0]);
+		glBindTexture(GL_TEXTURE_2D, m_textures[0]);
+
+		drawAll();
+		setVisible(true);
+
 		resizeEvent ( { glfw_window_width, glfw_window_height } );
 
 	}
 
-	~Manifold() { }
+	~Manifold() { glDeleteTextures(4, &m_textures[0]); }
 
 	virtual bool keyboardEvent ( int key, int scancode, int action, int modifiers ) {
 		if ( Screen::keyboardEvent ( key, scancode, action, modifiers ) )
 			return true;
 
 		if ( key == GLFW_KEY_ESCAPE && action == GLFW_PRESS ) {
-			setVisible ( false );
+			setVisible ( false ); quit = true;
 			return true;
 		}
 
@@ -173,17 +176,13 @@ class Manifold : public nanogui::Screen {
 		return false;
 	}
 
-	virtual void draw ( NVGcontext *ctx ) {
+	void drawContents() {
 
-		graph_fps->values() = Eigen::Map<Eigen::VectorXf> ( FPS.data(), FPS.size() );
 		graph_cpu->values() = Eigen::Map<Eigen::VectorXf> ( cpu_util.data(), cpu_util.size() );
 		graph_flops->values() = Eigen::Map<Eigen::VectorXf> ( cpu_flops.data(), cpu_flops.size() );
 
 		char str[16];
 		int last_avg = 10;
-
-		sprintf ( str, "%3.1f FPS\n", graph_fps->values().block ( FPS.size() - 1 - last_avg, 0, last_avg, 1 ).mean() );
-		graph_fps->setHeader ( str );
 
 		sprintf ( str, "%5.1f ms\n", 1000.0 * graph_cpu->values().block ( cpu_util.size() - 1 - last_avg, 0, last_avg, 1 ).mean() );
 		graph_cpu->setHeader ( str );
@@ -204,9 +203,7 @@ class Manifold : public nanogui::Screen {
 		footer_message_string = ss.str();
 		footer_message->setValue ( footer_message_string );
 
-		/* Draw the user interface */
-		Screen::draw ( ctx );
-		update_FPS();
+		update_FPS(graph_fps);
 
 	}
 
@@ -236,12 +233,12 @@ class Manifold : public nanogui::Screen {
 
 	}
 
-	virtual void drawContents() { }
-
 	nanogui::Graph *graph_fps, *graph_cpu, *graph_flops;
 	nanogui::Window *console_window, *graphs;
 	nanogui::Console *console_panel, *footer_message;
 	nanogui::MatrixPlot *mplot[4];
+
+	GLuint m_textures[4];
 
 	std::string log_str, footer_message_string;
 
@@ -269,12 +266,10 @@ int compute() {
 
 	//[60000, 784]
 	std::deque<datapoint> train_data =
-	    MNISTImporter::importFromFile("data/mnist/train-images-idx3-ubyte",
-	                                  "data/mnist/train-labels-idx1-ubyte");
+	    MNISTImporter::importFromFile("data/mnist/train-images-idx3-ubyte", "data/mnist/train-labels-idx1-ubyte");
 	//[10000, 784]
 	std::deque<datapoint> test_data =
-	    MNISTImporter::importFromFile("data/mnist/t10k-images-idx3-ubyte",
-	                                  "data/mnist/t10k-labels-idx1-ubyte");
+	    MNISTImporter::importFromFile("data/mnist/t10k-images-idx3-ubyte", "data/mnist/t10k-labels-idx1-ubyte");
 
 	for (size_t e = 0; e < epochs; e++) {
 
@@ -292,34 +287,25 @@ int compute() {
 
 int main ( int /* argc */, char ** /* argv */ ) {
 
-	// launch compute thread
-	std::thread compute_thread(compute);
-
 	try {
+
+		// launch a compute thread
+		std::thread compute_thread(compute);
 
 		nanogui::init();
 
-		/* scoped variables */ {
-			nanogui::ref<Manifold> app = new Manifold();
-			app->drawAll();
-			app->setVisible ( true );
-			nanogui::mainloop ( 1 );
-		}
+		Manifold* screen = new Manifold();
+		nanogui::mainloop ( 1 );
 
-		quit = true;
-
+		delete screen;
 		nanogui::shutdown();
 		compute_thread.join();
 
 	} catch ( const std::runtime_error &e ) {
 
 		std::string error_msg = std::string ( "Caught a fatal error: " ) + std::string ( e.what() );
-#if defined(_WIN32)
-		MessageBoxA ( nullptr, error_msg.c_str(), NULL, MB_ICONERROR | MB_OK );
-#else
-		std::cerr << error_msg << std::endl;
-#endif
 		return -1;
+
 	}
 
 	return 0;

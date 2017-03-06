@@ -2,7 +2,7 @@
 * @Author: Kamil Rocki
 * @Date:   2017-02-28 11:25:34
 * @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-03-06 11:45:24
+* @Last Modified time: 2017-03-06 12:17:11
 */
 
 #include <iostream>
@@ -29,11 +29,11 @@
 #include "fps.h"
 #include "aux.h"
 
-#define POINT_SHADER_NAME "pass"
+#define POINT_SHADER_NAME "point_shader"
 #define POINT_FRAG_FILE "./src/glsl/surf_point.f.glsl"
 #define POINT_VERT_FILE "./src/glsl/surf_point.v.glsl"
 
-#define GRID_SHADER_NAME "pass"
+#define GRID_SHADER_NAME "grid_shader"
 #define GRID_FRAG_FILE "./src/glsl/surf_grid.f.glsl"
 #define GRID_VERT_FILE "./src/glsl/surf_grid.v.glsl"
 
@@ -41,7 +41,7 @@
 #define DEF_HEIGHT 480
 #define SCREEN_NAME "Plot"
 
-#define DEF_NUM_POINTS 10000
+#define DEF_NUM_POINTS 100000
 
 class SurfacePlot : public nanogui::Screen {
 
