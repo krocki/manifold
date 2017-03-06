@@ -2,7 +2,7 @@
 * @Author: Kamil Rocki
 * @Date:   2017-02-28 11:25:34
 * @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-03-06 11:35:00
+* @Last Modified time: 2017-03-06 11:45:24
 */
 
 #include <iostream>
@@ -112,8 +112,10 @@ class SurfacePlot : public nanogui::Screen {
 
 		for ( size_t i = 0; i < m_pointCount; i++ ) {
 
-			float x = rng.nextFloat() * 2.0f - 1.0f;//rand_float(-1.0f, 1.0f);
-			float y = rng.nextFloat() * 2.0f - 1.0f;//rand_float(-1.0f, 1.0f);
+			// float x = rand_float(-1.0f, 1.0f);;
+			float x = rng.nextFloat() * 2.0f - 1.0f;
+			// float y = rand_float(-1.0f, 1.0f);
+			float y = rng.nextFloat() * 2.0f - 1.0f;
 			float z = hat ( x, y );
 
 			positions.col ( i ) << x, y, z;
@@ -172,10 +174,7 @@ class SurfacePlot : public nanogui::Screen {
 		m_pointCountSlider->setValue((std::log((float) m_pointCount) / std::log(2.f) - 5) / 15);
 	}
 
-	void framebufferSizeChanged() {
-
-
-	}
+	void framebufferSizeChanged() { m_arcball.setSize(mSize); }
 
 	void drawContents() {
 
@@ -188,7 +187,9 @@ class SurfacePlot : public nanogui::Screen {
 		proj = nanogui::frustum(-fW, fW, -fH, fH, near, far);
 
 		model.setIdentity();
-		model = nanogui::translate(Eigen::Vector3f(0.0f, 0.0f, -3.0f));
+		model = m_arcball.matrix() * model;
+		model = nanogui::translate(Eigen::Vector3f(0.0f, 0.0f, -3.0f)) * model;
+
 
 		/* Render the point set */
 		Eigen::Matrix4f mvp = proj * view * model;
@@ -199,6 +200,7 @@ class SurfacePlot : public nanogui::Screen {
 		m_pointShader->drawArray(GL_POINTS, 0, m_pointCount);
 
 		bool drawGrid = m_gridCheckBox->checked();
+
 		if (drawGrid) {
 			m_gridShader->bind();
 			m_gridShader->setUniform("mvp", mvp);
@@ -211,6 +213,22 @@ class SurfacePlot : public nanogui::Screen {
 		// perf stats
 		update_FPS(graph_fps);
 
+	}
+
+	bool mouseMotionEvent(const Eigen::Vector2i &p, const Eigen::Vector2i &rel, int button, int modifiers) {
+		if (!Screen::mouseMotionEvent(p, rel, button, modifiers))
+			m_arcball.motion(p);
+		return true;
+	}
+
+	bool mouseButtonEvent(const Eigen::Vector2i &p, int button, bool down, int modifiers) {
+
+		if (!Screen::mouseButtonEvent(p, button, down, modifiers)) {
+			if (button == GLFW_MOUSE_BUTTON_1)
+				m_arcball.button(p, down);
+		}
+
+		return true;
 	}
 
 	virtual bool keyboardEvent ( int key, int scancode, int action, int modifiers ) {
@@ -243,6 +261,8 @@ class SurfacePlot : public nanogui::Screen {
 	nanogui::Graph *graph_fps;
 	nanogui::Slider *m_pointCountSlider;
 	nanogui::TextBox *m_pointCountBox;
+
+	nanogui::Arcball m_arcball;
 
 	// other params
 	// # of points, # of grid lines
