@@ -2,7 +2,7 @@
 * @Author: Kamil Rocki
 * @Date:   2017-02-28 11:25:34
 * @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-03-06 22:17:30
+* @Last Modified time: 2017-03-07 10:42:53
 */
 
 #include <iostream>
@@ -50,7 +50,7 @@ bool quit = false;
 
 NN* nn;
 
-#define N 250
+#define N 100
 GLuint mTextureId[N];
 int w = 28;
 int h = 28;
@@ -91,7 +91,6 @@ class Manifold : public nanogui::Screen {
 		console ( "GL_RENDERER: %s\n", glGetString ( GL_RENDERER ) );
 		console ( "GL_VERSION: %s\n", glGetString ( GL_VERSION ) );
 		console ( "GLSL_VERSION: %s\n\n", glGetString ( GL_SHADING_LANGUAGE_VERSION ) );
-
 		console ( "glfwGetWindowSize(): %d x %d\n", glfw_window_width, glfw_window_height );
 
 		//NN loss graph
@@ -101,7 +100,6 @@ class Manifold : public nanogui::Screen {
 
 		graphs = new nanogui::Window ( this, "" );
 		graphs->setPosition({5, size()[1] - graphs->size()[1] - 5});
-		graphs->setPosition ( {5, size()[1] - graphs->size()[1] - 5} );
 		nanogui::GridLayout *layout = new nanogui::GridLayout(
 		    nanogui::Orientation::Horizontal, 1, nanogui::Alignment::Middle, 1, 1);
 		layout->setColAlignment( { nanogui::Alignment::Maximum, nanogui::Alignment::Fill });
@@ -136,10 +134,19 @@ class Manifold : public nanogui::Screen {
 		graph_flops->setBackgroundColor ( nanogui::Color ( 0, 0, 0, 8 ) );
 		graph_flops->setSize ( {graph_width, graph_height } );
 
+		auto chk_windows = new nanogui::Window(this, "");
+		chk_windows->setPosition({5, 30 });
+		chk_windows->setSize({25, 100 });
+		nanogui::GridLayout *hlayout = new nanogui::GridLayout(
+		    nanogui::Orientation::Horizontal, 1, nanogui::Alignment::Middle, 1, 1);
+		hlayout->setColAlignment( { nanogui::Alignment::Maximum, nanogui::Alignment::Fill });
+		hlayout->setSpacing(0, 5);
+		chk_windows->setLayout(hlayout);
+		chk_windows->setTheme ( t );
+
 		//inputs checkbox
-		m_showInputsCheckBox = new nanogui::CheckBox(this, "show xs");
+		m_showInputsCheckBox = new nanogui::CheckBox(chk_windows, "show xs");
 		m_showInputsCheckBox->setCallback([&](bool) { });
-		m_showInputsCheckBox->setPosition( {30, 30 } );
 
 		show_console = false;
 
@@ -157,6 +164,7 @@ class Manifold : public nanogui::Screen {
 		glGenTextures(N, mTextureId);
 
 		m_showInputsCheckBox->setChecked(true);
+		m_showInputsCheckBox->setFontSize ( 12 );
 
 		rgba_image.resize(w, h);
 
@@ -167,12 +175,18 @@ class Manifold : public nanogui::Screen {
 
 		}
 
-		auto imageWindow2 = new nanogui::Window(this, "");
-		imageWindow2->setPosition(Eigen::Vector2i(120, 15));
-		imageWindow2->setSize(Eigen::Vector2i(260, 400));
-		imgPanel = new nanogui::ImagePanel(imageWindow2, 16, 3, 5);
-		imgPanel->setSize(Eigen::Vector2i(260, 400));
+		auto imageWindow2 = new nanogui::Window(this, "inputs");
+		imageWindow2->setPosition(Eigen::Vector2i(5, 50));
+		imgPanel = new nanogui::ImagePanel(imageWindow2, 16, 3, 5, {10, 10});
 		imgPanel->setImages(mImagesData);
+		imgPanel->setPosition({0, 20});
+		Eigen::Vector2i w_size = imgPanel->preferredSize() + Eigen::Vector2i({0, 20});
+		imageWindow2->setSize(w_size);
+		nanogui::Theme *th = imageWindow2->theme();
+		th->mWindowFillUnfocused = nanogui::Color ( 0, 0, 0, 32 );
+		th->mWindowFillFocused = nanogui::Color ( 32, 32, 32, 32 );
+		th->mWindowHeaderSepTop = nanogui::Color ( 0, 0, 0, 32 );
+		imageWindow2->setTheme ( th );
 
 		drawAll();
 		setVisible(true);
@@ -323,7 +337,7 @@ int compute() {
 	// TODO: option to suspend or kill this thread from GUI
 
 	size_t epochs = 100;
-	size_t batch_size = 250;
+	size_t batch_size = 100;
 	double learning_rate = 1e-3;
 
 	nn = new NN(batch_size);
