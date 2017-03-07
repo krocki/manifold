@@ -2,7 +2,7 @@
 * @Author: Kamil Rocki
 * @Date:   2017-02-28 11:25:34
 * @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-03-06 20:39:28
+* @Last Modified time: 2017-03-06 22:17:30
 */
 
 #include <iostream>
@@ -54,6 +54,11 @@ NN* nn;
 GLuint mTextureId[N];
 int w = 28;
 int h = 28;
+
+int nvgCreateImageA(NVGcontext* ctx, int w, int h, int imageFlags, const unsigned char* data) {
+
+	return nvgInternalParams(ctx)->renderCreateTexture(nvgInternalParams(ctx)->userPtr, NVG_TEXTURE_ALPHA, w, h, imageFlags, data);
+}
 
 class Manifold : public nanogui::Screen {
 
@@ -151,11 +156,13 @@ class Manifold : public nanogui::Screen {
 
 		glGenTextures(N, mTextureId);
 
+		m_showInputsCheckBox->setChecked(true);
+
 		rgba_image.resize(w, h);
 
 		for (size_t i = 0; i < N; i++) {
 
-			int im = nvgCreateImageRGBA(nvgContext(), w, h, NVG_IMAGE_NEAREST, (unsigned char*) rgba_image.data());
+			int im = nvgCreateImageA(nvgContext(), w, h, NVG_IMAGE_NEAREST, (unsigned char*) rgba_image.data());
 			mImagesData.emplace_back(std::pair<int, std::string>(im, ""));
 
 		}
@@ -209,7 +216,8 @@ class Manifold : public nanogui::Screen {
 					for (int x = 0; x < w; ++x) {
 
 						unsigned char color = (unsigned char) (float_image(x, y) * 255.0f);
-						rgba_image(x, y) = ((color << 24) | (color << 16) | (color << 8) | (0xFF << 0));
+						rgba_image(x, y) = color;
+						//if RGBA -> rgba_image(x, y) = ((color << 24) | (color << 16) | (color << 8) | (0xFF << 0));
 					}
 				}
 
@@ -304,7 +312,7 @@ class Manifold : public nanogui::Screen {
 
 	std::string log_str, footer_message_string;
 
-	Eigen::MatrixXi rgba_image;
+	Eigen::Matrix<unsigned char, Eigen::Dynamic, Eigen::Dynamic> rgba_image;
 
 	bool show_console;
 
