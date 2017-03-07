@@ -2,7 +2,7 @@
 * @Author: kmrocki
 * @Date:   2016-02-24 15:28:10
 * @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-03-06 12:37:44
+* @Last Modified time: 2017-03-06 20:31:29
 */
 
 #ifndef __NN_H__
@@ -17,6 +17,9 @@ class NN {
   public:
 
 	std::deque<Layer*> layers;
+	float current_loss = 0.0f;
+
+	bool clock = false;
 
 	const size_t batch_size;
 
@@ -95,8 +98,10 @@ class NN {
 			//forward activations
 			forward(batch);
 
-			double loss = cross_entropy(layers[layers.size() - 1]->y, targets);
-			std::cout << "[" << ii + 1 << "/" << iterations << "] Loss = " << loss << std::endl;
+			current_loss = cross_entropy(layers[layers.size() - 1]->y, targets);
+			std::cout << "[" << ii + 1 << "/" << iterations << "] Loss = " << current_loss << std::endl;
+
+			clock = true;
 
 			//backprogagation
 			backward(targets);

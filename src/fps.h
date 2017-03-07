@@ -2,7 +2,7 @@
 * @Author: kmrocki@us.ibm.com
 * @Date:   2017-03-03 16:20:38
 * @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-03-06 10:41:20
+* @Last Modified time: 2017-03-06 20:32:18
 */
 
 // FPS
@@ -67,4 +67,29 @@ void update_FPS ( nanogui::Graph* g ) {
 		g->setHeader ( str );
 
 	}
+}
+
+#define HISTORY_SIZE 250
+
+void update_graph ( nanogui::Graph* g, float new_val ) {
+
+	if (g->values().rows() < HISTORY_SIZE) {
+
+		g->values() = Eigen::VectorXf(HISTORY_SIZE);
+		g->values().setZero();
+
+	}
+
+	// shift left and update
+	g->values().head(g->values().size() - 1) = g->values().tail(g->values().size() - 1);
+	g->values().tail(1)(0) = new_val;
+
+	// set header
+	char str[256];
+	int last_avg = 10;
+
+	sprintf ( str, "%3.1f\n", g->values().tail(last_avg).mean() );
+
+	g->setHeader ( str );
+
 }
