@@ -2,7 +2,7 @@
 * @Author: Kamil Rocki
 * @Date:   2017-02-28 11:25:34
 * @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-03-07 10:42:53
+* @Last Modified time: 2017-03-07 14:45:57
 */
 
 #include <iostream>
@@ -12,6 +12,7 @@
 #include <cstdio>
 #include <iomanip>
 #include <thread>
+#include <unistd.h>
 
 #include <nanogui/glutil.h>
 #include <nanogui/screen.h>
@@ -42,8 +43,8 @@
 #include <utils.h>
 #include <gl/tex.h>
 
-#define DEF_WIDTH 640
-#define DEF_HEIGHT 480
+#define DEF_WIDTH 800
+#define DEF_HEIGHT 600
 #define SCREEN_NAME "vae"
 
 bool quit = false;
@@ -51,7 +52,8 @@ bool quit = false;
 NN* nn;
 
 #define N 100
-GLuint mTextureId[N];
+#define L 64
+
 int w = 28;
 int h = 28;
 
@@ -91,7 +93,6 @@ class Manifold : public nanogui::Screen {
 		console ( "GL_RENDERER: %s\n", glGetString ( GL_RENDERER ) );
 		console ( "GL_VERSION: %s\n", glGetString ( GL_VERSION ) );
 		console ( "GLSL_VERSION: %s\n\n", glGetString ( GL_SHADING_LANGUAGE_VERSION ) );
-		console ( "glfwGetWindowSize(): %d x %d\n", glfw_window_width, glfw_window_height );
 
 		//NN loss graph
 		graph_loss = new nanogui::Graph ( this, "" );
@@ -135,7 +136,7 @@ class Manifold : public nanogui::Screen {
 		graph_flops->setSize ( {graph_width, graph_height } );
 
 		auto chk_windows = new nanogui::Window(this, "");
-		chk_windows->setPosition({5, 30 });
+		chk_windows->setPosition({5, 25 });
 		chk_windows->setSize({25, 100 });
 		nanogui::GridLayout *hlayout = new nanogui::GridLayout(
 		    nanogui::Orientation::Horizontal, 1, nanogui::Alignment::Middle, 1, 1);
@@ -147,6 +148,52 @@ class Manifold : public nanogui::Screen {
 		//inputs checkbox
 		m_showInputsCheckBox = new nanogui::CheckBox(chk_windows, "show xs");
 		m_showInputsCheckBox->setCallback([&](bool) { });
+
+		while (!nn) { std::cout << "Waiting for compute thread...\n"; usleep(10000); }
+
+		rgba_image.resize(w, h);
+
+		for (size_t i = 0; i < N; i++) {
+
+			int im = nvgCreateImageA(nvgContext(), w, h, NVG_IMAGE_NEAREST, (unsigned char*) nullptr);
+			mImagesData.emplace_back(std::pair<int, std::string>(im, ""));
+
+		}
+
+		for (size_t i = 0; i < L; i++) {
+
+			layer_image[i].resize(w, h);
+			int l_im = nvgCreateImageA(nvgContext(), w, h, NVG_IMAGE_NEAREST, (unsigned char*) nullptr);
+			layerImagesData.emplace_back(std::pair<int, std::string>(l_im, ""));
+
+		}
+
+		auto imageWindow2 = new nanogui::Window(this, "inputs");
+		imageWindow2->setPosition(Eigen::Vector2i(5, 45));
+		imgPanel = new nanogui::ImagePanel(imageWindow2, 16, 3, 5, {10, 10});
+		imgPanel->setImages(mImagesData);
+		imgPanel->setPosition({0, 20});
+
+		Eigen::Vector2i w_size = imgPanel->preferredSize() + Eigen::Vector2i({0, 20});
+		imageWindow2->setSize(w_size);
+		nanogui::Theme *th = imageWindow2->theme();
+		th->mWindowFillUnfocused = nanogui::Color ( 0, 0, 0, 32 );
+		th->mWindowFillFocused = nanogui::Color ( 32, 32, 32, 32 );
+		th->mWindowHeaderSepTop = nanogui::Color ( 0, 0, 0, 32 );
+		imageWindow2->setTheme ( th );
+
+		auto nn_window = new nanogui::Window(this, "Layers");
+		nn_window->setPosition({255, 15 });
+		nn_imgPanel = new nanogui::ImagePanel(nn_window, 60, 2, 3, {8, 8});
+		nn_imgPanel->setImages(layerImagesData);
+		nn_imgPanel->setPosition({0, 20});
+		nanogui::Theme *th_nn = nn_imgPanel->theme();
+		th_nn->mWindowFillUnfocused = nanogui::Color ( 0, 0, 0, 32 );
+		th_nn->mWindowFillFocused = nanogui::Color ( 0, 0, 0, 128 );;
+		nn_imgPanel->setTheme(th_nn);
+
+		w_size = nn_imgPanel->preferredSize() + Eigen::Vector2i({0, 20});
+		nn_window->setSize(w_size);
 
 		show_console = false;
 
@@ -161,32 +208,8 @@ class Manifold : public nanogui::Screen {
 		footer_message->setFontSize ( 12 );
 		footer_message_string = "";
 
-		glGenTextures(N, mTextureId);
-
 		m_showInputsCheckBox->setChecked(true);
 		m_showInputsCheckBox->setFontSize ( 12 );
-
-		rgba_image.resize(w, h);
-
-		for (size_t i = 0; i < N; i++) {
-
-			int im = nvgCreateImageA(nvgContext(), w, h, NVG_IMAGE_NEAREST, (unsigned char*) rgba_image.data());
-			mImagesData.emplace_back(std::pair<int, std::string>(im, ""));
-
-		}
-
-		auto imageWindow2 = new nanogui::Window(this, "inputs");
-		imageWindow2->setPosition(Eigen::Vector2i(5, 50));
-		imgPanel = new nanogui::ImagePanel(imageWindow2, 16, 3, 5, {10, 10});
-		imgPanel->setImages(mImagesData);
-		imgPanel->setPosition({0, 20});
-		Eigen::Vector2i w_size = imgPanel->preferredSize() + Eigen::Vector2i({0, 20});
-		imageWindow2->setSize(w_size);
-		nanogui::Theme *th = imageWindow2->theme();
-		th->mWindowFillUnfocused = nanogui::Color ( 0, 0, 0, 32 );
-		th->mWindowFillFocused = nanogui::Color ( 32, 32, 32, 32 );
-		th->mWindowHeaderSepTop = nanogui::Color ( 0, 0, 0, 32 );
-		imageWindow2->setTheme ( th );
 
 		drawAll();
 		setVisible(true);
@@ -199,6 +222,7 @@ class Manifold : public nanogui::Screen {
 	~Manifold() { }
 
 	virtual bool keyboardEvent ( int key, int scancode, int action, int modifiers ) {
+
 		if ( Screen::keyboardEvent ( key, scancode, action, modifiers ) )
 			return true;
 
@@ -224,36 +248,39 @@ class Manifold : public nanogui::Screen {
 			for (size_t i = 0; i < N; i++) {
 
 				Eigen::MatrixXf float_image = nn->layers[0]->x.col(i);
+
 				float_image.resize(w, h);
+				float_image *= 255.0f;
 
-				for (int y = 0; y < h; ++y) {
-					for (int x = 0; x < w; ++x) {
-
-						unsigned char color = (unsigned char) (float_image(x, y) * 255.0f);
-						rgba_image(x, y) = color;
-						//if RGBA -> rgba_image(x, y) = ((color << 24) | (color << 16) | (color << 8) | (0xFF << 0));
-					}
-				}
-
+				rgba_image = float_image.cast<unsigned char>();
 				nvgUpdateImage(nvgContext(), mImagesData[i].first, (unsigned char*) rgba_image.data());
 
 			}
 		}
 	}
 
+	void draw_layers() {
+
+		if (nn) {
+
+			for (size_t i = 0; i < 1; i++) {
+
+				for (size_t j = 0; j < L; j++) {
+
+					Eigen::MatrixXf float_image = ((Linear*)(nn->layers[i]))->W.row(j);
+					float_image.resize(w, h);
+					float l2 = 1.0;//float_image.norm();
+					float_image = float_image.unaryExpr([&](float x) { return 255.0f * (x / l2 + 0.5f); });
+					layer_image[j] = float_image.cast<unsigned char>();
+					nvgUpdateImage(nvgContext(), layerImagesData[j].first, (unsigned char*) layer_image[j].data());
+
+				}
+
+			}
+		}
+	}
+
 	void drawContents() {
-
-		graph_cpu->values() = Eigen::Map<Eigen::VectorXf> ( cpu_util.data(), cpu_util.size() );
-		graph_flops->values() = Eigen::Map<Eigen::VectorXf> ( cpu_flops.data(), cpu_flops.size() );
-
-		char str[16];
-		int last_avg = 10;
-
-		sprintf ( str, "%5.1f ms\n", 1000.0 * graph_cpu->values().block ( cpu_util.size() - 1 - last_avg, 0, last_avg, 1 ).mean() );
-		graph_cpu->setHeader ( str );
-
-		sprintf ( str, "%5.1f GF/s\n", graph_flops->values().block ( cpu_flops.size() - 1 - last_avg, 0, last_avg, 1 ).mean() );
-		graph_flops->setHeader ( str );
 
 		console_window->setVisible(show_console);
 		console_panel->setValue ( log_str );
@@ -275,7 +302,11 @@ class Manifold : public nanogui::Screen {
 			imgPanel->setVisible(false);
 		}
 
+		draw_layers();
+
 		update_FPS(graph_fps);
+		update_graph (graph_cpu, cpu_util, 1000.0f, "ms" );
+		update_graph (graph_flops, cpu_flops, 1.0f, "GF/s"  );
 
 		if (nn)
 			if (nn->clock) {
@@ -291,12 +322,13 @@ class Manifold : public nanogui::Screen {
 		graphs->setPosition ( {1, size[1] - 50} );
 
 		// loss
-		graph_loss->setSize ( {size[0] - 108, 45 } );
+		graph_loss->setSize ( {size[0] - 109, 45 } );
 		graph_loss->setPosition( {105, size[1] - 48 } );
 
 		// console
 		int console_width = 250;
-		int console_height = size[1] - 10;
+		int console_height = size[1] - 55;
+
 		console_window->setPosition ( {size[0] - console_width - 5, 5} );
 		console_window->setSize ( {console_width, console_height} );
 		console_panel->setPosition ( {5, 5} );
@@ -306,6 +338,7 @@ class Manifold : public nanogui::Screen {
 		// footer
 		int footer_height = 40;
 		int footer_width = 550;
+
 		footer_message->setPosition ( {5, 5} );
 		footer_message->setSize ( {footer_width, footer_height} );
 
@@ -322,11 +355,13 @@ class Manifold : public nanogui::Screen {
 
 	using imagesDataType = std::vector<std::pair<int, std::string>>;
 	imagesDataType mImagesData;
-	nanogui::ImagePanel * imgPanel;
+	imagesDataType layerImagesData;
+	nanogui::ImagePanel *imgPanel, *nn_imgPanel;
 
 	std::string log_str, footer_message_string;
 
 	Eigen::Matrix<unsigned char, Eigen::Dynamic, Eigen::Dynamic> rgba_image;
+	Eigen::Matrix<unsigned char, Eigen::Dynamic, Eigen::Dynamic> layer_image[L];
 
 	bool show_console;
 
@@ -342,13 +377,11 @@ int compute() {
 
 	nn = new NN(batch_size);
 
-	nn->layers.push_back(new Linear(28 * 28, 256, batch_size));
-	nn->layers.push_back(new ReLU(256, 256, batch_size));
-	nn->layers.push_back(new Linear(256, 256, batch_size));
-	nn->layers.push_back(new ReLU(256, 256, batch_size));
-	nn->layers.push_back(new Linear(256, 100, batch_size));
-	nn->layers.push_back(new ReLU(100, 100, batch_size));
-	nn->layers.push_back(new Linear(100, 10, batch_size));
+	nn->layers.push_back(new Linear(28 * 28, 64, batch_size));
+	nn->layers.push_back(new Sigmoid(64, 64, batch_size));
+	// nn->layers.push_back(new Linear(64, 25, batch_size));
+	// nn->layers.push_back(new ReLU(25, 25, batch_size));
+	nn->layers.push_back(new Linear(64, 10, batch_size));
 	nn->layers.push_back(new Softmax(10, 10, batch_size));
 
 	//[60000, 784]
