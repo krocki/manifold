@@ -2,7 +2,7 @@
 * @Author: kmrocki
 * @Date:   2016-02-24 10:47:03
 * @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-03-03 15:26:25
+* @Last Modified time: 2017-03-07 20:15:11
 */
 
 #ifndef __NN_UTILS_H__
@@ -108,7 +108,7 @@ Matrix softmax(Matrix& x) {
 	return y;
 }
 
-float cross_entropy(Matrix predictions, Matrix targets) {
+float cross_entropy(Matrix& predictions, Matrix& targets) {
 
 	float ce = 0.0;
 	Matrix error(predictions.rows(), predictions.cols());
@@ -158,10 +158,9 @@ void linspace(Eigen::VectorXi& m, int range_min, int range_max) {
 
 }
 
-Matrix make_batch(std::deque<datapoint> data, Eigen::VectorXi& random_numbers) {
+void make_batch(Matrix& batch, std::deque<datapoint>& data, Eigen::VectorXi& random_numbers) {
 
 	size_t batch_size = random_numbers.rows();
-	Matrix batch(data[0].x.rows(), batch_size);
 
 	for (size_t i = 0; i < batch_size; i++) {
 
@@ -169,22 +168,18 @@ Matrix make_batch(std::deque<datapoint> data, Eigen::VectorXi& random_numbers) {
 
 	}
 
-	return batch;
 }
 
-Matrix make_targets(std::deque<datapoint> data, Eigen::VectorXi& random_numbers, size_t classes) {
+void make_targets(Matrix& targets, Matrix& encoding, std::deque<datapoint>& data, Eigen::VectorXi& random_numbers) {
 
 	size_t batch_size = random_numbers.rows();
-	Matrix encoding = Matrix::Identity(classes, classes);
-	Matrix batch(classes, batch_size);
 
 	for (size_t i = 0; i < (size_t) batch_size; i++) {
 
-		batch.col(i) = encoding.col(data[random_numbers(i)].y);
+		targets.col(i) = encoding.col(data[random_numbers(i)].y);
 
 	}
 
-	return batch;
 }
 
 Eigen::VectorXi colwise_max_index(Matrix& m) {
@@ -212,7 +207,7 @@ Eigen::VectorXi colwise_max_index(Matrix& m) {
 	return indices;
 }
 
-size_t count_zeros(Eigen::VectorXi m) {
+size_t count_zeros(Eigen::VectorXi& m) {
 
 	size_t zeros = 0;
 
