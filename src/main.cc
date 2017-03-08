@@ -2,7 +2,7 @@
 * @Author: Kamil Rocki
 * @Date:   2017-02-28 11:25:34
 * @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-03-07 14:45:57
+* @Last Modified time: 2017-03-07 19:59:58
 */
 
 #include <iostream>
@@ -58,7 +58,7 @@ int h = 28;
 
 class Manifold : public nanogui::Screen {
 
-public:
+  public:
 
 	Manifold ( ) : nanogui::Screen ( Eigen::Vector2i ( DEF_WIDTH, DEF_HEIGHT ), SCREEN_NAME ) {
 
@@ -438,10 +438,6 @@ public:
 Manifold* screen;
 
 int compute() {
-
-	// TODO: option to suspend or kill this thread from GUI
-
-	//screen->console ( "Sync point 1: compute() thread started\n");
 
 	size_t epochs = 100;
 	size_t batch_size = 250;
