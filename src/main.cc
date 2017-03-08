@@ -18,6 +18,7 @@
 #include <nanogui/screen.h>
 #include <nanogui/window.h>
 #include <nanogui/layout.h>
+#include <nanogui/label.h>
 #include <nanogui/theme.h>
 #include <nanogui/graph.h>
 #include <nanogui/matrix.h>
@@ -43,28 +44,21 @@
 #include <utils.h>
 #include <gl/tex.h>
 
-#define DEF_WIDTH 800
-#define DEF_HEIGHT 600
+#define DEF_WIDTH 1200
+#define DEF_HEIGHT 740
 #define SCREEN_NAME "vae"
-
-bool quit = false;
 
 NN* nn;
 
-#define N 100
-#define L 64
+#define N 250
+#define L 100
 
 int w = 28;
 int h = 28;
 
-int nvgCreateImageA(NVGcontext* ctx, int w, int h, int imageFlags, const unsigned char* data) {
-
-	return nvgInternalParams(ctx)->renderCreateTexture(nvgInternalParams(ctx)->userPtr, NVG_TEXTURE_ALPHA, w, h, imageFlags, data);
-}
-
 class Manifold : public nanogui::Screen {
 
-  public:
+public:
 
 	Manifold ( ) : nanogui::Screen ( Eigen::Vector2i ( DEF_WIDTH, DEF_HEIGHT ), SCREEN_NAME ) {
 
@@ -79,11 +73,14 @@ class Manifold : public nanogui::Screen {
 		va_start ( arg, pMsg );
 		std::vsnprintf ( buffer, 4096, pMsg, arg );
 		va_end ( arg );
+		log_str.append( "[" + to_string_with_precision(time_since_start()) + "]   ");
 		log_str.append ( buffer );
 
 	}
 
 	void init() {
+
+		console ( "init()\n");
 
 		int glfw_window_width, glfw_window_height;
 
@@ -107,6 +104,7 @@ class Manifold : public nanogui::Screen {
 		layout->setSpacing(0, 5);
 		graphs->setLayout(layout);
 		nanogui::Theme *t = graphs->theme();
+
 		t->mWindowFillUnfocused = nanogui::Color (0, 0, 0, 0 );
 		t->mWindowFillFocused = nanogui::Color (128, 128, 128, 16 );
 		t->mDropShadow = nanogui::Color (0, 0, 0, 0 );
@@ -135,21 +133,38 @@ class Manifold : public nanogui::Screen {
 		graph_flops->setBackgroundColor ( nanogui::Color ( 0, 0, 0, 8 ) );
 		graph_flops->setSize ( {graph_width, graph_height } );
 
+		// FlOP/s
+		graph_bytes = graphs->add<nanogui::Graph> ( "" );
+		graph_bytes->values().resize ( cpu_reads.size() );
+		graph_bytes->setGraphColor ( nanogui::Color ( 255, 192, 0, 255 ) );
+		graph_bytes->setBackgroundColor ( nanogui::Color ( 0, 0, 0, 8 ) );
+		graph_bytes->setSize ( {graph_width, graph_height } );
+
 		auto chk_windows = new nanogui::Window(this, "");
-		chk_windows->setPosition({5, 25 });
-		chk_windows->setSize({25, 100 });
+		chk_windows->setPosition({5, 5});
 		nanogui::GridLayout *hlayout = new nanogui::GridLayout(
-		    nanogui::Orientation::Horizontal, 1, nanogui::Alignment::Middle, 1, 1);
+		    nanogui::Orientation::Horizontal, 4, nanogui::Alignment::Middle, 1, 1);
 		hlayout->setColAlignment( { nanogui::Alignment::Maximum, nanogui::Alignment::Fill });
 		hlayout->setSpacing(0, 5);
 		chk_windows->setLayout(hlayout);
 		chk_windows->setTheme ( t );
 
+		// debug footer message
+		footer_message = new nanogui::Label ( chk_windows, "" );
+
 		//inputs checkbox
-		m_showInputsCheckBox = new nanogui::CheckBox(chk_windows, "show xs");
+		m_showInputsCheckBox = new nanogui::CheckBox(chk_windows, "inputs");
 		m_showInputsCheckBox->setCallback([&](bool) { });
 
+		m_showWeightsCheckBox = new nanogui::CheckBox(chk_windows, "net");
+		m_showWeightsCheckBox->setCallback([&](bool) { });
+
+		m_showConsole = new nanogui::CheckBox(chk_windows, "console");
+		m_showConsole->setCallback([&](bool) { });
+
 		while (!nn) { std::cout << "Waiting for compute thread...\n"; usleep(10000); }
+
+		console ( "Sync point 1: GUI Window created\n");
 
 		rgba_image.resize(w, h);
 
@@ -168,9 +183,9 @@ class Manifold : public nanogui::Screen {
 
 		}
 
-		auto imageWindow2 = new nanogui::Window(this, "inputs");
-		imageWindow2->setPosition(Eigen::Vector2i(5, 45));
-		imgPanel = new nanogui::ImagePanel(imageWindow2, 16, 3, 5, {10, 10});
+		imageWindow2 = new nanogui::Window(this, "inputs");
+		imageWindow2->setPosition(Eigen::Vector2i(25, 95));
+		imgPanel = new nanogui::ImagePanel(imageWindow2, 16, 3, 5, {10, 25});
 		imgPanel->setImages(mImagesData);
 		imgPanel->setPosition({0, 20});
 
@@ -182,9 +197,9 @@ class Manifold : public nanogui::Screen {
 		th->mWindowHeaderSepTop = nanogui::Color ( 0, 0, 0, 32 );
 		imageWindow2->setTheme ( th );
 
-		auto nn_window = new nanogui::Window(this, "Layers");
-		nn_window->setPosition({255, 15 });
-		nn_imgPanel = new nanogui::ImagePanel(nn_window, 60, 2, 3, {8, 8});
+		nn_window = new nanogui::Window(this, "Layers");
+		nn_window->setPosition({245, 25 });
+		nn_imgPanel = new nanogui::ImagePanel(nn_window, 60, 2, 4, {10, 10});
 		nn_imgPanel->setImages(layerImagesData);
 		nn_imgPanel->setPosition({0, 20});
 		nanogui::Theme *th_nn = nn_imgPanel->theme();
@@ -195,21 +210,21 @@ class Manifold : public nanogui::Screen {
 		w_size = nn_imgPanel->preferredSize() + Eigen::Vector2i({0, 20});
 		nn_window->setSize(w_size);
 
-		show_console = false;
-
 		console_window = new nanogui::Window ( this, "" );
 
 		// console_window->setLayout ( new GroupLayout ( 5, 5, 0, 0 ) );
 		console_panel = new nanogui::Console ( console_window );
 		console_panel->setFontSize ( 12 );
 
-		// debug footer message
-		footer_message = new nanogui::Console ( this );
 		footer_message->setFontSize ( 12 );
 		footer_message_string = "";
 
+		m_showConsole->setChecked(true);
+		m_showConsole->setFontSize ( 12 );
 		m_showInputsCheckBox->setChecked(true);
 		m_showInputsCheckBox->setFontSize ( 12 );
+		m_showWeightsCheckBox->setChecked(true);
+		m_showWeightsCheckBox->setFontSize ( 12 );
 
 		drawAll();
 		setVisible(true);
@@ -217,6 +232,9 @@ class Manifold : public nanogui::Screen {
 		resizeEvent ( { glfw_window_width, glfw_window_height } );
 
 		performLayout();
+
+		console ( "GUI init completed\n");
+
 	}
 
 	~Manifold() { }
@@ -227,16 +245,27 @@ class Manifold : public nanogui::Screen {
 			return true;
 
 		if ( key == GLFW_KEY_ESCAPE && action == GLFW_PRESS ) {
-			setVisible ( false ); quit = true;
+			setVisible ( false ); nn->quit = true;
 			return true;
 		}
 
 		if ( key == GLFW_KEY_TAB && action == GLFW_PRESS ) {
 
-			show_console = !show_console;
-			console_window->setVisible ( show_console );
+			m_showConsole->setChecked(!m_showConsole->checked());
 
 		}
+
+		if ( key == GLFW_KEY_SPACE && action == GLFW_PRESS) {
+			nn->pause = !nn->pause;
+		}
+
+		if ( key == GLFW_KEY_N && action == GLFW_PRESS) {
+
+			if (nn->pause)
+				nn->step = true;
+
+		}
+
 
 		return false;
 	}
@@ -268,8 +297,7 @@ class Manifold : public nanogui::Screen {
 				for (size_t j = 0; j < L; j++) {
 
 					Eigen::MatrixXf float_image = ((Linear*)(nn->layers[i]))->W.row(j);
-					float_image.resize(w, h);
-					float l2 = 1.0;//float_image.norm();
+					float l2 = float_image.norm();
 					float_image = float_image.unaryExpr([&](float x) { return 255.0f * (x / l2 + 0.5f); });
 					layer_image[j] = float_image.cast<unsigned char>();
 					nvgUpdateImage(nvgContext(), layerImagesData[j].first, (unsigned char*) layer_image[j].data());
@@ -282,7 +310,7 @@ class Manifold : public nanogui::Screen {
 
 	void drawContents() {
 
-		console_window->setVisible(show_console);
+		console_window->setVisible(m_showConsole->checked());
 		console_panel->setValue ( log_str );
 
 		// debug
@@ -290,23 +318,23 @@ class Manifold : public nanogui::Screen {
 		ss << size() [0] << "x" << size() [1] << "\n";
 
 		footer_message_string = ss.str();
-		footer_message->setValue ( footer_message_string );
+		footer_message->setCaption ( footer_message_string );
 
-		if (m_showInputsCheckBox->checked()) {
+		imageWindow2->setVisible(m_showInputsCheckBox->checked());
 
-			imgPanel->setVisible(true);
+		if (m_showInputsCheckBox->checked())
 			draw_inputs();
 
-		} else {
+		nn_window->setVisible(m_showWeightsCheckBox->checked());
 
-			imgPanel->setVisible(false);
-		}
+		if (m_showWeightsCheckBox->checked())
+			draw_layers();
 
-		draw_layers();
 
 		update_FPS(graph_fps);
 		update_graph (graph_cpu, cpu_util, 1000.0f, "ms" );
 		update_graph (graph_flops, cpu_flops, 1.0f, "GF/s"  );
+		update_graph (graph_bytes, cpu_reads, 1.0f, "MB/s"  );
 
 		if (nn)
 			if (nn->clock) {
@@ -316,17 +344,17 @@ class Manifold : public nanogui::Screen {
 
 	}
 
-	virtual bool resizeEvent ( const Eigen::Vector2i &size ) {
+	virtual bool resizeEvent ( const Eigen::Vector2i & size ) {
 
 		// FPS graph
-		graphs->setPosition ( {1, size[1] - 50} );
+		graphs->setPosition ( {1, size[1] - 70} );
 
 		// loss
 		graph_loss->setSize ( {size[0] - 109, 45 } );
 		graph_loss->setPosition( {105, size[1] - 48 } );
 
 		// console
-		int console_width = 250;
+		int console_width = 300;
 		int console_height = size[1] - 55;
 
 		console_window->setPosition ( {size[0] - console_width - 5, 5} );
@@ -348,10 +376,12 @@ class Manifold : public nanogui::Screen {
 
 	}
 
-	nanogui::Graph *graph_fps, *graph_cpu, *graph_flops, *graph_loss;
-	nanogui::Window *console_window, *graphs;
-	nanogui::Console *console_panel, *footer_message;
-	nanogui::CheckBox *m_showInputsCheckBox;
+	nanogui::Graph *graph_fps, *graph_cpu, *graph_flops, *graph_bytes, *graph_loss;
+	nanogui::Window *console_window, *graphs, *nn_window, *imageWindow2;
+	nanogui::Console *console_panel;
+	nanogui::Label *footer_message;
+
+	nanogui::CheckBox *m_showInputsCheckBox, *m_showWeightsCheckBox, *m_showConsole;
 
 	using imagesDataType = std::vector<std::pair<int, std::string>>;
 	imagesDataType mImagesData;
@@ -363,41 +393,53 @@ class Manifold : public nanogui::Screen {
 	Eigen::Matrix<unsigned char, Eigen::Dynamic, Eigen::Dynamic> rgba_image;
 	Eigen::Matrix<unsigned char, Eigen::Dynamic, Eigen::Dynamic> layer_image[L];
 
-	bool show_console;
-
 };
+
+Manifold* screen;
 
 int compute() {
 
 	// TODO: option to suspend or kill this thread from GUI
 
-	size_t epochs = 100;
-	size_t batch_size = 100;
-	double learning_rate = 1e-3;
+	//screen->console ( "Sync point 1: compute() thread started\n");
 
+	size_t epochs = 100;
+	size_t batch_size = 250;
+	double learning_rate = 1e-3;
 	nn = new NN(batch_size);
 
-	nn->layers.push_back(new Linear(28 * 28, 64, batch_size));
-	nn->layers.push_back(new Sigmoid(64, 64, batch_size));
-	// nn->layers.push_back(new Linear(64, 25, batch_size));
-	// nn->layers.push_back(new ReLU(25, 25, batch_size));
-	nn->layers.push_back(new Linear(64, 10, batch_size));
+	nn->layers.push_back(new Linear(28 * 28, 100, batch_size));
+	nn->layers.push_back(new ReLU(100, 100, batch_size));
+	nn->layers.push_back(new Linear(100, 100, batch_size));
+	nn->layers.push_back(new ReLU(100, 100, batch_size));
+	nn->layers.push_back(new Linear(100, 10, batch_size));
 	nn->layers.push_back(new Softmax(10, 10, batch_size));
+
+	while (!screen) { usleep(1000); }
+
+	screen->console ( "Sync point 2: NN init completed\n");
+	screen->console ( "nn->layers.size() = %d\n\n", nn->layers.size());
 
 	//[60000, 784]
 	std::deque<datapoint> train_data =
 	    MNISTImporter::importFromFile("data/mnist/train-images-idx3-ubyte", "data/mnist/train-labels-idx1-ubyte");
+
 	//[10000, 784]
 	std::deque<datapoint> test_data =
 	    MNISTImporter::importFromFile("data/mnist/t10k-images-idx3-ubyte", "data/mnist/t10k-labels-idx1-ubyte");
+
+	screen->console ( "Data loaded (%d/%d datapoints)\n\n", train_data.size(), test_data.size());
 
 	for (size_t e = 0; e < epochs; e++) {
 
 		std::cout << "Epoch " << e + 1 << std::endl << std::endl;
 		nn->train(train_data, learning_rate, train_data.size() / batch_size);
-		if (quit) break; // still need to send this signal to the inner functions
+		if (nn->quit) break;
 
-		nn->test(test_data);
+		float acc = (float)nn->test(test_data);
+
+		if (screen)
+			screen->console ( "Epoch %3d: %.2f %%\n", e + 1, 100.0f * acc );
 
 	}
 
@@ -411,16 +453,19 @@ int main ( int /* argc */, char ** /* argv */ ) {
 
 	try {
 
+		init_start_time();
+
 		// launch a compute thread
 		std::thread compute_thread(compute);
 
 		nanogui::init();
 
-		Manifold* screen = new Manifold();
+		screen = new Manifold();
 		nanogui::mainloop ( 1 );
 
 		delete screen;
 		nanogui::shutdown();
+		nn->quit = true;
 		compute_thread.join();
 
 	} catch ( const std::runtime_error &e ) {

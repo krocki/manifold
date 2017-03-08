@@ -5,4 +5,8 @@
 * @Last Modified time: 2017-03-06 20:40:26
 */
 
-// wrapper for tex2d
+int nvgCreateImageA(NVGcontext* ctx, int w, int h, int imageFlags, const unsigned char* data) {
+
+	return nvgInternalParams(ctx)->renderCreateTexture(nvgInternalParams(ctx)->userPtr, NVG_TEXTURE_ALPHA, w, h, imageFlags, data);
+
+}

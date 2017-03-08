@@ -69,8 +69,6 @@ void update_FPS ( nanogui::Graph* g ) {
 	}
 }
 
-#define HISTORY_SIZE 250
-
 void update_graph ( nanogui::Graph* g, std::vector<float>& d, float scale = 1.0f, const char* units = "" ) {
 
 	g->values() = Eigen::Map<Eigen::VectorXf> ( d.data(), d.size() );
@@ -85,6 +83,8 @@ void update_graph ( nanogui::Graph* g, std::vector<float>& d, float scale = 1.0f
 	g->setHeader ( str );
 
 }
+
+#define HISTORY_SIZE 1000
 
 void update_graph ( nanogui::Graph* g, float new_val) {
 

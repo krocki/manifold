@@ -13,7 +13,7 @@
 //abstract
 class Layer {
 
-  public:
+public:
 
 	//used in forward pass
 	Matrix x; //inputs
@@ -47,7 +47,7 @@ class Layer {
 
 class Linear : public Layer {
 
-  public:
+public:
 
 	Matrix W;
 	Matrix b;
@@ -77,7 +77,7 @@ class Linear : public Layer {
 
 		W = Matrix(outputs, inputs);
 		b = Vector::Zero(outputs);
-		randn(W, 0, 0.1);
+		randn(W, 0, 0.02);
 
 	};
 
@@ -100,7 +100,7 @@ class Linear : public Layer {
 
 class Sigmoid : public Layer {
 
-  public:
+public:
 
 	void forward() {
 
@@ -121,7 +121,7 @@ class Sigmoid : public Layer {
 
 class ReLU : public Layer {
 
-  public:
+public:
 
 	void forward() {
 
@@ -142,7 +142,7 @@ class ReLU : public Layer {
 
 class Softmax : public Layer {
 
-  public:
+public:
 
 	void forward() {
 

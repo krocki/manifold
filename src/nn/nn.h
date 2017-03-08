@@ -14,12 +14,15 @@
 
 class NN {
 
-  public:
+public:
 
 	std::deque<Layer*> layers;
-	float current_loss = 0.0f;
+	float current_loss = -0.01f;
 
 	bool clock = false;
+	bool quit = false;
+	bool pause = false;
+	bool step = false;
 
 	const size_t batch_size;
 
@@ -35,7 +38,6 @@ class NN {
 
 			//y = f(x)
 			layers[i]->forward();
-			flops_performed += 1000000; // just some number
 
 			//x(next layer) = y(current layer)
 			if (i + 1 < layers.size())
@@ -56,11 +58,8 @@ class NN {
 			layers[i]->resetGrads();
 			layers[i]->backward();
 
-			flops_performed += 1000000; // just some number
-
 			//dy(previous layer) = dx(current layer)
 			if (i > 0) {
-
 				layers[i - 1]->dy = layers[i]->dx;
 			}
 
@@ -74,7 +73,6 @@ class NN {
 		for (size_t i = 0; i < layers.size(); i++) {
 
 			layers[i]->applyGrads(alpha);
-			flops_performed += 10000; // just some number
 
 		}
 
@@ -95,13 +93,16 @@ class NN {
 			Matrix targets = make_targets(data, random_numbers, classes);
 
 			ticf();
+
 			//forward activations
 			forward(batch);
 
-			current_loss = cross_entropy(layers[layers.size() - 1]->y, targets);
+			double ce = cross_entropy(layers[layers.size() - 1]->y, targets);
+			current_loss = current_loss < 0 ? ce : 0.99 * current_loss + 0.01 * ce;
+
 			std::cout << "[" << ii + 1 << "/" << iterations << "] Loss = " << current_loss << std::endl;
 
-			clock = true;
+			if (ii % 5 == 0) clock = true;
 
 			//backprogagation
 			backward(targets);
@@ -111,12 +112,18 @@ class NN {
 
 			tocf();
 
+			if (quit) break;
+
+			while (pause) {
+				usleep(10000);
+				if (step || quit) { step = false; break; }
+			}
 		}
 
 	}
 
 
-	void test(std::deque<datapoint> data) {
+	double test(std::deque<datapoint> data) {
 
 		Eigen::VectorXi numbers(batch_size);
 		size_t classes = 10;
@@ -138,6 +145,7 @@ class NN {
 
 		std::cout << "Test % correct = " << 100.0 * (double)correct / (double)(data.size()) << std::endl;
 
+		return (double)correct / (double)(data.size());
 	}
 
 	NN(size_t minibatch_size) : batch_size(minibatch_size) { }

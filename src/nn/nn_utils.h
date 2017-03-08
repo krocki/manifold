@@ -12,11 +12,15 @@
 
 //set Matrix & Vector implementation
 #include <Eigen/Dense>
+
+#define dtype float
 typedef Eigen::MatrixXf Matrix;
 typedef Eigen::VectorXf Vector;
 
 #include <iostream>
 #include <random>
+
+#include "perf.h"
 
 //f(x) = sigm(x)
 inline float __logistic(const float x) {
@@ -45,6 +49,8 @@ Matrix rectify(Matrix& x) {
 		}
 	}
 
+	bytes_read += x.size() * sizeof(dtype);
+	flops_performed += y.size();
 	return y;
 
 }
@@ -60,6 +66,8 @@ Matrix derivative_ReLU(Matrix& x) {
 		}
 	}
 
+	bytes_read += x.size() * sizeof(dtype);
+	flops_performed += y.size();
 	return y;
 
 }
@@ -75,6 +83,8 @@ Matrix logistic(Matrix& x) {
 		}
 	}
 
+	bytes_read += x.size() * sizeof(dtype);
+	flops_performed += y.size() * 3;
 	return y;
 }
 
@@ -85,16 +95,16 @@ Matrix softmax(Matrix& x) {
 	//probs(class) = exp(x, class)/sum(exp(x, class))
 
 	Matrix e = x.unaryExpr(std::ptr_fun(::expf));
-
 	Vector sum = e.colwise().sum();
 
 	for (int i = 0; i < e.rows(); i++) {
 		for (int j = 0; j < e.cols(); j++) {
-
 			y(i, j) = e(i, j) / sum(j);
 		}
 	}
 
+	bytes_read += x.size() * sizeof(dtype);
+	flops_performed += y.size() * 3;
 	return y;
 }
 
@@ -250,6 +260,8 @@ void BLAS_mmul( Eigen::MatrixXf& __restrict c, Eigen::MatrixXf& __restrict a,
 	             b.data(), ldb, beta, c.data(), ldc );
 
 
+	flops_performed += 2 * M * N * K;
+	bytes_read += (a.size() + b.size()) * sizeof(dtype);
 }
 #endif /* USE_BLAS */
 
