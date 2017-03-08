@@ -2,7 +2,7 @@
 * @Author: Kamil Rocki
 * @Date:   2017-02-28 11:25:34
 * @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-03-07 19:59:58
+* @Last Modified time: 2017-03-07 20:43:10
 */
 
 #include <iostream>
@@ -26,6 +26,7 @@
 #include <nanogui/imageview.h>
 #include <nanogui/imagepanel.h>
 #include <nanogui/checkbox.h>
+#include <nanogui/vscrollpanel.h>
 
 //for NN
 #include <io/import.h>
@@ -234,7 +235,9 @@ class Manifold : public nanogui::Screen {
 
 		console_window = new nanogui::Window ( this, "" );
 
-		// console_window->setLayout ( new GroupLayout ( 5, 5, 0, 0 ) );
+		//TODO
+		// nanogui::VScrollPanel *vscroll = new nanogui::VScrollPanel(console_window);
+
 		console_panel = new nanogui::Console ( console_window );
 		console_panel->setFontSize ( 12 );
 
@@ -373,14 +376,14 @@ class Manifold : public nanogui::Screen {
 
 
 		update_FPS(graph_fps);
-		update_graph (graph_cpu, cpu_util, 1000.0f, "ms" );
-		update_graph (graph_flops, cpu_flops, 1.0f, "GF/s"  );
-		update_graph (graph_bytes, cpu_reads, 1.0f, "MB/s"  );
 
 		if (nn)
 			if (nn->clock) {
 				nn->clock = false;
 				update_graph (graph_loss, nn->current_loss );
+				update_graph (graph_cpu, cpu_util, 1000.0f, "ms" );
+				update_graph (graph_flops, cpu_flops, 1.0f, "GF/s"  );
+				update_graph (graph_bytes, cpu_reads, 1.0f, "MB/s"  );
 			}
 
 	}

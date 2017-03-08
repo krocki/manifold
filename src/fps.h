@@ -2,7 +2,7 @@
 * @Author: kmrocki@us.ibm.com
 * @Date:   2017-03-03 16:20:38
 * @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-03-07 11:27:53
+* @Last Modified time: 2017-03-07 20:27:35
 */
 
 // FPS
@@ -69,24 +69,24 @@ void update_FPS ( nanogui::Graph* g ) {
 	}
 }
 
-void update_graph ( nanogui::Graph* g, std::vector<float>& d, float scale = 1.0f, const char* units = "" ) {
+// void update_graph ( nanogui::Graph* g, std::vector<float>& d, float scale = 1.0f, const char* units = "" ) {
 
-	g->values() = Eigen::Map<Eigen::VectorXf> ( d.data(), d.size() );
-	g->values() *= scale;
+// 	g->values() = Eigen::Map<Eigen::VectorXf> ( d.data(), d.size() );
+// 	g->values() *= scale;
 
-	// set header
-	char str[256];
-	int last_avg = 10;
+// 	// set header
+// 	char str[256];
+// 	int last_avg = 10;
 
-	sprintf ( str, "%3.1f %s\n", g->values().tail(last_avg).mean(), units );
+// 	sprintf ( str, "%3.1f %s\n", g->values().tail(last_avg).mean(), units );
 
-	g->setHeader ( str );
+// 	g->setHeader ( str );
 
-}
+// }
 
 #define HISTORY_SIZE 1000
 
-void update_graph ( nanogui::Graph* g, float new_val) {
+void update_graph ( nanogui::Graph* g, float new_val, const char* units = "") {
 
 	if (g->values().rows() < HISTORY_SIZE) {
 
@@ -103,8 +103,18 @@ void update_graph ( nanogui::Graph* g, float new_val) {
 	char str[256];
 	int last_avg = 10;
 
-	sprintf ( str, "%3.1f\n", g->values().tail(last_avg).mean() );
+	sprintf ( str, "%3.1f %s\n", g->values().tail(last_avg).mean(), units );
 
 	g->setHeader ( str );
+
+}
+
+void update_graph ( nanogui::Graph* g, std::vector<float>& d, float scale = 1.0f, const char* units = "" ) {
+
+	Eigen::VectorXf m = Eigen::Map<Eigen::VectorXf> ( d.data(), d.size() );
+	float v = m.mean();
+	v *= scale;
+
+	update_graph ( g, v, units);
 
 }

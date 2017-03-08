@@ -2,7 +2,7 @@
 * @Author: kmrocki
 * @Date:   2016-02-24 10:47:03
 * @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-03-07 20:15:11
+* @Last Modified time: 2017-03-07 20:32:35
 */
 
 #ifndef __NN_UTILS_H__
@@ -93,6 +93,8 @@ Matrix softmax(Matrix& x) {
 	Matrix y(x.rows(), x.cols());
 
 	//probs(class) = exp(x, class)/sum(exp(x, class))
+
+	//TODO: x[i] -= max(x)
 
 	Matrix e = x.unaryExpr(std::ptr_fun(::expf));
 	Vector sum = e.colwise().sum();
