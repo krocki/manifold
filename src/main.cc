@@ -59,7 +59,7 @@ int h = 28;
 
 class Manifold : public nanogui::Screen {
 
-  public:
+public:
 
 	Manifold ( ) : nanogui::Screen ( Eigen::Vector2i ( DEF_WIDTH, DEF_HEIGHT ), SCREEN_NAME ) {
 
@@ -144,7 +144,7 @@ class Manifold : public nanogui::Screen {
 		auto chk_windows = new nanogui::Window(this, "");
 		chk_windows->setPosition({5, 5});
 		nanogui::GridLayout *hlayout = new nanogui::GridLayout(
-		    nanogui::Orientation::Horizontal, 5, nanogui::Alignment::Middle, 1, 1);
+		    nanogui::Orientation::Horizontal, 6, nanogui::Alignment::Middle, 1, 1);
 		hlayout->setColAlignment( { nanogui::Alignment::Maximum, nanogui::Alignment::Fill });
 		hlayout->setSpacing(0, 5);
 		chk_windows->setLayout(hlayout);
@@ -154,6 +154,9 @@ class Manifold : public nanogui::Screen {
 		footer_message = new nanogui::Label ( chk_windows, "" );
 
 		//inputs checkbox
+		fpslimit = new nanogui::CheckBox(chk_windows, "vsync");
+		fpslimit->setCallback([&](bool) { glfwSwapInterval(fpslimit->checked()); });
+
 		m_showInputsCheckBox = new nanogui::CheckBox(chk_windows, "inputs");
 		m_showInputsCheckBox->setCallback([&](bool) { });
 
@@ -244,6 +247,8 @@ class Manifold : public nanogui::Screen {
 		footer_message->setFontSize ( 12 );
 		footer_message_string = "";
 
+		fpslimit->setChecked(true);
+		fpslimit->setFontSize ( 12 );
 		m_showConsole->setChecked(true);
 		m_showConsole->setFontSize ( 12 );
 		m_showInputsCheckBox->setChecked(true);
@@ -259,6 +264,8 @@ class Manifold : public nanogui::Screen {
 		resizeEvent ( { glfw_window_width, glfw_window_height } );
 
 		performLayout();
+
+		glfwSwapInterval(fpslimit->checked());
 
 		console ( "GUI init completed\n");
 
@@ -297,7 +304,7 @@ class Manifold : public nanogui::Screen {
 		return false;
 	}
 
-	void draw_outputs() {
+	void refresh_outputs() {
 
 		if (nn) {
 
@@ -309,7 +316,7 @@ class Manifold : public nanogui::Screen {
 		}
 	}
 
-	void draw_inputs() {
+	void refresh_inputs() {
 
 		if (nn) {
 
@@ -327,7 +334,7 @@ class Manifold : public nanogui::Screen {
 		}
 	}
 
-	void draw_layers() {
+	void refresh_layers() {
 
 		if (nn) {
 
@@ -361,18 +368,18 @@ class Manifold : public nanogui::Screen {
 
 		imageWindow2->setVisible(m_showInputsCheckBox->checked());
 
-		if (m_showInputsCheckBox->checked())
-			draw_inputs();
+		if (m_showInputsCheckBox->checked() && !(nn->pause))
+			refresh_inputs();
 
 		outputs->setVisible(m_showOutputsCheckBox->checked());
 
-		if (m_showOutputsCheckBox->checked())
-			draw_outputs();
+		if (m_showOutputsCheckBox->checked() && !(nn->pause))
+			refresh_outputs();
 
 		nn_window->setVisible(m_showWeightsCheckBox->checked());
 
-		if (m_showWeightsCheckBox->checked())
-			draw_layers();
+		if (m_showWeightsCheckBox->checked() && !(nn->pause))
+			refresh_layers();
 
 
 		update_FPS(graph_fps);
@@ -425,7 +432,7 @@ class Manifold : public nanogui::Screen {
 	nanogui::Console *console_panel;
 	nanogui::Label *footer_message;
 
-	nanogui::CheckBox *m_showOutputsCheckBox, *m_showInputsCheckBox, *m_showWeightsCheckBox, *m_showConsole;
+	nanogui::CheckBox *fpslimit, *m_showOutputsCheckBox, *m_showInputsCheckBox, *m_showWeightsCheckBox, *m_showConsole;
 
 	using imagesDataType = std::vector<std::pair<int, std::string>>;
 	imagesDataType mImagesData, layerImagesData;
@@ -449,8 +456,8 @@ int compute() {
 
 	nn->layers.push_back(new Linear(28 * 28, 100, batch_size));
 	nn->layers.push_back(new ReLU(100, 100, batch_size));
-	nn->layers.push_back(new Linear(100, 100, batch_size));
-	nn->layers.push_back(new ReLU(100, 100, batch_size));
+	// nn->layers.push_back(new Linear(100, 100, batch_size));
+	// nn->layers.push_back(new ReLU(100, 100, batch_size));
 	nn->layers.push_back(new Linear(100, 10, batch_size));
 	nn->layers.push_back(new Softmax(10, 10, batch_size));
 

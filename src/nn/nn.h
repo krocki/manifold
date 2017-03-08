@@ -14,7 +14,7 @@
 
 class NN {
 
-  public:
+public:
 
 	std::deque<Layer*> layers;
 	float current_loss = -0.01f;
@@ -107,7 +107,7 @@ class NN {
 			double ce = cross_entropy(layers[layers.size() - 1]->y, targets);
 			current_loss = current_loss < 0 ? ce : 0.99 * current_loss + 0.01 * ce;
 
-			std::cout << "[" << ii + 1 << "/" << iterations << "] Loss = " << current_loss << std::endl;
+			// std::cout << "[" << ii + 1 << "/" << iterations << "] Loss = " << current_loss << std::endl;
 
 			if (ii % 5 == 0) clock = true;
 
