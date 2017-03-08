@@ -44,8 +44,8 @@
 #include <utils.h>
 #include <gl/tex.h>
 
-#define DEF_WIDTH 1400
-#define DEF_HEIGHT 740
+#define DEF_WIDTH 1250
+#define DEF_HEIGHT 620
 #define SCREEN_NAME "vae"
 
 NN* nn;
@@ -187,13 +187,13 @@ public:
 		}
 
 		imageWindow2 = new nanogui::Window(this, "inputs");
-		imageWindow2->setPosition(Eigen::Vector2i(15, 95));
+		imageWindow2->setPosition(Eigen::Vector2i(15, 35));
 		imgPanel = new nanogui::ImagePanel(imageWindow2, 16, 3, 5, {10, 25});
 		imgPanel->setImages(mImagesData);
 		imgPanel->setPosition({0, 20});
 
 		outputs = new nanogui::Window(this, "outputs");
-		outputs->setPosition(Eigen::Vector2i(225, 95));
+		outputs->setPosition(Eigen::Vector2i(225, 35));
 
 		nanogui::GridLayout *outputslayout = new nanogui::GridLayout(nanogui::Orientation::Horizontal, 10, nanogui::Alignment::Middle, 3, 3);
 		outputslayout->setColAlignment( { nanogui::Alignment::Maximum, nanogui::Alignment::Fill });
@@ -220,8 +220,8 @@ public:
 		outputs->setTheme ( th );
 
 		nn_window = new nanogui::Window(this, "Layers");
-		nn_window->setPosition({440, 25 });
-		nn_imgPanel = new nanogui::ImagePanel(nn_window, 60, 2, 4, {10, 10});
+		nn_window->setPosition({440, 35 });
+		nn_imgPanel = new nanogui::ImagePanel(nn_window, 46, 2, 4, {10, 10});
 		nn_imgPanel->setImages(layerImagesData);
 		nn_imgPanel->setPosition({0, 20});
 		nanogui::Theme *th_nn = nn_imgPanel->theme();
