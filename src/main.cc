@@ -44,7 +44,7 @@
 #include <utils.h>
 #include <gl/tex.h>
 
-#define DEF_WIDTH 1200
+#define DEF_WIDTH 1400
 #define DEF_HEIGHT 740
 #define SCREEN_NAME "vae"
 
@@ -143,7 +143,7 @@ public:
 		auto chk_windows = new nanogui::Window(this, "");
 		chk_windows->setPosition({5, 5});
 		nanogui::GridLayout *hlayout = new nanogui::GridLayout(
-		    nanogui::Orientation::Horizontal, 4, nanogui::Alignment::Middle, 1, 1);
+		    nanogui::Orientation::Horizontal, 5, nanogui::Alignment::Middle, 1, 1);
 		hlayout->setColAlignment( { nanogui::Alignment::Maximum, nanogui::Alignment::Fill });
 		hlayout->setSpacing(0, 5);
 		chk_windows->setLayout(hlayout);
@@ -155,6 +155,9 @@ public:
 		//inputs checkbox
 		m_showInputsCheckBox = new nanogui::CheckBox(chk_windows, "inputs");
 		m_showInputsCheckBox->setCallback([&](bool) { });
+
+		m_showOutputsCheckBox = new nanogui::CheckBox(chk_windows, "outputs");
+		m_showOutputsCheckBox->setCallback([&](bool) { });
 
 		m_showWeightsCheckBox = new nanogui::CheckBox(chk_windows, "net");
 		m_showWeightsCheckBox->setCallback([&](bool) { });
@@ -184,10 +187,27 @@ public:
 		}
 
 		imageWindow2 = new nanogui::Window(this, "inputs");
-		imageWindow2->setPosition(Eigen::Vector2i(25, 95));
+		imageWindow2->setPosition(Eigen::Vector2i(15, 95));
 		imgPanel = new nanogui::ImagePanel(imageWindow2, 16, 3, 5, {10, 25});
 		imgPanel->setImages(mImagesData);
 		imgPanel->setPosition({0, 20});
+
+		outputs = new nanogui::Window(this, "outputs");
+		outputs->setPosition(Eigen::Vector2i(225, 95));
+
+		nanogui::GridLayout *outputslayout = new nanogui::GridLayout(nanogui::Orientation::Horizontal, 10, nanogui::Alignment::Middle, 3, 3);
+		outputslayout->setColAlignment( { nanogui::Alignment::Maximum, nanogui::Alignment::Fill });
+		outputslayout->setSpacing(0, 3);
+
+		outputs->setLayout(outputslayout);
+
+		for (size_t i = 0; i < N; i++) {
+			graph_output[i] = new nanogui::Graph(outputs, "");
+			graph_output[i]->setSize ( {16, 16 } );
+			graph_output[i]->setGraphColor ( nanogui::Color ( 255, 0, 0, 255 ) );
+			graph_output[i]->setBackgroundColor ( nanogui::Color ( 0, 0, 0, 64 ) );
+			graph_output[i]->mFill = true;
+		}
 
 		Eigen::Vector2i w_size = imgPanel->preferredSize() + Eigen::Vector2i({0, 20});
 		imageWindow2->setSize(w_size);
@@ -195,10 +215,12 @@ public:
 		th->mWindowFillUnfocused = nanogui::Color ( 0, 0, 0, 32 );
 		th->mWindowFillFocused = nanogui::Color ( 32, 32, 32, 32 );
 		th->mWindowHeaderSepTop = nanogui::Color ( 0, 0, 0, 32 );
+		th->mWindowHeaderHeight = 22;
 		imageWindow2->setTheme ( th );
+		outputs->setTheme ( th );
 
 		nn_window = new nanogui::Window(this, "Layers");
-		nn_window->setPosition({245, 25 });
+		nn_window->setPosition({440, 25 });
 		nn_imgPanel = new nanogui::ImagePanel(nn_window, 60, 2, 4, {10, 10});
 		nn_imgPanel->setImages(layerImagesData);
 		nn_imgPanel->setPosition({0, 20});
@@ -222,6 +244,8 @@ public:
 		m_showConsole->setChecked(true);
 		m_showConsole->setFontSize ( 12 );
 		m_showInputsCheckBox->setChecked(true);
+		m_showOutputsCheckBox->setFontSize ( 12 );
+		m_showOutputsCheckBox->setChecked(true);
 		m_showInputsCheckBox->setFontSize ( 12 );
 		m_showWeightsCheckBox->setChecked(true);
 		m_showWeightsCheckBox->setFontSize ( 12 );
@@ -268,6 +292,18 @@ public:
 
 
 		return false;
+	}
+
+	void draw_outputs() {
+
+		if (nn) {
+
+			for (size_t i = 0; i < N; i++) {
+
+				graph_output[i]->values() = nn->layers.back()->y.col(i);
+
+			}
+		}
 	}
 
 	void draw_inputs() {
@@ -325,6 +361,11 @@ public:
 		if (m_showInputsCheckBox->checked())
 			draw_inputs();
 
+		outputs->setVisible(m_showOutputsCheckBox->checked());
+
+		if (m_showOutputsCheckBox->checked())
+			draw_outputs();
+
 		nn_window->setVisible(m_showWeightsCheckBox->checked());
 
 		if (m_showWeightsCheckBox->checked())
@@ -376,16 +417,15 @@ public:
 
 	}
 
-	nanogui::Graph *graph_fps, *graph_cpu, *graph_flops, *graph_bytes, *graph_loss;
-	nanogui::Window *console_window, *graphs, *nn_window, *imageWindow2;
+	nanogui::Graph *graph_fps, *graph_cpu, *graph_flops, *graph_bytes, *graph_loss, *graph_output[N];
+	nanogui::Window *console_window, *graphs, *nn_window, *imageWindow2, *outputs;
 	nanogui::Console *console_panel;
 	nanogui::Label *footer_message;
 
-	nanogui::CheckBox *m_showInputsCheckBox, *m_showWeightsCheckBox, *m_showConsole;
+	nanogui::CheckBox *m_showOutputsCheckBox, *m_showInputsCheckBox, *m_showWeightsCheckBox, *m_showConsole;
 
 	using imagesDataType = std::vector<std::pair<int, std::string>>;
-	imagesDataType mImagesData;
-	imagesDataType layerImagesData;
+	imagesDataType mImagesData, layerImagesData;
 	nanogui::ImagePanel *imgPanel, *nn_imgPanel;
 
 	std::string log_str, footer_message_string;
@@ -443,9 +483,7 @@ int compute() {
 
 	}
 
-	delete nn;
-
-	return 0;
+	delete nn; return 0;
 
 }
 
