@@ -2,4 +2,4 @@
 
 requires this version of nanogui - https://github.com/krocki/nanogui
 
-![Alt text](screenshot.png?raw=true "Screenshot")
+![Alt text](screen_mnist.png?raw=true "Screenshot")
