@@ -63,7 +63,7 @@ int h = 28;
 
 class Manifold : public nanogui::Screen {
 
-  public:
+public:
 
 	Manifold ( ) :
 		nanogui::Screen ( Eigen::Vector2i ( DEF_WIDTH, DEF_HEIGHT ), SCREEN_NAME ) { init(); }
@@ -355,8 +355,9 @@ class Manifold : public nanogui::Screen {
 
 		if ( key == GLFW_KEY_N && action == GLFW_PRESS) {
 
-			if (nn->pause)
+			if (nn->pause) {
 				nn->step = true;
+			}
 
 		}
 
@@ -428,17 +429,17 @@ class Manifold : public nanogui::Screen {
 
 		imageWindow2->setVisible(m_showInputsCheckBox->checked());
 
-		if (m_showInputsCheckBox->checked() && !(nn->pause))
+		if (m_showInputsCheckBox->checked() && !(nn->pause) || (nn->step))
 			refresh_inputs();
 
 		outputs->setVisible(m_showOutputsCheckBox->checked());
 
-		if (m_showOutputsCheckBox->checked() && !(nn->pause))
+		if (m_showOutputsCheckBox->checked() && !(nn->pause) || (nn->step))
 			refresh_outputs();
 
 		nn_window->setVisible(m_showWeightsCheckBox->checked());
 
-		if (m_showWeightsCheckBox->checked() && !(nn->pause))
+		if (m_showWeightsCheckBox->checked() && !(nn->pause) || (nn->step))
 			refresh_layers();
 
 
