@@ -2,7 +2,7 @@
 * @Author: kmrocki
 * @Date:   2016-02-24 15:28:10
 * @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-03-08 21:14:37
+* @Last Modified time: 2017-03-09 11:05:31
 */
 
 #ifndef __NN_H__
@@ -155,8 +155,6 @@ class NN {
 
 
 		}
-
-		std::cout << "Test % correct = " << 100.0 * (double)correct / (double)(data.size()) << std::endl;
 
 		return (double)correct / (double)(data.size());
 	}

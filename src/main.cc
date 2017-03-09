@@ -2,7 +2,7 @@
 * @Author: Kamil Rocki
 * @Date:   2017-02-28 11:25:34
 * @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-03-09 10:29:57
+* @Last Modified time: 2017-03-09 11:06:03
 */
 
 #include <iostream>
@@ -212,12 +212,13 @@ class AE : public nanogui::Screen {
 
 	virtual bool resizeEvent ( const Eigen::Vector2i & size ) {
 
+		UNUSED(size);
 		performLayout();
 		return true;
 
 	}
 
-	nanogui::Graph *graph_fps, *graph_cpu, *graph_flops, *graph_bytes;
+	nanogui::Graph *graph_loss, *graph_fps, *graph_cpu, *graph_flops, *graph_bytes;
 	nanogui::Window *graphs, *chk_windows;
 	nanogui::CheckBox *fpslimit;
 
@@ -256,9 +257,7 @@ int compute() {
 
 		if (nn->quit) break;
 
-		float acc = (float)nn->test(test_data);
-
-		printf ( "Epoch %3d: %.2f %%\n", e + 1, 100.0f * acc );
+		printf ( "Epoch %3lu: Test accuracy: %.2f %%\n", e + 1, 100.0f * (float)nn->test(test_data));
 
 	}
 
