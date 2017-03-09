@@ -2,14 +2,14 @@
 * @Author: kmrocki
 * @Date:   2016-02-24 15:28:10
 * @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-03-07 23:22:00
+* @Last Modified time: 2017-03-08 21:14:37
 */
 
 #ifndef __NN_H__
 #define __NN_H__
 
 #include <nn/layers.h>
-
+#include <unistd.h>
 #include "perf.h"
 
 class NN {
