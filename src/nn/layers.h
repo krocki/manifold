@@ -2,7 +2,7 @@
 * @Author: kmrocki@us.ibm.com
 * @Date:   2017-03-03 15:06:37
 * @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-03-07 12:21:37
+* @Last Modified time: 2017-03-07 23:22:59
 */
 
 #ifndef __LAYERS_H__
@@ -13,7 +13,7 @@
 //abstract
 class Layer {
 
-public:
+  public:
 
 	//used in forward pass
 	Matrix x; //inputs
@@ -36,7 +36,7 @@ public:
 	virtual void forward() = 0;
 	virtual void backward() = 0;
 	virtual void resetGrads() {};
-	virtual void applyGrads(float alpha) { UNUSED(alpha); };
+	virtual void applyGrads(float alpha, float decay = 0.0f) { UNUSED(alpha); UNUSED(decay); };
 
 	virtual ~Layer() {};
 
@@ -47,7 +47,7 @@ public:
 
 class Linear : public Layer {
 
-public:
+  public:
 
 	Matrix W;
 	Matrix b;
@@ -77,7 +77,7 @@ public:
 
 		W = Matrix(outputs, inputs);
 		b = Vector::Zero(outputs);
-		randn(W, 0, 0.02);
+		randn(W, 0, 0.05);
 
 	};
 
@@ -87,11 +87,13 @@ public:
 		db = Vector::Zero(b.rows());
 	}
 
-	void applyGrads(float alpha) {
+	void applyGrads(float alpha, float decay = 0.0f) {
 
+		W *= (1.0f - decay);
 		b += alpha * db;
 		W += alpha * dW;
-
+		flops_performed += W.size() * 4 + 2 * b.size();
+		bytes_read += W.size() * sizeof(dtype) * 3;
 	}
 
 	~Linear() {};
@@ -100,7 +102,7 @@ public:
 
 class Sigmoid : public Layer {
 
-public:
+  public:
 
 	void forward() {
 
@@ -111,6 +113,8 @@ public:
 	void backward() {
 
 		dx.array() = dy.array() * y.array() * (1.0 - y.array()).array();
+		flops_performed += dx.size() * 3;
+		bytes_read += x.size() * sizeof(dtype) * 2;
 
 	}
 
@@ -121,7 +125,7 @@ public:
 
 class ReLU : public Layer {
 
-public:
+  public:
 
 	void forward() {
 
@@ -133,6 +137,9 @@ public:
 
 		dx.array() = derivative_ReLU(y).array() * dy.array();
 
+		flops_performed += dy.size();
+		bytes_read += dy.size() * sizeof(dtype);
+
 	}
 
 	ReLU(size_t inputs, size_t outputs, size_t batch_size) : Layer(inputs, outputs, batch_size) {};
@@ -142,7 +149,7 @@ public:
 
 class Softmax : public Layer {
 
-public:
+  public:
 
 	void forward() {
 
@@ -153,6 +160,9 @@ public:
 	void backward() {
 
 		dx = dy - y;
+
+		flops_performed += dy.size() * 2;
+		bytes_read += dy.size() * sizeof(dtype) * 2;
 	}
 
 

@@ -2,7 +2,7 @@
 * @Author: kmrocki
 * @Date:   2016-02-24 15:28:10
 * @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-03-07 20:35:18
+* @Last Modified time: 2017-03-07 23:22:00
 */
 
 #ifndef __NN_H__
@@ -14,7 +14,7 @@
 
 class NN {
 
-public:
+  public:
 
 	std::deque<Layer*> layers;
 	float current_loss = -0.01f;
@@ -25,6 +25,7 @@ public:
 	bool step = false;
 
 	const size_t batch_size;
+	float decay;
 
 	Matrix batch;
 	Matrix targets;
@@ -68,12 +69,12 @@ public:
 
 	}
 
-	void update(double alpha) {
+	void update(double alpha, float decay = 0.0f) {
 
 		//update all layers according to gradients
 		for (size_t i = 0; i < layers.size(); i++) {
 
-			layers[i]->applyGrads(alpha);
+			layers[i]->applyGrads(alpha, decay);
 
 		}
 
@@ -115,7 +116,7 @@ public:
 			backward(targets);
 
 			//apply changes
-			update(alpha);
+			update(alpha, decay);
 
 			tocf();
 			toc();
@@ -160,7 +161,8 @@ public:
 		return (double)correct / (double)(data.size());
 	}
 
-	NN(size_t minibatch_size) : batch_size(minibatch_size) { }
+	NN(size_t minibatch_size, float decay = 0.0f) :
+		batch_size(minibatch_size), decay(decay) {}
 
 	~NN() {
 

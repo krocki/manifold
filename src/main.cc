@@ -2,7 +2,7 @@
 * @Author: Kamil Rocki
 * @Date:   2017-02-28 11:25:34
 * @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-03-07 20:43:10
+* @Last Modified time: 2017-03-08 17:22:44
 */
 
 #include <iostream>
@@ -47,11 +47,15 @@
 
 #define DEF_WIDTH 1250
 #define DEF_HEIGHT 620
+#define CONSOLE_MODE_WIDTH 280
+#define CONSOLE_MODE_HEIGHT 540
+#define MINI_MODE_WIDTH 280
+#define MINI_MODE_HEIGHT 95
 #define SCREEN_NAME "vae"
 
 NN* nn;
 
-#define N 250
+#define N 16
 #define L 100
 
 int w = 28;
@@ -59,15 +63,20 @@ int h = 28;
 
 class Manifold : public nanogui::Screen {
 
-public:
+  public:
 
-	Manifold ( ) : nanogui::Screen ( Eigen::Vector2i ( DEF_WIDTH, DEF_HEIGHT ), SCREEN_NAME ) {
-
-		init();
-
-	}
+	Manifold ( ) :
+		nanogui::Screen ( Eigen::Vector2i ( DEF_WIDTH, DEF_HEIGHT ), SCREEN_NAME ) { init(); }
 
 	void console ( const char *pMsg, ... ) {
+
+		/*
+			TODO:
+			- split TIME | MESSAGE
+			- add colors
+			- allow input, some simple debugging commands
+			- vscroll
+		*/
 
 		char buffer[4096];
 		std::va_list arg;
@@ -80,6 +89,11 @@ public:
 	}
 
 	void init() {
+
+		/*
+			TODO:
+			- move most this code somewhere else
+		*/
 
 		console ( "init()\n");
 
@@ -141,7 +155,7 @@ public:
 		graph_bytes->setBackgroundColor ( nanogui::Color ( 0, 0, 0, 8 ) );
 		graph_bytes->setSize ( {graph_width, graph_height } );
 
-		auto chk_windows = new nanogui::Window(this, "");
+		chk_windows = new nanogui::Window(this, "");
 		chk_windows->setPosition({5, 5});
 		nanogui::GridLayout *hlayout = new nanogui::GridLayout(
 		    nanogui::Orientation::Horizontal, 6, nanogui::Alignment::Middle, 1, 1);
@@ -192,24 +206,25 @@ public:
 
 		imageWindow2 = new nanogui::Window(this, "inputs");
 		imageWindow2->setPosition(Eigen::Vector2i(15, 35));
-		imgPanel = new nanogui::ImagePanel(imageWindow2, 16, 3, 5, {10, 25});
+		imgPanel = new nanogui::ImagePanel(imageWindow2, 45, 3, 5, {4, 4});
 		imgPanel->setImages(mImagesData);
 		imgPanel->setPosition({0, 20});
 
 		outputs = new nanogui::Window(this, "outputs");
 		outputs->setPosition(Eigen::Vector2i(225, 35));
 
-		nanogui::GridLayout *outputslayout = new nanogui::GridLayout(nanogui::Orientation::Horizontal, 10, nanogui::Alignment::Middle, 3, 3);
+		nanogui::GridLayout *outputslayout = new nanogui::GridLayout(nanogui::Orientation::Horizontal, 4, nanogui::Alignment::Middle, 3, 3);
 		outputslayout->setColAlignment( { nanogui::Alignment::Maximum, nanogui::Alignment::Fill });
 		outputslayout->setSpacing(0, 3);
 
 		outputs->setLayout(outputslayout);
 
 		for (size_t i = 0; i < N; i++) {
-			graph_output[i] = new nanogui::Graph(outputs, "");
-			graph_output[i]->setSize ( {16, 16 } );
+
+			graph_output[i] = new nanogui::Graph(outputs, "", nanogui::GraphType::GRAPH_COLORBARS);
+			graph_output[i]->setSize ( {45, 45 } );
 			graph_output[i]->setGraphColor ( nanogui::Color ( 255, 0, 0, 255 ) );
-			graph_output[i]->setBackgroundColor ( nanogui::Color ( 0, 0, 0, 64 ) );
+			graph_output[i]->setBackgroundColor ( nanogui::Color ( 0, 0, 0, 8 ) );
 			graph_output[i]->mFill = true;
 		}
 
@@ -237,11 +252,12 @@ public:
 		nn_window->setSize(w_size);
 
 		console_window = new nanogui::Window ( this, "" );
+		console_window->setLayout(new nanogui::GroupLayout());
 
 		//TODO
-		// nanogui::VScrollPanel *vscroll = new nanogui::VScrollPanel(console_window);
+		nanogui::VScrollPanel *vscroll = new nanogui::VScrollPanel(console_window);
 
-		console_panel = new nanogui::Console ( console_window );
+		console_panel = new nanogui::Console ( vscroll );
 		console_panel->setFontSize ( 12 );
 
 		footer_message->setFontSize ( 12 );
@@ -261,13 +277,13 @@ public:
 		drawAll();
 		setVisible(true);
 
-		resizeEvent ( { glfw_window_width, glfw_window_height } );
-
-		performLayout();
-
 		glfwSwapInterval(fpslimit->checked());
 
 		console ( "GUI init completed\n");
+
+		console_mode = false;
+		mini_mode = false;
+		resizeEvent ( { glfw_window_width, glfw_window_height } );
 
 	}
 
@@ -291,6 +307,50 @@ public:
 
 		if ( key == GLFW_KEY_SPACE && action == GLFW_PRESS) {
 			nn->pause = !nn->pause;
+		}
+
+		if ( key == GLFW_KEY_SLASH && action == GLFW_PRESS) {
+
+			console_mode = !console_mode;
+
+			if (console_mode) {
+
+				prev_size = size();
+				setSize({chk_windows->size()[0] + 10, CONSOLE_MODE_HEIGHT});
+				m_showInputsCheckBox->setChecked(false);
+				m_showOutputsCheckBox->setChecked(false);
+				m_showWeightsCheckBox->setChecked(false);
+
+			} else  {
+
+				setSize(prev_size);
+				m_showInputsCheckBox->setChecked(true);
+				m_showOutputsCheckBox->setChecked(true);
+				m_showWeightsCheckBox->setChecked(true);
+			}
+		}
+
+		if ( key == GLFW_KEY_PERIOD && action == GLFW_PRESS) {
+
+			mini_mode = !mini_mode;
+
+			if (mini_mode) {
+
+				prev_size = size();
+				setSize({chk_windows->size()[0] + 10, MINI_MODE_HEIGHT});
+				m_showInputsCheckBox->setChecked(false);
+				m_showOutputsCheckBox->setChecked(false);
+				m_showWeightsCheckBox->setChecked(false);
+				m_showConsole->setChecked(false);
+
+			} else  {
+
+				setSize(prev_size);
+				m_showInputsCheckBox->setChecked(true);
+				m_showOutputsCheckBox->setChecked(true);
+				m_showWeightsCheckBox->setChecked(true);
+				m_showConsole->setChecked(true);
+			}
 		}
 
 		if ( key == GLFW_KEY_N && action == GLFW_PRESS) {
@@ -405,13 +465,24 @@ public:
 		graph_loss->setPosition( {105, size[1] - 48 } );
 
 		// console
-		int console_width = 300;
-		int console_height = size[1] - 55;
+		int console_width = 250;
+		int console_height;
 
-		console_window->setPosition ( {size[0] - console_width - 5, 5} );
+		if (console_mode) {
+			console_width = size[0] - 32;
+			console_height = size[1] - 120;
+			console_window->setPosition ( {5, 25} );
+
+		} else {
+			console_height = size[1] - 75;
+			console_window->setPosition ( {size[0] - console_width - 27, 5} );
+		}
+
+
 		console_window->setSize ( {console_width, console_height} );
-		console_panel->setPosition ( {5, 5} );
-		console_panel->setWidth ( console_width - 10 );
+
+		console_panel->setPosition ( {0, 0} );
+		console_panel->setWidth ( console_width - 20 );
 		console_panel->setHeight ( console_height - 10 );
 
 		// footer
@@ -428,7 +499,7 @@ public:
 	}
 
 	nanogui::Graph *graph_fps, *graph_cpu, *graph_flops, *graph_bytes, *graph_loss, *graph_output[N];
-	nanogui::Window *console_window, *graphs, *nn_window, *imageWindow2, *outputs;
+	nanogui::Window *console_window, *graphs, *nn_window, *imageWindow2, *outputs, *chk_windows;
 	nanogui::Console *console_panel;
 	nanogui::Label *footer_message;
 
@@ -443,16 +514,22 @@ public:
 	Eigen::Matrix<unsigned char, Eigen::Dynamic, Eigen::Dynamic> rgba_image;
 	Eigen::Matrix<unsigned char, Eigen::Dynamic, Eigen::Dynamic> layer_image[L];
 
+	Eigen::Vector2i prev_size;
+	bool console_mode;
+	bool mini_mode;
 };
 
 Manifold* screen;
 
 int compute() {
 
-	size_t epochs = 100;
-	size_t batch_size = 250;
+	// TODO: be able to change batch size, learning rate and decay dynamically
+	// serialization
+
+	size_t batch_size = 16;
 	double learning_rate = 1e-3;
-	nn = new NN(batch_size);
+	float decay = 0.0f;//1e-4;
+	nn = new NN(batch_size, decay);
 
 	nn->layers.push_back(new Linear(28 * 28, 100, batch_size));
 	nn->layers.push_back(new ReLU(100, 100, batch_size));
@@ -476,7 +553,7 @@ int compute() {
 
 	screen->console ( "Data loaded (%d/%d datapoints)\n\n", train_data.size(), test_data.size());
 
-	for (size_t e = 0; e < epochs; e++) {
+	for (size_t e = 0; true; e++) {
 
 		std::cout << "Epoch " << e + 1 << std::endl << std::endl;
 		nn->train(train_data, learning_rate, train_data.size() / batch_size);
@@ -488,6 +565,10 @@ int compute() {
 			screen->console ( "Epoch %3d: %.2f %%\n", e + 1, 100.0f * acc );
 
 	}
+
+	nn->quit = true;
+
+	//should wait for GL to finish first before deleting nn
 
 	delete nn; return 0;
 
