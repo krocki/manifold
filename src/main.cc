@@ -2,7 +2,7 @@
 * @Author: Kamil Rocki
 * @Date:   2017-02-28 11:25:34
 * @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-03-08 17:22:44
+* @Last Modified time: 2017-03-08 20:57:59
 */
 
 #include <iostream>
@@ -63,7 +63,7 @@ int h = 28;
 
 class Manifold : public nanogui::Screen {
 
-public:
+  public:
 
 	Manifold ( ) :
 		nanogui::Screen ( Eigen::Vector2i ( DEF_WIDTH, DEF_HEIGHT ), SCREEN_NAME ) { init(); }
@@ -204,9 +204,9 @@ public:
 
 		}
 
-		imageWindow2 = new nanogui::Window(this, "inputs");
-		imageWindow2->setPosition(Eigen::Vector2i(15, 35));
-		imgPanel = new nanogui::ImagePanel(imageWindow2, 45, 3, 5, {4, 4});
+		inputs = new nanogui::Window(this, "inputs");
+		inputs->setPosition(Eigen::Vector2i(15, 35));
+		imgPanel = new nanogui::ImagePanel(inputs, 45, 3, 5, {4, 4});
 		imgPanel->setImages(mImagesData);
 		imgPanel->setPosition({0, 20});
 
@@ -226,16 +226,17 @@ public:
 			graph_output[i]->setGraphColor ( nanogui::Color ( 255, 0, 0, 255 ) );
 			graph_output[i]->setBackgroundColor ( nanogui::Color ( 0, 0, 0, 8 ) );
 			graph_output[i]->mFill = true;
+
 		}
 
 		Eigen::Vector2i w_size = imgPanel->preferredSize() + Eigen::Vector2i({0, 20});
-		imageWindow2->setSize(w_size);
-		nanogui::Theme *th = imageWindow2->theme();
+		inputs->setSize(w_size);
+		nanogui::Theme *th = inputs->theme();
 		th->mWindowFillUnfocused = nanogui::Color ( 0, 0, 0, 32 );
 		th->mWindowFillFocused = nanogui::Color ( 32, 32, 32, 32 );
 		th->mWindowHeaderSepTop = nanogui::Color ( 0, 0, 0, 32 );
 		th->mWindowHeaderHeight = 22;
-		imageWindow2->setTheme ( th );
+		inputs->setTheme ( th );
 		outputs->setTheme ( th );
 
 		nn_window = new nanogui::Window(this, "Layers");
@@ -283,6 +284,8 @@ public:
 
 		console_mode = false;
 		mini_mode = false;
+		performLayout();
+
 		resizeEvent ( { glfw_window_width, glfw_window_height } );
 
 	}
@@ -311,46 +314,29 @@ public:
 
 		if ( key == GLFW_KEY_SLASH && action == GLFW_PRESS) {
 
-			console_mode = !console_mode;
+			//full view
+			console_mode = false;
+			mini_mode = false;
+			setSize(prev_size);
 
-			if (console_mode) {
-
-				prev_size = size();
-				setSize({chk_windows->size()[0] + 10, CONSOLE_MODE_HEIGHT});
-				m_showInputsCheckBox->setChecked(false);
-				m_showOutputsCheckBox->setChecked(false);
-				m_showWeightsCheckBox->setChecked(false);
-
-			} else  {
-
-				setSize(prev_size);
-				m_showInputsCheckBox->setChecked(true);
-				m_showOutputsCheckBox->setChecked(true);
-				m_showWeightsCheckBox->setChecked(true);
-			}
 		}
 
 		if ( key == GLFW_KEY_PERIOD && action == GLFW_PRESS) {
 
-			mini_mode = !mini_mode;
+			//console view
+			console_mode = true;
+			mini_mode = false;
+			setSize({chk_windows->size()[0] + 10, CONSOLE_MODE_HEIGHT});
 
-			if (mini_mode) {
+		}
 
-				prev_size = size();
-				setSize({chk_windows->size()[0] + 10, MINI_MODE_HEIGHT});
-				m_showInputsCheckBox->setChecked(false);
-				m_showOutputsCheckBox->setChecked(false);
-				m_showWeightsCheckBox->setChecked(false);
-				m_showConsole->setChecked(false);
+		if ( key == GLFW_KEY_COMMA && action == GLFW_PRESS) {
 
-			} else  {
+			// mini view
+			console_mode = false;
+			mini_mode = true;
+			setSize({chk_windows->size()[0] + 10, MINI_MODE_HEIGHT});
 
-				setSize(prev_size);
-				m_showInputsCheckBox->setChecked(true);
-				m_showOutputsCheckBox->setChecked(true);
-				m_showWeightsCheckBox->setChecked(true);
-				m_showConsole->setChecked(true);
-			}
 		}
 
 		if ( key == GLFW_KEY_N && action == GLFW_PRESS) {
@@ -417,31 +403,49 @@ public:
 
 	void drawContents() {
 
-		console_window->setVisible(m_showConsole->checked());
-		console_panel->setValue ( log_str );
+		// always visible
+		// checkboxes, graphs
+		// + debug message
+		char str[64];
+		sprintf(str, "%04dx%04d", size() [0], size() [1]);
+		//TODO: make formatted setCaption like console
+		footer_message->setCaption ( str );
 
-		// debug
-		std::stringstream ss;
-		ss << size() [0] << "x" << size() [1] << "\n";
+		if (!mini_mode) {
 
-		footer_message_string = ss.str();
-		footer_message->setCaption ( footer_message_string );
+			console_window->setVisible(true);
+			console_panel->setValue ( log_str );
 
-		imageWindow2->setVisible(m_showInputsCheckBox->checked());
+			if (console_mode) {
 
-		if (m_showInputsCheckBox->checked() && !(nn->pause) || (nn->step))
+				nn_window->setVisible(false);
+				inputs->setVisible(false);
+				outputs->setVisible(false);
+
+			} else {
+
+				nn_window->setVisible(m_showWeightsCheckBox->checked());
+				inputs->setVisible(m_showInputsCheckBox->checked());
+				outputs->setVisible(m_showOutputsCheckBox->checked());
+
+			}
+
+		} else {
+
+			console_window->setVisible(false);
+			nn_window->setVisible(false);
+			inputs->setVisible(false);
+			outputs->setVisible(false);
+
+		}
+
+		if (!(nn->pause) || (nn->step)) {
+
 			refresh_inputs();
-
-		outputs->setVisible(m_showOutputsCheckBox->checked());
-
-		if (m_showOutputsCheckBox->checked() && !(nn->pause) || (nn->step))
 			refresh_outputs();
-
-		nn_window->setVisible(m_showWeightsCheckBox->checked());
-
-		if (m_showWeightsCheckBox->checked() && !(nn->pause) || (nn->step))
 			refresh_layers();
 
+		}
 
 		update_FPS(graph_fps);
 
@@ -462,23 +466,26 @@ public:
 		graphs->setPosition ( {1, size[1] - 70} );
 
 		// loss
-		graph_loss->setSize ( {size[0] - 109, 45 } );
-		graph_loss->setPosition( {105, size[1] - 48 } );
+		graph_loss->setSize ( {size[0] - 109, graphs->size()[1] } );
+		graph_loss->setPosition( {105, graphs->position()[1] });
 
 		// console
 		int console_width = 250;
-		int console_height;
+		int console_height = size[1] - 100;
 
 		if (console_mode) {
-			console_width = size[0] - 32;
+
 			console_height = size[1] - 120;
+			console_width = size[0] - 32;
 			console_window->setPosition ( {5, 25} );
 
 		} else {
-			console_height = size[1] - 75;
-			console_window->setPosition ( {size[0] - console_width - 27, 5} );
-		}
 
+			console_window->setPosition ( {size[0] - console_width - 27, 5} );
+
+			if (!mini_mode)
+				prev_size = size;
+		}
 
 		console_window->setSize ( {console_width, console_height} );
 
@@ -500,7 +507,7 @@ public:
 	}
 
 	nanogui::Graph *graph_fps, *graph_cpu, *graph_flops, *graph_bytes, *graph_loss, *graph_output[N];
-	nanogui::Window *console_window, *graphs, *nn_window, *imageWindow2, *outputs, *chk_windows;
+	nanogui::Window *console_window, *graphs, *nn_window, *inputs, *outputs, *chk_windows;
 	nanogui::Console *console_panel;
 	nanogui::Label *footer_message;
 
@@ -516,6 +523,7 @@ public:
 	Eigen::Matrix<unsigned char, Eigen::Dynamic, Eigen::Dynamic> layer_image[L];
 
 	Eigen::Vector2i prev_size;
+
 	bool console_mode;
 	bool mini_mode;
 };
@@ -529,7 +537,7 @@ int compute() {
 
 	size_t batch_size = 16;
 	double learning_rate = 1e-3;
-	float decay = 0.0f;//1e-4;
+	float decay = 1e-5;
 	nn = new NN(batch_size, decay);
 
 	nn->layers.push_back(new Linear(28 * 28, 100, batch_size));
