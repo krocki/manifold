@@ -2,12 +2,13 @@
 * @Author: Kamil Rocki
 * @Date:   2017-02-28 11:25:34
 * @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-03-09 16:23:21
+* @Last Modified time: 2017-03-09 22:24:04
 */
 
 #include <thread>
 #include <unistd.h>
 
+#include <colors.h>
 #include <nanogui/glutil.h>
 #include <nanogui/screen.h>
 #include <nanogui/window.h>
@@ -25,7 +26,7 @@
 
 NN* nn;
 
-#define DEF_WIDTH 600
+#define DEF_WIDTH 300
 #define DEF_HEIGHT 400
 #define SCREEN_NAME "AE"
 
@@ -46,16 +47,17 @@ class GUI : public nanogui::Screen {
 		printf ( "GLSL_VERSION: %s\n\n", glGetString ( GL_SHADING_LANGUAGE_VERSION ) );
 
 		/* * create widgets  * */
+		this->setLayout(new nanogui::BoxLayout());
 
 		nanogui::Window* window_graphs = new nanogui::Window ( this, "" );
-		window_graphs->setLayout(new nanogui::GroupLayout());
+		window_graphs->setLayout(new nanogui::GroupLayout(3, 1, 0, 0));
 
 		int NUM_GRAPHS = 10;
 
 		for (int i = 0; i < NUM_GRAPHS; i++) {
 
-			nanogui::Graph* graph = new nanogui::Graph ( window_graphs, "",
-			        nanogui::GraphType::GRAPH_NANOGUI_NOFILL, {size()[0] - 30, (size()[1] - 80) / NUM_GRAPHS} );
+			nanogui::Graph* graph = new nanogui::Graph ( window_graphs, string_format("%d", i),
+			        nanogui::GraphType::GRAPH_NANOGUI_NOFILL, nanogui::parula_lut[i] );
 
 			graph_data.push_back(graph->values_ptr());
 		}
@@ -122,6 +124,7 @@ class GUI : public nanogui::Screen {
 
 		UNUSED(size);
 		performLayout();
+
 		return true;
 
 	}
