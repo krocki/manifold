@@ -2,7 +2,7 @@
 * @Author: Kamil Rocki
 * @Date:   2017-02-28 11:25:34
 * @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-03-09 16:41:45
+* @Last Modified time: 2017-03-09 16:44:58
 */
 
 #include <thread>
@@ -112,8 +112,6 @@ GUI* screen;
 
 int compute(int i) {
 
-	size_t loops = 0;
-
 	/* work until main window is open */
 	while (screen->getVisible()) {
 
@@ -125,12 +123,11 @@ int compute(int i) {
 			for (int k = 0; k < screen->graph_data[i]->size(); ++k) {
 
 				screen->graph_data[i]->operator[](k) = 0.5f * (0.5f * std::sin(k / 10.f + glfwGetTime()) +
-				                                       0.5f * std::cos(++loops / 100000.0f * k / 23.f) + 1);
-
+				                                       0.5f * std::cos(i * k / 23.f) + 1);
 			}
 		}
 
-		usleep(i * 1000);
+		usleep(10000);
 	}
 
 	return 0;
