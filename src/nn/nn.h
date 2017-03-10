@@ -2,7 +2,7 @@
 * @Author: kmrocki
 * @Date:   2016-02-24 15:28:10
 * @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-03-09 11:05:31
+* @Last Modified time: 2017-03-09 13:24:44
 */
 
 #ifndef __NN_H__

@@ -2,11 +2,13 @@
 * @Author: Kamil Rocki
 * @Date:   2017-02-28 11:25:34
 * @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-03-09 16:23:21
+* @Last Modified time: 2017-03-09 16:41:45
 */
 
 #include <thread>
 #include <unistd.h>
+
+/* A template for GUI + compute thread (with plotting) */
 
 #include <nanogui/glutil.h>
 #include <nanogui/screen.h>
@@ -17,17 +19,11 @@
 //helpers
 #include <utils.h>
 
-//for NN
-#include <io/import.h>
-#include <nn/nn_utils.h>
-#include <nn/layers.h>
-#include <nn/nn.h>
-
-NN* nn;
-
 #define DEF_WIDTH 600
 #define DEF_HEIGHT 400
-#define SCREEN_NAME "AE"
+#define SCREEN_NAME "GRAPHS"
+
+#define NUM_WORKERS 10
 
 class GUI : public nanogui::Screen {
 
@@ -50,7 +46,7 @@ class GUI : public nanogui::Screen {
 		nanogui::Window* window_graphs = new nanogui::Window ( this, "" );
 		window_graphs->setLayout(new nanogui::GroupLayout());
 
-		int NUM_GRAPHS = 10;
+		int NUM_GRAPHS = NUM_WORKERS;
 
 		for (int i = 0; i < NUM_GRAPHS; i++) {
 
@@ -73,31 +69,6 @@ class GUI : public nanogui::Screen {
 
 	}
 
-
-	virtual void drawContents() {
-
-		refresh();
-
-	}
-
-	void refresh() {
-
-		for (size_t i = 0; i < graph_data.size(); i++) {
-
-			if (graph_data[i]) {
-
-				graph_data[i]->resize(100);
-
-				for (int k = 0; k < graph_data[i]->size(); ++k) {
-
-					graph_data[i]->operator[](k) = 0.5f * (0.5f * std::sin(k / 10.f + glfwGetTime()) +
-					                                       0.5f * std::cos(i * k / 23.f) + 1);
-
-				}
-			}
-		}
-	}
-
 	/* event handlers */
 
 	virtual bool keyboardEvent ( int key, int scancode, int action, int modifiers ) {
@@ -109,9 +80,7 @@ class GUI : public nanogui::Screen {
 		/* close */
 		if ( key == GLFW_KEY_ESCAPE && action == GLFW_PRESS ) {
 
-			nn->quit = true;
 			setVisible ( false );
-
 			return true;
 		}
 
@@ -133,51 +102,38 @@ class GUI : public nanogui::Screen {
 	int glfw_window_width, glfw_window_height;
 	bool vsync;
 
+  public:
+
 	std::vector<Eigen::VectorXf*> graph_data;
 
 };
 
 GUI* screen;
 
-int compute() {
+int compute(int i) {
 
-	// TODO: be able to change batch size, learning rate and decay dynamically
-	// serialization
+	size_t loops = 0;
 
-	size_t batch_size = 16;
-	double learning_rate = 1e-3;
-	float decay = 1e-5;
-	nn = new NN(batch_size, decay);
+	/* work until main window is open */
+	while (screen->getVisible()) {
 
-	nn->layers.push_back(new Linear(28 * 28, 100, batch_size));
-	nn->layers.push_back(new ReLU(100, 100, batch_size));
-	nn->layers.push_back(new Linear(100, 10, batch_size));
-	nn->layers.push_back(new Softmax(10, 10, batch_size));
+		// generate some data
+		if (screen->graph_data[i]) {
 
-	while (!screen) { usleep(1000); }
+			screen->graph_data[i]->resize(100);
 
-	//[60000, 784]
-	std::deque<datapoint> train_data =
-	    MNISTImporter::importFromFile("data/mnist/train-images-idx3-ubyte", "data/mnist/train-labels-idx1-ubyte");
+			for (int k = 0; k < screen->graph_data[i]->size(); ++k) {
 
-	//[10000, 784]
-	std::deque<datapoint> test_data =
-	    MNISTImporter::importFromFile("data/mnist/t10k-images-idx3-ubyte", "data/mnist/t10k-labels-idx1-ubyte");
+				screen->graph_data[i]->operator[](k) = 0.5f * (0.5f * std::sin(k / 10.f + glfwGetTime()) +
+				                                       0.5f * std::cos(++loops / 100000.0f * k / 23.f) + 1);
 
-	for (size_t e = 0; true; e++) {
+			}
+		}
 
-		nn->train(train_data, learning_rate, train_data.size() / batch_size);
-
-		if (nn->quit) break;
-
-		printf ( "Epoch %3lu: Test accuracy: %.2f %%\n", e + 1, 100.0f * (float)nn->test(test_data));
-
+		usleep(i * 1000);
 	}
 
-	nn->quit = true;
-
-	//should wait for GL to finish first before deleting nn
-	delete nn; return 0;
+	return 0;
 
 }
 
@@ -189,14 +145,18 @@ int main ( int /* argc */, char ** /* argv */ ) {
 		nanogui::init();
 		screen = new GUI();
 
-		// launch a compute thread
-		std::thread compute_thread(compute);
+		std::thread compute_threads[NUM_WORKERS];
+
+		for ( int i = 0; i < NUM_WORKERS; i++ )
+			compute_threads[i] = std::thread ( compute, i );
 
 		nanogui::mainloop ( 1 );
 
 		delete screen;
 		nanogui::shutdown();
-		compute_thread.join();
+
+		for ( int i = 0; i < NUM_WORKERS; i++ )
+			compute_threads[i].join();
 
 	} catch ( const std::runtime_error &e ) {
 

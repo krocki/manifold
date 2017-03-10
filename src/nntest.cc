@@ -2,7 +2,7 @@
 * @Author: kmrocki@us.ibm.com
 * @Date:   2017-03-03 15:06:14
 * @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-03-08 21:16:47
+* @Last Modified time: 2017-03-09 12:55:59
 */
 
 #include <iostream>
@@ -41,9 +41,9 @@ int main() {
 
 	for (size_t e = 0; e < epochs; e++) {
 
-		std::cout << "Epoch " << e + 1 << std::endl << std::endl;
 		nn.train(train_data, learning_rate, train_data.size() / batch_size);
-		nn.test(test_data);
+		float acc = nn.test(test_data);
+		printf( "Epoch %3lu: %.2f %%\n", e + 1, 100.0f * acc );
 
 	}
 

@@ -2,7 +2,7 @@
 * @Author: Kamil Rocki
 * @Date:   2017-02-28 11:25:34
 * @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-03-09 11:01:21
+* @Last Modified time: 2017-03-09 13:06:58
 */
 
 #include <iostream>
@@ -149,7 +149,7 @@ class MLPScreen : public nanogui::Screen {
 		graph_flops->setBackgroundColor ( nanogui::Color ( 0, 0, 0, 8 ) );
 		graph_flops->setSize ( {graph_width, graph_height } );
 
-		// FlOP/s
+		// B/s
 		graph_bytes = graphs->add<nanogui::Graph> ( "" );
 		graph_bytes->values().resize ( cpu_reads.size() );
 		graph_bytes->setGraphColor ( nanogui::Color ( 255, 192, 0, 255 ) );
@@ -576,7 +576,6 @@ int compute() {
 
 	for (size_t e = 0; true; e++) {
 
-		std::cout << "Epoch " << e + 1 << std::endl << std::endl;
 		nn->train(train_data, learning_rate, train_data.size() / batch_size);
 		if (nn->quit) break;
 
@@ -584,6 +583,8 @@ int compute() {
 
 		if (screen)
 			screen->console ( "Epoch %3d: %.2f %%\n", e + 1, 100.0f * acc );
+		else
+			printf( "Epoch %3lu: %.2f %%\n", e + 1, 100.0f * acc );
 
 	}
 
