@@ -32,9 +32,9 @@ NN* nn;
 
 class GUI : public nanogui::Screen {
 
-  public:
+public:
 
-	GUI ( ) : nanogui::Screen ( Eigen::Vector2i ( DEF_WIDTH, DEF_HEIGHT ), SCREEN_NAME ) { init(); }
+	GUI ( ) : nanogui::Screen ( Eigen::Vector2i ( DEF_WIDTH, DEF_HEIGHT ), SCREEN_NAME ), vsync(true) { init(); }
 
 	void init() {
 
@@ -131,7 +131,7 @@ class GUI : public nanogui::Screen {
 
 	~GUI() { /* free resources */}
 
-  protected:
+protected:
 
 	int glfw_window_width, glfw_window_height;
 	bool vsync;

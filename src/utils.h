@@ -11,6 +11,7 @@
 // to surpress warnings
 #define UNUSED(...) [__VA_ARGS__](){};
 
+#include <cstring>
 #include <sstream>
 #include <iomanip>
 #include <stdarg.h>  // For va_start, etc.
