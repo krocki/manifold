@@ -12,11 +12,11 @@
 #include <unistd.h>
 #include "perf.h"
 
-typedef enum network_type { MLP = 0, AE = 1 } network_type;
+typedef enum network_type { MLP = 0, AE = 1, DAE = 2 } network_type;
 
 class NN {
 
-  public:
+public:
 
 	std::deque<Layer*> layers;
 	float current_loss = -0.01f;
@@ -89,9 +89,9 @@ class NN {
 		Eigen::VectorXi random_numbers(batch_size);
 		batch.resize(data[0].x.rows(), batch_size);
 
-		if (ntype == AE) {
+		if (ntype == AE || ntype == DAE) {
 
-			/*         */
+			/* * * * * * */
 
 		} else {
 
@@ -109,9 +109,7 @@ class NN {
 			// [784 x batch_size]
 			make_batch(batch, data, random_numbers);
 
-			if (ntype == AE) {
-
-				/*         */
+			if (ntype == AE || ntype == DAE) {
 
 			} else {
 
@@ -121,13 +119,26 @@ class NN {
 
 			ticf();
 
+
+
 			//forward activations
-			forward(batch);
+			if (ntype == DAE) {
+
+				/* Denoising */
+				Matrix mask(batch.rows(), batch.cols());
+				random_binary_mask(mask);
+				Matrix corrupted_batch(batch.rows(), batch.cols());
+				corrupted_batch.array() = batch.array() * mask.array();
+				forward(corrupted_batch);
+
+			} else
+
+				forward(batch);
 
 			double err;
 
 			//backprogagation
-			if (ntype == AE) {
+			if (ntype == AE || ntype == DAE) {
 
 				err = mse(layers[layers.size() - 1]->y, batch) / (float)batch_size;
 
@@ -165,7 +176,7 @@ class NN {
 
 	double test(std::deque<datapoint> data) {
 
-		if (ntype == AE) {
+		if (ntype == AE || ntype == DAE) {
 
 			return current_loss;
 

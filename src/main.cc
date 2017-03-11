@@ -30,16 +30,16 @@
 
 NN* nn;
 
-#define DEF_WIDTH 380
-#define DEF_HEIGHT 435
+#define DEF_WIDTH 1080
+#define DEF_HEIGHT 1170
 #define SCREEN_NAME "AE"
 
-const size_t batch_size = 32;
+const size_t batch_size = 128;
 const size_t image_size = 28;
 
 class GUI : public nanogui::Screen {
 
-  public:
+public:
 
 	GUI ( ) : nanogui::Screen ( Eigen::Vector2i ( DEF_WIDTH, DEF_HEIGHT ), SCREEN_NAME ), vsync(true) { init(); }
 
@@ -71,9 +71,9 @@ class GUI : public nanogui::Screen {
 		nanogui::Window* images = new nanogui::Window ( this, "images" );
 		images->setLayout(new nanogui::GroupLayout(3, 1, 0, 0));
 
-		nanogui::ImagePanel* inp = new nanogui::ImagePanel(images, 44, 2, 2, {8, image_size / 8});
+		nanogui::ImagePanel* inp = new nanogui::ImagePanel(images, 64, 2, 2, {16, image_size / 16});
 		inp->setImages(xs);
-		nanogui::ImagePanel* out = new nanogui::ImagePanel(images, 44, 2, 2, {8, image_size / 8});
+		nanogui::ImagePanel* out = new nanogui::ImagePanel(images, 64, 2, 2, {16, image_size / 16});
 		out->setImages(ys);
 
 		images->setSize({glfw_window_width, glfw_window_height});
@@ -103,30 +103,37 @@ class GUI : public nanogui::Screen {
 			Eigen::Matrix<unsigned char, Eigen::Dynamic, Eigen::Dynamic> rgba_image;
 			rgba_image.resize(image_size, image_size);
 
-			//xs
+			// xs
 			for (size_t i = 0; i < nn->batch_size; i++) {
 
-				Eigen::MatrixXf float_image = nn->layers[0]->x.col(i);
+				if (nn->layers[0]) {
 
-				float_image.resize(image_size, image_size);
-				float_image *= 255.0f;
+					Eigen::MatrixXf float_image = nn->layers[0]->x.col(i);
 
-				rgba_image = float_image.cast<unsigned char>();
-				nvgUpdateImage(nvgContext(), xs[i].first, (unsigned char*) rgba_image.data());
+					float_image.resize(image_size, image_size);
+					float_image *= 255.0f;
+
+					rgba_image = float_image.cast<unsigned char>();
+					nvgUpdateImage(nvgContext(), xs[i].first, (unsigned char*) rgba_image.data());
+
+				}
 
 			}
 
-			//ys
+			// ys
 			for (size_t i = 0; i < nn->batch_size; i++) {
 
-				Eigen::MatrixXf float_image = nn->layers.back()->y.col(i);
+				if (nn->layers[7]) {
 
-				float_image.resize(image_size, image_size);
-				float_image *= 255.0f;
+					Eigen::MatrixXf float_image = nn->layers.back()->y.col(i);
 
-				rgba_image = float_image.cast<unsigned char>();
-				nvgUpdateImage(nvgContext(), ys[i].first, (unsigned char*) rgba_image.data());
+					float_image.resize(image_size, image_size);
+					float_image *= 255.0f;
 
+					rgba_image = float_image.cast<unsigned char>();
+					nvgUpdateImage(nvgContext(), ys[i].first, (unsigned char*) rgba_image.data());
+
+				}
 			}
 
 		}
@@ -177,7 +184,7 @@ class GUI : public nanogui::Screen {
 
 	~GUI() { /* free resources */}
 
-  protected:
+protected:
 
 	int glfw_window_width, glfw_window_height;
 	bool vsync;
@@ -196,17 +203,17 @@ int compute() {
 	// TODO: be able to change batch size, learning rate and decay dynamically
 	// serialization
 
-	double learning_rate = 1e-4;
-	float decay = 1e-7;
-	nn = new NN(batch_size, decay, AE);
+	double learning_rate = 1e-3;
+	float decay = 0;//1e-7;
+	nn = new NN(batch_size, decay, DAE);
 
 	nn->layers.push_back(new Linear(image_size * image_size, 256, batch_size));
 	nn->layers.push_back(new ReLU(256, 256, batch_size));
 
-	nn->layers.push_back(new Linear(256, 2, batch_size));
-	nn->layers.push_back(new ReLU(2, 2, batch_size));
+	nn->layers.push_back(new Linear(256, 3, batch_size));
+	nn->layers.push_back(new ReLU(3, 3, batch_size));
 
-	nn->layers.push_back(new Linear(2, 256, batch_size));
+	nn->layers.push_back(new Linear(3, 256, batch_size));
 	nn->layers.push_back(new ReLU(256, 256, batch_size));
 
 	nn->layers.push_back(new Linear(256, image_size * image_size, batch_size));
@@ -230,6 +237,7 @@ int compute() {
 
 		printf ( "Epoch %3lu: Loss: %.2f\n", e + 1, (float)nn->test(test_data));
 
+		// test - go over some data, plot
 	}
 
 	nn->quit = true;

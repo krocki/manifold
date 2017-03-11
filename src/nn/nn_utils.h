@@ -38,6 +38,23 @@ void BLAS_mmul( Eigen::MatrixXf& __restrict c, Eigen::MatrixXf& __restrict a,
 
 #endif
 
+float rand_float ( float mn, float mx ) {
+
+	float r = random() / ( float ) RAND_MAX;
+	return mn + ( mx - mn ) * r;
+}
+
+void random_binary_mask(Matrix& mask) {
+
+	for (int i = 0; i < mask.rows(); i++) {
+		for (int j = 0; j < mask.cols(); j++) {
+
+			mask(i, j) = round(rand_float ( 0, 1 ));
+		}
+
+	}
+}
+
 Matrix rectify(Matrix& x) {
 
 	Matrix y(x.rows(), x.cols());
