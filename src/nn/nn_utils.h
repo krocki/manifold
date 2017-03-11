@@ -2,7 +2,7 @@
 * @Author: kmrocki
 * @Date:   2016-02-24 10:47:03
 * @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-03-07 20:32:35
+* @Last Modified time: 2017-03-10 21:20:14
 */
 
 #ifndef __NN_UTILS_H__
@@ -120,6 +120,18 @@ float cross_entropy(Matrix& predictions, Matrix& targets) {
 	ce = error.sum();
 
 	return ce;
+}
+
+float mse(Matrix& yhat, Matrix& y) {
+
+	float mse = 0.0;
+	Matrix error = y - yhat;
+
+	//check what has happened and get information content for that event
+	error.array() = 2.0f * error.array() * error.array();
+	mse = error.sum();
+
+	return mse;
 }
 
 //generate an array of random numbers in range

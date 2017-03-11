@@ -2,7 +2,7 @@
 * @Author: Kamil Rocki
 * @Date:   2017-02-28 11:25:34
 * @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-03-09 22:24:04
+* @Last Modified time: 2017-03-10 23:02:26
 */
 
 #include <thread>
@@ -14,6 +14,7 @@
 #include <nanogui/window.h>
 #include <nanogui/graph.h>
 #include <nanogui/layout.h>
+#include <nanogui/imagepanel.h>
 
 //helpers
 #include <utils.h>
@@ -24,15 +25,21 @@
 #include <nn/layers.h>
 #include <nn/nn.h>
 
+// nvgCreateImageA
+#include <gl/tex.h>
+
 NN* nn;
 
-#define DEF_WIDTH 300
-#define DEF_HEIGHT 400
+#define DEF_WIDTH 380
+#define DEF_HEIGHT 435
 #define SCREEN_NAME "AE"
+
+const size_t batch_size = 32;
+const size_t image_size = 28;
 
 class GUI : public nanogui::Screen {
 
-public:
+  public:
 
 	GUI ( ) : nanogui::Screen ( Eigen::Vector2i ( DEF_WIDTH, DEF_HEIGHT ), SCREEN_NAME ), vsync(true) { init(); }
 
@@ -47,22 +54,29 @@ public:
 		printf ( "GLSL_VERSION: %s\n\n", glGetString ( GL_SHADING_LANGUAGE_VERSION ) );
 
 		/* * create widgets  * */
-		this->setLayout(new nanogui::BoxLayout());
 
-		nanogui::Window* window_graphs = new nanogui::Window ( this, "" );
-		window_graphs->setLayout(new nanogui::GroupLayout(3, 1, 0, 0));
+		//make image placeholders
+		for (size_t i = 0; i < batch_size; i++) {
 
-		int NUM_GRAPHS = 10;
+			xs.emplace_back(std::pair<int, std::string>(nvgCreateImageA(nvgContext(),
+			                image_size, image_size, NVG_IMAGE_NEAREST, (unsigned char*) nullptr), ""));
 
-		for (int i = 0; i < NUM_GRAPHS; i++) {
+			ys.emplace_back(std::pair<int, std::string>(nvgCreateImageA(nvgContext(),
+			                image_size, image_size, NVG_IMAGE_NEAREST, (unsigned char*) nullptr), ""));
 
-			nanogui::Graph* graph = new nanogui::Graph ( window_graphs, string_format("%d", i),
-			        nanogui::GraphType::GRAPH_NANOGUI_NOFILL, nanogui::parula_lut[i] );
-
-			graph_data.push_back(graph->values_ptr());
 		}
 
-		window_graphs->setSize({glfw_window_width, glfw_window_height});
+		this->setLayout(new nanogui::BoxLayout());
+
+		nanogui::Window* images = new nanogui::Window ( this, "images" );
+		images->setLayout(new nanogui::GroupLayout(3, 1, 0, 0));
+
+		nanogui::ImagePanel* inp = new nanogui::ImagePanel(images, 44, 2, 2, {8, image_size / 8});
+		inp->setImages(xs);
+		nanogui::ImagePanel* out = new nanogui::ImagePanel(images, 44, 2, 2, {8, image_size / 8});
+		out->setImages(ys);
+
+		images->setSize({glfw_window_width, glfw_window_height});
 		/* * * * * * * * * * * */
 
 		drawAll();
@@ -84,20 +98,39 @@ public:
 
 	void refresh() {
 
-		for (size_t i = 0; i < graph_data.size(); i++) {
+		if (nn) {
 
-			if (graph_data[i]) {
+			Eigen::Matrix<unsigned char, Eigen::Dynamic, Eigen::Dynamic> rgba_image;
+			rgba_image.resize(image_size, image_size);
 
-				graph_data[i]->resize(100);
+			//xs
+			for (size_t i = 0; i < nn->batch_size; i++) {
 
-				for (int k = 0; k < graph_data[i]->size(); ++k) {
+				Eigen::MatrixXf float_image = nn->layers[0]->x.col(i);
 
-					graph_data[i]->operator[](k) = 0.5f * (0.5f * std::sin(k / 10.f + glfwGetTime()) +
-					                                       0.5f * std::cos(i * k / 23.f) + 1);
+				float_image.resize(image_size, image_size);
+				float_image *= 255.0f;
 
-				}
+				rgba_image = float_image.cast<unsigned char>();
+				nvgUpdateImage(nvgContext(), xs[i].first, (unsigned char*) rgba_image.data());
+
 			}
+
+			//ys
+			for (size_t i = 0; i < nn->batch_size; i++) {
+
+				Eigen::MatrixXf float_image = nn->layers.back()->y.col(i);
+
+				float_image.resize(image_size, image_size);
+				float_image *= 255.0f;
+
+				rgba_image = float_image.cast<unsigned char>();
+				nvgUpdateImage(nvgContext(), ys[i].first, (unsigned char*) rgba_image.data());
+
+			}
+
 		}
+
 	}
 
 	/* event handlers */
@@ -107,6 +140,18 @@ public:
 		/* process subcomponents */
 		if ( Screen::keyboardEvent ( key, scancode, action, modifiers ) )
 			return true;
+
+		if ( key == GLFW_KEY_SPACE && action == GLFW_PRESS) {
+			nn->pause = !nn->pause;
+		}
+
+		if ( key == GLFW_KEY_N && action == GLFW_PRESS) {
+
+			if (nn->pause) {
+				nn->step = true;
+			}
+
+		}
 
 		/* close */
 		if ( key == GLFW_KEY_ESCAPE && action == GLFW_PRESS ) {
@@ -125,18 +170,22 @@ public:
 		UNUSED(size);
 		performLayout();
 
+		printf("%d %d\n", size[0], size[1]);
 		return true;
 
 	}
 
 	~GUI() { /* free resources */}
 
-protected:
+  protected:
 
 	int glfw_window_width, glfw_window_height;
 	bool vsync;
 
 	std::vector<Eigen::VectorXf*> graph_data;
+
+	using imagesDataType = std::vector<std::pair<int, std::string>>;
+	imagesDataType xs, ys;
 
 };
 
@@ -147,15 +196,21 @@ int compute() {
 	// TODO: be able to change batch size, learning rate and decay dynamically
 	// serialization
 
-	size_t batch_size = 16;
-	double learning_rate = 1e-3;
-	float decay = 1e-5;
-	nn = new NN(batch_size, decay);
+	double learning_rate = 1e-4;
+	float decay = 1e-7;
+	nn = new NN(batch_size, decay, AE);
 
-	nn->layers.push_back(new Linear(28 * 28, 100, batch_size));
-	nn->layers.push_back(new ReLU(100, 100, batch_size));
-	nn->layers.push_back(new Linear(100, 10, batch_size));
-	nn->layers.push_back(new Softmax(10, 10, batch_size));
+	nn->layers.push_back(new Linear(image_size * image_size, 256, batch_size));
+	nn->layers.push_back(new ReLU(256, 256, batch_size));
+
+	nn->layers.push_back(new Linear(256, 2, batch_size));
+	nn->layers.push_back(new ReLU(2, 2, batch_size));
+
+	nn->layers.push_back(new Linear(2, 256, batch_size));
+	nn->layers.push_back(new ReLU(256, 256, batch_size));
+
+	nn->layers.push_back(new Linear(256, image_size * image_size, batch_size));
+	nn->layers.push_back(new Sigmoid(image_size * image_size, image_size * image_size, batch_size));
 
 	while (!screen) { usleep(1000); }
 
@@ -173,7 +228,7 @@ int compute() {
 
 		if (nn->quit) break;
 
-		printf ( "Epoch %3lu: Test accuracy: %.2f %%\n", e + 1, 100.0f * (float)nn->test(test_data));
+		printf ( "Epoch %3lu: Loss: %.2f\n", e + 1, (float)nn->test(test_data));
 
 	}
 

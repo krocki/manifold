@@ -2,7 +2,7 @@
 * @Author: Kamil Rocki
 * @Date:   2017-02-28 11:25:34
 * @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-03-09 22:26:51
+* @Last Modified time: 2017-03-10 05:25:35
 */
 
 #include <thread>
@@ -28,7 +28,7 @@
 
 class GUI : public nanogui::Screen {
 
-public:
+  public:
 
 	GUI ( ) : nanogui::Screen ( Eigen::Vector2i ( DEF_WIDTH, DEF_HEIGHT ), SCREEN_NAME ), vsync(true) { init(); }
 
@@ -54,7 +54,6 @@ public:
 
 			nanogui::Graph* graph = new nanogui::Graph ( window_graphs, string_format("%d", i),
 			        nanogui::GraphType::GRAPH_NANOGUI_NOFILL, nanogui::parula_lut[i] );
-
 			graph_data.push_back(graph->values_ptr());
 		}
 
@@ -99,12 +98,12 @@ public:
 
 	~GUI() { /* free resources */}
 
-protected:
+  protected:
 
 	int glfw_window_width, glfw_window_height;
 	bool vsync;
 
-public:
+  public:
 
 	std::vector<Eigen::VectorXf*> graph_data;
 

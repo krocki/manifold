@@ -2,7 +2,7 @@
 * @Author: kmrocki
 * @Date:   2016-02-24 15:28:10
 * @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-03-09 13:24:44
+* @Last Modified time: 2017-03-10 22:50:13
 */
 
 #ifndef __NN_H__
@@ -11,6 +11,8 @@
 #include <nn/layers.h>
 #include <unistd.h>
 #include "perf.h"
+
+typedef enum network_type { MLP = 0, AE = 1 } network_type;
 
 class NN {
 
@@ -26,6 +28,7 @@ class NN {
 
 	const size_t batch_size;
 	float decay;
+	network_type ntype;
 
 	Matrix batch;
 	Matrix targets;
@@ -82,13 +85,20 @@ class NN {
 
 	void train(std::deque<datapoint> data, double alpha, size_t iterations) {
 
-		//get random examples of size batch_size from data
-		Eigen::VectorXi random_numbers(batch_size);
 		size_t classes = 10;
-
+		Eigen::VectorXi random_numbers(batch_size);
 		batch.resize(data[0].x.rows(), batch_size);
-		targets.resize(classes, batch_size);
-		encoding = Matrix::Identity(classes, classes);
+
+		if (ntype == AE) {
+
+			/*         */
+
+		} else {
+
+			targets.resize(classes, batch_size);
+			encoding = Matrix::Identity(classes, classes);
+
+		}
 
 		for (size_t ii = 0; ii < iterations; ii++) {
 
@@ -98,22 +108,44 @@ class NN {
 
 			// [784 x batch_size]
 			make_batch(batch, data, random_numbers);
-			make_targets(targets, encoding, data, random_numbers);
+
+			if (ntype == AE) {
+
+				/*         */
+
+			} else {
+
+				make_targets(targets, encoding, data, random_numbers);
+
+			}
 
 			ticf();
 
 			//forward activations
 			forward(batch);
 
-			double ce = cross_entropy(layers[layers.size() - 1]->y, targets);
-			current_loss = current_loss < 0 ? ce : 0.99 * current_loss + 0.01 * ce;
-
-			// std::cout << "[" << ii + 1 << "/" << iterations << "] Loss = " << current_loss << std::endl;
-
-			if (ii % 5 == 0) clock = true;
+			double err;
 
 			//backprogagation
-			backward(targets);
+			if (ntype == AE) {
+
+				err = mse(layers[layers.size() - 1]->y, batch) / (float)batch_size;
+
+				// reconstruct
+				backward(batch - layers[layers.size() - 1]->y);
+
+
+			} else {
+
+				err = cross_entropy(layers[layers.size() - 1]->y, targets);
+
+				backward(targets);
+
+			}
+
+			current_loss = current_loss < 0 ? err : 0.99 * current_loss + 0.01 * err;
+
+			if (ii % 5 == 0) clock = true;
 
 			//apply changes
 			update(alpha, decay);
@@ -128,44 +160,50 @@ class NN {
 				if (step || quit) { step = false; break; }
 			}
 		}
-
 	}
 
 
 	double test(std::deque<datapoint> data) {
 
-		Eigen::VectorXi numbers(batch_size);
-		size_t classes = 10;
-		size_t correct = 0;
+		if (ntype == AE) {
 
-		batch.resize(data[0].x.rows(), batch_size);
-		targets.resize(classes, batch_size);
-		encoding = Matrix::Identity(classes, classes);
+			return current_loss;
 
-		for (size_t ii = 0; ii < data.size(); ii += batch_size) {
+		} else {
 
-			linspace(numbers, ii, ii + batch_size);
+			Eigen::VectorXi numbers(batch_size);
+			size_t classes = 10;
+			size_t correct = 0;
 
-			make_batch(batch, data, numbers);
-			make_targets(targets, encoding, data, numbers);
+			batch.resize(data[0].x.rows(), batch_size);
+			targets.resize(classes, batch_size);
+			encoding = Matrix::Identity(classes, classes);
 
-			forward(batch);
+			for (size_t ii = 0; ii < data.size(); ii += batch_size) {
 
-			correct += count_correct_predictions(layers[layers.size() - 1]->y, targets);
+				linspace(numbers, ii, ii + batch_size);
+
+				make_batch(batch, data, numbers);
+				make_targets(targets, encoding, data, numbers);
+
+				forward(batch);
+
+				correct += count_correct_predictions(layers[layers.size() - 1]->y, targets);
 
 
+			}
+
+			return (double)correct / (double)(data.size());
 		}
 
-		return (double)correct / (double)(data.size());
 	}
 
-	NN(size_t minibatch_size, float decay = 0.0f) :
-		batch_size(minibatch_size), decay(decay) {}
+	NN(size_t minibatch_size, float decay = 0.0f, network_type type = MLP) :
+		batch_size(minibatch_size), decay(decay), ntype(type) {}
 
 	~NN() {
 
 		for (size_t i = 0; i < layers.size(); i++) {
-
 			delete(layers[i]);
 		}
 
