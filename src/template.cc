@@ -2,7 +2,7 @@
 * @Author: Kamil Rocki
 * @Date:   2017-02-28 11:25:34
 * @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-03-09 11:27:04
+* @Last Modified time: 2017-03-11 20:18:24
 */
 
 /* A template for GUI + compute thread */
@@ -22,7 +22,7 @@
 
 class GUI : public nanogui::Screen {
 
-public:
+  public:
 
 	GUI ( ) : nanogui::Screen ( Eigen::Vector2i ( DEF_WIDTH, DEF_HEIGHT ), SCREEN_NAME ), vsync(true) { init(); }
 
@@ -42,6 +42,7 @@ public:
 
 		drawAll();
 		setVisible(true);
+		framebufferSizeChanged();
 
 		glfwSwapInterval(vsync);
 
@@ -79,7 +80,8 @@ public:
 
 	~GUI() { /* free resources */}
 
-protected:
+  protected:
+
 	int glfw_window_width, glfw_window_height;
 	bool vsync;
 
@@ -107,6 +109,8 @@ int main ( int /* argc */, char ** /* argv */ ) {
 		/* init GUI */
 		nanogui::init();
 		screen = new GUI();
+		// remember that compute thread cannot start until this is done
+		// change the order if needed
 
 		// launch a compute thread
 		std::thread compute_thread(compute);

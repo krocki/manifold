@@ -2,7 +2,7 @@
 * @Author: Kamil Rocki
 * @Date:   2017-02-28 11:25:34
 * @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-03-10 23:02:26
+* @Last Modified time: 2017-03-11 20:04:35
 */
 
 #include <thread>
@@ -31,15 +31,15 @@
 NN* nn;
 
 #define DEF_WIDTH 1080
-#define DEF_HEIGHT 1170
+#define DEF_HEIGHT 360
 #define SCREEN_NAME "AE"
 
-const size_t batch_size = 128;
+const size_t batch_size = 64;
 const size_t image_size = 28;
 
 class GUI : public nanogui::Screen {
 
-public:
+  public:
 
 	GUI ( ) : nanogui::Screen ( Eigen::Vector2i ( DEF_WIDTH, DEF_HEIGHT ), SCREEN_NAME ), vsync(true) { init(); }
 
@@ -71,9 +71,9 @@ public:
 		nanogui::Window* images = new nanogui::Window ( this, "images" );
 		images->setLayout(new nanogui::GroupLayout(3, 1, 0, 0));
 
-		nanogui::ImagePanel* inp = new nanogui::ImagePanel(images, 64, 2, 2, {16, image_size / 16});
+		nanogui::ImagePanel* inp = new nanogui::ImagePanel(images, 64, 2, 2, {32, image_size / 16});
 		inp->setImages(xs);
-		nanogui::ImagePanel* out = new nanogui::ImagePanel(images, 64, 2, 2, {16, image_size / 16});
+		nanogui::ImagePanel* out = new nanogui::ImagePanel(images, 64, 2, 2, {32, image_size / 16});
 		out->setImages(ys);
 
 		images->setSize({glfw_window_width, glfw_window_height});
@@ -184,7 +184,7 @@ public:
 
 	~GUI() { /* free resources */}
 
-protected:
+  protected:
 
 	int glfw_window_width, glfw_window_height;
 	bool vsync;
