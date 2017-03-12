@@ -2,7 +2,7 @@
 * @Author: Kamil Rocki
 * @Date:   2017-02-28 11:25:34
 * @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-03-11 20:59:04
+* @Last Modified time: 2017-03-11 21:40:57
 */
 
 /* nbody */
@@ -30,12 +30,12 @@
 #define POINT_FRAG_FILE "./src/glsl/surf_point.f.glsl"
 #define POINT_VERT_FILE "./src/glsl/surf_point.v.glsl"
 
-#define DEF_WIDTH 1024
-#define DEF_HEIGHT 768
+#define DEF_WIDTH 600
+#define DEF_HEIGHT 400
 #define SCREEN_NAME "nbody"
 
 // 10^
-#define DEF_NUM_POINTS 5.0f // 100k
+#define DEF_NUM_POINTS 3.5f // 10k
 #define MIN_NUM_POINTS 1.0f // 10
 #define MAX_NUM_POINTS 7.0f // 10M
 
@@ -156,7 +156,7 @@ class GUI : public nanogui::Screen {
 
 		model.setIdentity();
 		model = m_arcball.matrix() * model;
-		model = nanogui::translate(Eigen::Vector3f(0.0f, 0.0f, -3.0f)) * model;
+		model = nanogui::translate(Eigen::Vector3f(0.0f, 0.0f, -5.0f)) * model;
 
 
 		/* Render the point set */
@@ -244,44 +244,61 @@ void generate_points(Eigen::MatrixXf &positions, Eigen::MatrixXf &colors, size_t
 	positions.resize ( 3, g_pointCount );
 	colors.resize ( 3, g_pointCount );
 
-	std::cout << g_pointCount << std::endl;
-
 	for ( size_t i = 0; i < g_pointCount; i++ ) {
 
-		float x = rand_float( -0.5f, 0.5f );
-		float y = rand_float( -0.5f, 0.5f );
-		float z = rand_float( -0.0f, 0.0f );
+		float x = rand_float(-1.0f, 1.0f);
+		float y = rand_float(-1.0f, 1.0f);
+		float z = rand_float(-1.0f, 1.0f);
 
 		positions.col ( i ) << x, y, z;
-		colors.col ( i ) = Eigen::Vector3f(x, y, z);
+		colors.col ( i ) = Eigen::Vector3f(0.0f, 1.0f, 0.0f);
 
 	}
 
 	changed = true;
 }
 
+#define SOFTENING 1e-9f
+const float dt = 0.00001f;
+
 int compute() {
 
 	/* work until main window is open */
 	while (screen->getVisible()) {
 
+		Eigen::VectorXf p;
+		Eigen::VectorXf q, d;
+
 		for (size_t i = 0; i < g_pointCount; i++) {
 
-			Eigen::VectorXf t = g_positions.col ( i );
+			p = g_positions.col(i);
 
-			float x = 0;
-			float y = 0;
-			float z = rand_float( -0.001f, 0.001f );;
+			float Fx = 0.0f; float Fy = 0.0f; float Fz = 0.0f;
 
-			t << t.x() + x, t.y() + y, t.z() + z;
+			#pragma omp parallel for
+			for (size_t j = 0; j < g_pointCount; j++) {
 
-			g_positions.col ( i ) = t;
-			g_colors.col ( i ) = g_positions.col ( i );
+				q = g_positions.col(j);
+				d = q - p;
+
+				float distSqr = d[0] * d[0] + d[1] * d[1] + d[2] * d[2] + SOFTENING;
+				float invDist = 1.0f / sqrtf(distSqr);
+				float invDist3 = invDist * invDist * invDist;
+
+				Fx += d[0] * invDist3; Fy += d[1] * invDist3; Fz += d[2] * invDist3;
+
+			}
+
+
+			p << p.x() + dt*Fx, p.y() + dt*Fy, p.z() + dt*Fz;
+			g_colors.col ( i ) = Eigen::Vector3f(0.0f, 1.0f, 0.0f);
+			g_positions.col(i) = p;
 
 		}
 
 		changed = true;
-		usleep(1000);
+
+		// usleep(1000);
 	}
 
 	return 0;
