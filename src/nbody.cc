@@ -2,7 +2,7 @@
 * @Author: Kamil Rocki
 * @Date:   2017-02-28 11:25:34
 * @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-03-11 21:40:57
+* @Last Modified time: 2017-03-12 19:58:47
 */
 
 /* nbody */
@@ -35,12 +35,13 @@
 #define SCREEN_NAME "nbody"
 
 // 10^
-#define DEF_NUM_POINTS 3.5f // 10k
+#define DEF_NUM_POINTS 3.0f // 1k
 #define MIN_NUM_POINTS 1.0f // 10
 #define MAX_NUM_POINTS 7.0f // 10M
 
 size_t g_pointCount;
 Eigen::MatrixXf g_positions;
+Eigen::MatrixXf g_velocities;
 Eigen::MatrixXf g_colors;
 
 bool changed;
@@ -237,11 +238,12 @@ class GUI : public nanogui::Screen {
 
 GUI* screen;
 
-void generate_points(Eigen::MatrixXf &positions, Eigen::MatrixXf &colors, size_t N) {
+void generate_points(Eigen::MatrixXf &positions, Eigen::MatrixXf &velocities, Eigen::MatrixXf &colors, size_t N) {
 
 	g_pointCount = N;
 
 	positions.resize ( 3, g_pointCount );
+	velocities.resize ( 3, g_pointCount );
 	colors.resize ( 3, g_pointCount );
 
 	for ( size_t i = 0; i < g_pointCount; i++ ) {
@@ -249,8 +251,12 @@ void generate_points(Eigen::MatrixXf &positions, Eigen::MatrixXf &colors, size_t
 		float x = rand_float(-1.0f, 1.0f);
 		float y = rand_float(-1.0f, 1.0f);
 		float z = rand_float(-1.0f, 1.0f);
+		float vx = rand_float(-0.01f, 0.01f);
+		float vy = rand_float(-0.01f, 0.01f);
+		float vz = rand_float(-0.01f, 0.01f);
 
 		positions.col ( i ) << x, y, z;
+		velocities.col ( i ) << vx, vy, vz;
 		colors.col ( i ) = Eigen::Vector3f(0.0f, 1.0f, 0.0f);
 
 	}
@@ -258,24 +264,23 @@ void generate_points(Eigen::MatrixXf &positions, Eigen::MatrixXf &colors, size_t
 	changed = true;
 }
 
-#define SOFTENING 1e-9f
-const float dt = 0.00001f;
+#define SOFTENING 1e-1f
+const float dt = 0.0005f;
 
 int compute() {
 
 	/* work until main window is open */
 	while (screen->getVisible()) {
 
-		Eigen::VectorXf p;
-		Eigen::VectorXf q, d;
+		Eigen::VectorXf p, q, d, v;
 
+		#pragma omp parallel for schedule(dynamic)
 		for (size_t i = 0; i < g_pointCount; i++) {
 
 			p = g_positions.col(i);
 
 			float Fx = 0.0f; float Fy = 0.0f; float Fz = 0.0f;
 
-			#pragma omp parallel for
 			for (size_t j = 0; j < g_pointCount; j++) {
 
 				q = g_positions.col(j);
@@ -289,10 +294,15 @@ int compute() {
 
 			}
 
+			v = g_velocities.col(i);
+			v << v.x() + dt*Fx, v.y() + dt*Fy, v.z() + dt*Fz;
+			g_velocities.col(i) = v;
 
-			p << p.x() + dt*Fx, p.y() + dt*Fy, p.z() + dt*Fz;
-			g_colors.col ( i ) = Eigen::Vector3f(0.0f, 1.0f, 0.0f);
+			// integrate position
+			p << p.x() + dt*v.x(), p.y() + dt*v.y(), p.z() + dt*v.z();
 			g_positions.col(i) = p;
+
+			g_colors.col ( i ) = Eigen::Vector3f(fabs(v.x() / v.y()), 1.0f, 0.0f);
 
 		}
 
@@ -309,7 +319,7 @@ int main ( int /* argc */, char ** /* argv */ ) {
 
 	try {
 
-		generate_points(g_positions, g_colors, (size_t) std::pow(10.0f, DEF_NUM_POINTS));
+		generate_points(g_positions, g_velocities, g_colors, (size_t) std::pow(10.0f, DEF_NUM_POINTS));
 
 		/* init GUI */
 		nanogui::init();
