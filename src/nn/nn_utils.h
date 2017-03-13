@@ -2,7 +2,7 @@
 * @Author: kmrocki
 * @Date:   2016-02-24 10:47:03
 * @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-03-10 21:20:14
+* @Last Modified time: 2017-03-12 20:09:40
 */
 
 #ifndef __NN_UTILS_H__
@@ -21,6 +21,7 @@ typedef Eigen::VectorXf Vector;
 #include <random>
 
 #include "perf.h"
+#include "aux.h"
 
 //f(x) = sigm(x)
 inline float __logistic(const float x) {
@@ -37,12 +38,6 @@ void BLAS_mmul( Eigen::MatrixXf& __restrict c, Eigen::MatrixXf& __restrict a,
                 Eigen::MatrixXf& __restrict b, bool aT = false, bool bT = false );
 
 #endif
-
-float rand_float ( float mn, float mx ) {
-
-	float r = random() / ( float ) RAND_MAX;
-	return mn + ( mx - mn ) * r;
-}
 
 void random_binary_mask(Matrix& mask) {
 

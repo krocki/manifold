@@ -2,7 +2,7 @@
 * @Author: Kamil Rocki
 * @Date:   2017-02-28 11:25:34
 * @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-03-11 20:18:24
+* @Last Modified time: 2017-03-12 20:11:33
 */
 
 /* A template for GUI + compute thread */
@@ -42,7 +42,6 @@ class GUI : public nanogui::Screen {
 
 		drawAll();
 		setVisible(true);
-		framebufferSizeChanged();
 
 		glfwSwapInterval(vsync);
 

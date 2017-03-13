@@ -2,8 +2,11 @@
 * @Author: kmrocki@us.ibm.com
 * @Date:   2017-03-03 14:00:12
 * @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-03-03 16:20:30
+* @Last Modified time: 2017-03-12 20:10:33
 */
+
+#ifndef _AUX_H_
+#define _AUX_H_
 
 // rands
 float rand_float ( float mn, float mx ) {
@@ -53,3 +56,5 @@ Eigen::Vector3f hslToRgb ( float h, float s, float l ) {
 
 	return Eigen::Vector3f ( r, g, b );
 }
+
+#endif
