@@ -2,7 +2,7 @@
 * @Author: Kamil Rocki
 * @Date:   2017-02-28 11:25:34
 * @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-03-12 20:17:33
+* @Last Modified time: 2017-03-12 20:29:58
 */
 
 #include <thread>
@@ -41,7 +41,9 @@ class GUI : public nanogui::Screen {
 
   public:
 
-	GUI ( ) : nanogui::Screen ( Eigen::Vector2i ( DEF_WIDTH, DEF_HEIGHT ), SCREEN_NAME ), vsync(true) { init(); }
+	GUI ( ) :
+		nanogui::Screen ( Eigen::Vector2i ( DEF_WIDTH, DEF_HEIGHT ), SCREEN_NAME ),
+		vsync(true) { init(); }
 
 	void init() {
 
@@ -204,8 +206,8 @@ int compute() {
 	// serialization
 
 	double learning_rate = 1e-3;
-	float decay = 0;//1e-7;
-	nn = new NN(batch_size, decay, DAE);
+	float decay = 0;//1e-6;
+	nn = new NN(batch_size, decay, AE);
 
 	nn->layers.push_back(new Linear(image_size * image_size, 256, batch_size));
 	nn->layers.push_back(new ReLU(256, 256, batch_size));

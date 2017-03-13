@@ -2,7 +2,7 @@
 * @Author: kmrocki
 * @Date:   2016-02-24 15:28:10
 * @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-03-10 22:50:13
+* @Last Modified time: 2017-03-12 20:23:16
 */
 
 #ifndef __NN_H__
@@ -12,11 +12,19 @@
 #include <unistd.h>
 #include "perf.h"
 
+// TODO:
+// Sparse
+// KL instead of rec
+// cross entropy for AE
+// VAE
+// Normal noise
+// Semantic hashing
+
 typedef enum network_type { MLP = 0, AE = 1, DAE = 2 } network_type;
 
 class NN {
 
-public:
+  public:
 
 	std::deque<Layer*> layers;
 	float current_loss = -0.01f;
