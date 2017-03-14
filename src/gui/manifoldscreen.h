@@ -77,8 +77,7 @@ class GUI : public nanogui::Screen {
 			graph_fps->setGraphColor ( nanogui::Color ( 0, 160, 192, 255 ) );
 			graph_fps->setBackgroundColor ( nanogui::Color ( 0, 0, 0, 32 ) );
 			
-			
-			mCanvas = new SurfPlot ( plot, {1000, 1000} );
+			mCanvas = new SurfPlot ( plot, {1000, 1000}, *mCanvas_helper );
 			mCanvas->graph_data = graph_fps->values_ptr();
 			mCanvas->setBackgroundColor ( {100, 100, 100, 64} );
 			
@@ -132,10 +131,12 @@ class GUI : public nanogui::Screen {
 				
 			}
 			
-			mCanvas->refresh();
-			if ( mCanvas->graph_data->size() > 0 )
-				graph_fps->setHeader ( string_format ( "%.1f FPS", mCanvas->graph_data->mean() ) );
-				
+			if ( mCanvas ) {
+				mCanvas->refresh();
+				if ( mCanvas->graph_data->size() > 0 )
+					graph_fps->setHeader ( string_format ( "%.1f FPS", mCanvas->graph_data->mean() ) );
+			}
+			
 		}
 		
 		/* event handlers */
@@ -184,7 +185,7 @@ class GUI : public nanogui::Screen {
 		int glfw_window_width, glfw_window_height;
 		bool vsync;
 		
-		nanogui::Window *mCanvas_helper;
+		SurfWindow *mCanvas_helper;
 		SurfPlot *mCanvas;
 		nanogui::Graph *graph_fps;
 		

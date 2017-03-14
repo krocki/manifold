@@ -2,7 +2,7 @@
 * @Author: kmrocki
 * @Date:   2016-02-24 15:28:10
 * @Last Modified by:   Kamil Rocki
-* @Last Modified time: 2017-03-14 10:19:51
+* @Last Modified time: 2017-03-14 12:32:55
 */
 
 #ifndef __NN_H__
@@ -102,7 +102,7 @@ class NN {
 			size_t classes = 10;
 			Eigen::VectorXi random_numbers ( batch_size );
 			batch.resize ( data[0].x.rows(), batch_size );
-			size_t dims = layers[code_layer_no]->y.rows();
+			// size_t dims = layers[code_layer_no]->y.rows();
 			
 			if ( ntype == AE || ntype == DAE ) {
 			

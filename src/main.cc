@@ -2,7 +2,7 @@
 * @Author: Kamil Rocki
 * @Date:   2017-02-28 11:25:34
 * @Last Modified by:   Kamil Rocki
-* @Last Modified time: 2017-03-14 12:06:38
+* @Last Modified time: 2017-03-14 13:10:14
 */
 
 #include <thread>
@@ -39,12 +39,13 @@ int compute() {
 	double learning_rate = 1e-3;
 	float decay = 1e-6;
 	
-	std::vector<int> layer_sizes = {image_size * image_size, 64, 64, 2, 64, 64, image_size * image_size};
-	nn = new NN ( batch_size, decay, DAE );
+	std::vector<int> layer_sizes = {image_size * image_size, 256, 256, 3, 256, 256, image_size * image_size};
+	nn = new NN ( batch_size, decay, AE );
 	
 	nn->code_layer_no = 5;
 	
 	size_t l = 0;
+	
 	for ( l = 0; l < layer_sizes.size() - 1; l++ ) {
 	
 		nn->layers.push_back ( new Linear ( layer_sizes[l], layer_sizes[l + 1], batch_size ) );

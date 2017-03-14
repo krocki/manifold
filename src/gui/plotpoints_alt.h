@@ -23,9 +23,37 @@
 // FPS
 #include "fps.h"
 
+class SurfWindow : public nanogui::Window {
+
+	public:
+	
+		SurfWindow ( Widget *parent, const std::string &title ) : nanogui::Window ( parent, title ) {
+		
+			/* FPS GRAPH */
+			m_window = new nanogui::Window ( this, "" );
+			m_window->setLayout ( new nanogui::GroupLayout() );
+			
+			//legend
+			nanogui::Graph *graph = new nanogui::Graph ( m_window, "", nanogui::GraphType::GRAPH_LEGEND );
+			graph->values().resize ( 10 );
+			graph->values() << 1, 1, 1, 1, 1, 1, 1, 1, 1, 1;
+			
+			m_grid = new nanogui::CheckBox ( this, "Grid" );
+			m_polar = new nanogui::CheckBox ( this, "Polar" );
+			
+			m_grid->setChecked ( true );
+			
+		}
+		
+		nanogui::Window *m_window;
+		nanogui::CheckBox *m_grid, *m_polar;
+		
+};
+
 class SurfPlot : public nanogui::GLCanvas {
 	public:
-		SurfPlot ( Widget *parent, const Eigen::Vector2i &w_size ) : nanogui::GLCanvas ( parent ) {
+		SurfPlot ( Widget *parent, const Eigen::Vector2i &w_size,
+				   SurfWindow &helper_window ) : widgets ( helper_window ) , nanogui::GLCanvas ( parent ) {
 			using namespace nanogui;
 			
 			
@@ -81,9 +109,29 @@ class SurfPlot : public nanogui::GLCanvas {
 				
 				float x, y, z;
 				
-				x = coords[0];
-				y = coords[1];
+				//if (spherical) {
 				
+				// float phi = coords[2];
+				
+				// 3d
+				// x =	r * cos ( theta ) * sin ( phi );
+				// y = r * sin ( theta )  * cos ( phi );
+				// z = r * cos ( phi );
+				
+				//}
+				
+				if ( widgets.m_polar->checked() ) {
+				
+					float r = coords[0];
+					float theta = coords[1];
+					x =	r * cos ( theta );
+					y = r * sin ( theta );
+				}
+				else {
+					x = coords[0];
+					y = coords[1];
+					
+				}
 				if ( coords.size() > 2 ) z = coords[2];
 				else z = 0.0f;
 				
@@ -138,7 +186,7 @@ class SurfPlot : public nanogui::GLCanvas {
 			m_pointShader->uploadAttrib ( "color", colors );
 			
 			/* Upload lines to GPU */
-			if ( drawGrid ) {
+			if ( widgets.m_grid->checked() ) {
 			
 				// draw grid
 				m_lineCount = 12 * 2;
@@ -158,7 +206,6 @@ class SurfPlot : public nanogui::GLCanvas {
 				line_positions.col ( 18 ) << 1, 0, 1; line_positions.col ( 19 ) << 1, 1, 1; //UR
 				line_positions.col ( 20 ) << 0, 0, 1; line_positions.col ( 21 ) << 1, 0, 1; //UB
 				line_positions.col ( 22 ) << 0, 1, 1; line_positions.col ( 23 ) << 1, 1, 1; //UT
-				
 				
 				m_gridShader->bind();
 				m_gridShader->uploadAttrib ( "position", line_positions );
@@ -227,7 +274,7 @@ class SurfPlot : public nanogui::GLCanvas {
 			glEnable ( GL_DEPTH_TEST );
 			m_pointShader->drawArray ( GL_POINTS, 0, m_pointCount );
 			
-			if ( drawGrid ) {
+			if ( widgets.m_grid->checked() ) {
 				m_gridShader->bind();
 				m_gridShader->setUniform ( "mvp", mvp );
 				glEnable ( GL_BLEND );
@@ -266,38 +313,11 @@ class SurfPlot : public nanogui::GLCanvas {
 		Eigen::MatrixXf line_positions;
 		Eigen::MatrixXf colors;
 		
+		SurfWindow &widgets;
+		
 		float fov = 60;
 		float drag_sensitivity, scroll_sensitivity, keyboard_sensitivity;
 		
-		bool drawGrid = true;
-		
 };
-
-class SurfWindow : public nanogui::Window {
-
-	public:
-	
-		SurfWindow ( Widget *parent, const std::string &title ) : nanogui::Window ( parent, title ) {
-		
-			/* FPS GRAPH */
-			m_window = new nanogui::Window ( this, "" );
-			m_window->setLayout ( new nanogui::GroupLayout() );
-			
-			m_gridCheckBox = new nanogui::CheckBox ( m_window, "Grid" );
-			//  m_gridCheckBox->setCallback ( [&] ( bool ) { refresh(); } );
-			
-			m_gridCheckBox->setChecked ( true );
-			
-			//legend
-			nanogui::Graph *graph = new nanogui::Graph ( m_window, "", nanogui::GraphType::GRAPH_LEGEND );
-			graph->values().resize ( 10 );
-			graph->values() << 1, 1, 1, 1, 1, 1, 1, 1, 1, 1;
-			
-		}
-		
-		nanogui::Window *m_window;
-		nanogui::CheckBox *m_gridCheckBox;
-};
-
 
 #endif
