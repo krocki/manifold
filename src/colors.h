@@ -1,11 +1,14 @@
 /*
 * @Author: kmrocki@us.ibm.com
 * @Date:   2017-03-09 22:20:32
-* @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-03-09 22:22:13
+* @Last Modified by:   Kamil Rocki
+* @Last Modified time: 2017-03-14 10:29:51
 */
 
 #include <nanogui/colormaps.h>
+
+#ifndef __COLORS_H__
+#define __COLORS_H__
 
 float interpolate_jet ( float val, float y0, float x0, float y1, float x1 ) {
 
@@ -78,3 +81,5 @@ nanogui::Color bar_colormap ( float value ) {
 	return nanogui::barcolormap_lut[index];
 	
 }
+
+#endif
