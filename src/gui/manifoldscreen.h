@@ -12,8 +12,8 @@
 // nvgCreateImageA
 #include <gl/tex.h>
 
-#define DEF_WIDTH 1705
-#define DEF_HEIGHT 1221
+#define DEF_WIDTH 1630
+#define DEF_HEIGHT 1266
 #define SCREEN_NAME "AE"
 
 class GUI : public nanogui::Screen {
@@ -60,19 +60,27 @@ class GUI : public nanogui::Screen {
 			plot->setPosition ( { 585 / screen_scale, 15 / screen_scale } );
 			plot->setLayout ( new nanogui::GroupLayout() );
 			
-			
 			/* * * * * * * * * * * */
+			
 			
 			// wait until nn is ready
 			while ( ! ( nn->isready() ) )
 				usleep ( 10000 );
 				
-			mCanvas = new SurfPlot ( plot, {1070 / screen_scale, 1070 / screen_scale} );
-			mCanvas->setBackgroundColor ( {100, 100, 100, 32} );
+				
+			mCanvas_helper = new SurfWindow ( plot, "" );
+			mCanvas_helper->setSize ( {1000, 100} );
+			mCanvas_helper->setLayout ( new nanogui::GroupLayout() );
 			
-			nanogui::Graph *graph = new nanogui::Graph ( plot, "", nanogui::GraphType::GRAPH_LEGEND );
-			graph->values().resize ( 10 );
-			graph->values() << 1, 1, 1, 1, 1, 1, 1, 1, 1, 1;
+			/* FPS GRAPH */
+			graph_fps = new nanogui::Graph ( mCanvas_helper, "" );
+			graph_fps->setGraphColor ( nanogui::Color ( 0, 160, 192, 255 ) );
+			graph_fps->setBackgroundColor ( nanogui::Color ( 0, 0, 0, 32 ) );
+			
+			
+			mCanvas = new SurfPlot ( plot, {1000, 1000} );
+			mCanvas->graph_data = graph_fps->values_ptr();
+			mCanvas->setBackgroundColor ( {100, 100, 100, 64} );
 			
 			drawAll();
 			setVisible ( true );
@@ -125,7 +133,9 @@ class GUI : public nanogui::Screen {
 			}
 			
 			mCanvas->refresh();
-			
+			if ( mCanvas->graph_data->size() > 0 )
+				graph_fps->setHeader ( string_format ( "%.1f FPS", mCanvas->graph_data->mean() ) );
+				
 		}
 		
 		/* event handlers */
@@ -163,7 +173,6 @@ class GUI : public nanogui::Screen {
 			UNUSED ( size );
 			performLayout();
 			
-			printf ( "%d %d\n", size[0], size[1] );
 			return true;
 			
 		}
@@ -175,8 +184,9 @@ class GUI : public nanogui::Screen {
 		int glfw_window_width, glfw_window_height;
 		bool vsync;
 		
-		std::vector<Eigen::VectorXf *> graph_data;
+		nanogui::Window *mCanvas_helper;
 		SurfPlot *mCanvas;
+		nanogui::Graph *graph_fps;
 		
 		using imagesDataType = std::vector<std::pair<int, std::string>>;
 		imagesDataType xs, ys;

@@ -2,7 +2,7 @@
 * @Author: Kamil Rocki
 * @Date:   2017-02-28 11:25:34
 * @Last Modified by:   Kamil Rocki
-* @Last Modified time: 2017-03-14 10:36:49
+* @Last Modified time: 2017-03-14 12:06:38
 */
 
 #include <thread>
@@ -26,13 +26,10 @@ int screen_scale = 1;
 const size_t batch_size = 50;
 const size_t image_size = 28;
 
-// FPS
-#include "fps.h"
-
 nanogui::Screen *screen;
 
-#include "gui/plotpoints.h"
-#include "gui/manifoldscreen_alt.h"
+#include "gui/plotpoints_alt.h"
+#include "gui/manifoldscreen.h"
 
 int compute() {
 
@@ -42,7 +39,7 @@ int compute() {
 	double learning_rate = 1e-3;
 	float decay = 1e-6;
 	
-	std::vector<int> layer_sizes = {image_size * image_size, 256, 64, 3, 64, 256, image_size * image_size};
+	std::vector<int> layer_sizes = {image_size * image_size, 64, 64, 2, 64, 64, image_size * image_size};
 	nn = new NN ( batch_size, decay, DAE );
 	
 	nn->code_layer_no = 5;

@@ -2,7 +2,7 @@
 * @Author: kmrocki@us.ibm.com
 * @Date:   2017-03-03 16:20:38
 * @Last Modified by:   Kamil Rocki
-* @Last Modified time: 2017-03-14 10:34:50
+* @Last Modified time: 2017-03-14 11:14:53
 */
 
 // FPS
@@ -31,6 +31,35 @@ void update_FPS ( void ) {
 		
 		num_frames = 0;
 		last_time += interval;
+		
+	}
+}
+
+void update_FPS ( Eigen::VectorXf &graph_data ) {
+
+	if ( graph_data.rows() == 0 ) {
+	
+		graph_data = Eigen::VectorXf ( FPS_HISTORY_SIZE );
+		graph_data.setZero();
+		
+	}
+	
+	double current_time = glfwGetTime();
+	num_frames++;
+	
+	double t = current_time - last_time;
+	
+	float interval = 0.25f;
+	
+	if ( t >= interval ) {
+	
+		// shift left and update
+		graph_data.head ( graph_data.size() - 1 ) = graph_data.tail ( graph_data.size() - 1 );
+		graph_data.tail ( 1 ) ( 0 ) = num_frames / t;
+		
+		num_frames = 0;
+		last_time += interval;
+		
 		
 	}
 }
