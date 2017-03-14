@@ -1,8 +1,8 @@
 /*
 * @Author: kmrocki
 * @Date:   2016-02-24 10:47:03
-* @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-03-12 20:09:40
+* @Last Modified by:   Kamil Rocki
+* @Last Modified time: 2017-03-14 07:41:38
 */
 
 #ifndef __NN_UTILS_H__
@@ -44,7 +44,7 @@ void random_binary_mask ( Matrix &mask ) {
 	for ( int i = 0; i < mask.rows(); i++ ) {
 		for ( int j = 0; j < mask.cols(); j++ )
 		
-			mask ( i, j ) = round ( rand_float ( 0, 1 ) );
+			mask ( i, j ) = round ( rand_float ( 0, 0.625 ) );
 			
 	}
 }

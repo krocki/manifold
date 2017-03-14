@@ -2,7 +2,7 @@
 * @Author: Kamil Rocki
 * @Date:   2017-02-28 11:25:34
 * @Last Modified by:   Kamil Rocki
-* @Last Modified time: 2017-03-13 19:51:56
+* @Last Modified time: 2017-03-14 09:52:46
 */
 
 #include <thread>
@@ -222,8 +222,8 @@ class SurfPlot : public nanogui::GLCanvas {
 			if ( glfwGetKey ( screen->glfwWindow(), 'Z' ) == GLFW_PRESS ) translation[2] -= 0.5 * keyboard_sensitivity;
 			if ( glfwGetKey ( screen->glfwWindow(), 'C' ) == GLFW_PRESS ) translation[2] += 0.5 * keyboard_sensitivity;
 			
-			if ( glfwGetKey ( screen->glfwWindow(), '1' ) == GLFW_PRESS ) viewAngle += 0.05;
-			if ( glfwGetKey ( screen->glfwWindow(), '2' ) == GLFW_PRESS ) viewAngle -= 0.05;
+			if ( glfwGetKey ( screen->glfwWindow(), '1' ) == GLFW_PRESS ) fov += 0.5f;
+			if ( glfwGetKey ( screen->glfwWindow(), '2' ) == GLFW_PRESS ) fov -= 0.5f;
 			
 			// rotation around x, y, z axes
 			if ( glfwGetKey ( screen->glfwWindow(), 'Q' ) == GLFW_PRESS ) model_angle[0] -= 0.05 * keyboard_sensitivity;
@@ -245,9 +245,9 @@ class SurfPlot : public nanogui::GLCanvas {
 			/* Set up a perspective camera matrix */
 			Eigen::Matrix4f view, proj, model;
 			
-			view = nanogui::lookAt ( Eigen::Vector3f ( 0, 0, 2 ), Eigen::Vector3f ( 0, 0, 0 ), Eigen::Vector3f ( 0, 1, 0 ) );
+			view = nanogui::lookAt ( Eigen::Vector3f ( 0, 0, 1 ), Eigen::Vector3f ( 0, 0, 0 ), Eigen::Vector3f ( 0, 1, 0 ) );
 			const float near = 0.01, far = 100;
-			float fH = std::tan ( viewAngle / 360.0f * M_PI ) * near;
+			float fH = std::tan ( fov / 360.0f * M_PI ) * near;
 			float fW = fH * ( float ) mSize.x() / ( float ) mSize.y();
 			proj = nanogui::frustum ( -fW, fW, -fH, fH, near, far );
 			
@@ -312,7 +312,7 @@ class SurfPlot : public nanogui::GLCanvas {
 		Eigen::MatrixXf line_positions;
 		Eigen::MatrixXf colors;
 		
-		float viewAngle = 30;
+		float fov = 60;
 		float drag_sensitivity, scroll_sensitivity, keyboard_sensitivity;
 		
 		
@@ -490,11 +490,11 @@ int compute() {
 	// serialization
 	
 	double learning_rate = 1e-4;
-	float decay = 1e-5;
+	float decay = 1e-6;
 	
-	std::vector<int> layer_sizes = {image_size * image_size, 100, 64, 25, 10, 3, 10, 25, 64, 100, image_size * image_size};
+	std::vector<int> layer_sizes = {image_size * image_size, 400, 256, 256, 100, 64, 3, 64, 100, 256, 256, 400, image_size * image_size};
 	
-	nn = new NN ( batch_size, decay, AE );
+	nn = new NN ( batch_size, decay, DAE );
 	std::cout << "nn new" << std::endl;
 	
 	nn->layers.push_back ( new Linear ( layer_sizes[0], layer_sizes[1], batch_size ) );
@@ -525,7 +525,13 @@ int compute() {
 	nn->layers.push_back ( new ReLU ( layer_sizes[9], layer_sizes[9], batch_size ) );
 	
 	nn->layers.push_back ( new Linear ( layer_sizes[9], layer_sizes[10], batch_size ) );
-	nn->layers.push_back ( new Sigmoid ( layer_sizes[10], layer_sizes[10], batch_size ) );
+	nn->layers.push_back ( new ReLU ( layer_sizes[10], layer_sizes[10], batch_size ) );
+	
+	nn->layers.push_back ( new Linear ( layer_sizes[10], layer_sizes[11], batch_size ) );
+	nn->layers.push_back ( new ReLU ( layer_sizes[11], layer_sizes[11], batch_size ) );
+	
+	nn->layers.push_back ( new Linear ( layer_sizes[11], layer_sizes[12], batch_size ) );
+	nn->layers.push_back ( new Sigmoid ( layer_sizes[12], layer_sizes[12], batch_size ) );
 	
 	//[60000, 784]
 	std::deque<datapoint> train_data =

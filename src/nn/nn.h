@@ -2,7 +2,7 @@
 * @Author: kmrocki
 * @Date:   2016-02-24 15:28:10
 * @Last Modified by:   Kamil Rocki
-* @Last Modified time: 2017-03-13 19:28:49
+* @Last Modified time: 2017-03-14 07:41:44
 */
 
 #ifndef __NN_H__
@@ -227,7 +227,7 @@ class NN {
 		
 		void testcode ( std::deque<datapoint> data ) {
 		
-			size_t code_layer_no = 9;
+			size_t code_layer_no = 11;
 			size_t dims = layers[code_layer_no]->y.rows();
 			
 			codes.resize ( dims, data.size() );
@@ -245,7 +245,7 @@ class NN {
 				linspace ( numbers, ii, ii + batch_size );
 				make_batch ( batch, data, numbers );
 				
-				if ( ntype == DAE ) batch /= 2.0f;
+				if ( ntype == DAE ) batch /= 8.0f;
 				
 				make_targets ( targets, encoding, data, numbers );
 				

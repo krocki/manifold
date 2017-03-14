@@ -12,8 +12,14 @@ out vec3 frag_color;
 * @Last Modified time: 2017-03-06 11:10:30
 */
 
+/* TODO - not sure if this works */
+
 void main() {
-	gl_Position = mvp * vec4 ( position, 1.0 );
+
+	vec4 tmpPoint = mvp * vec4 ( position, 1.0 );
+	tmpPoint.xy = tmpPoint.xy /  length ( tmpPoint.xyz );
+	gl_Position = tmpPoint;
+	
 	if ( isnan ( position.r ) ) /* nan (missing value) */
 		frag_color = vec3 ( 0.0 );
 	else
