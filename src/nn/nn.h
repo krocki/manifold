@@ -2,7 +2,7 @@
 * @Author: kmrocki
 * @Date:   2016-02-24 15:28:10
 * @Last Modified by:   Kamil Rocki
-* @Last Modified time: 2017-03-14 07:41:44
+* @Last Modified time: 2017-03-14 10:19:51
 */
 
 #ifndef __NN_H__
@@ -44,6 +44,8 @@ class NN {
 		Matrix codes, codes_idxs;
 		
 		bool _ready = false;
+		
+		size_t code_layer_no = 1;
 		
 		void forward ( Matrix &input_data, int max_layer = -1 ) {
 		
@@ -100,10 +102,16 @@ class NN {
 			size_t classes = 10;
 			Eigen::VectorXi random_numbers ( batch_size );
 			batch.resize ( data[0].x.rows(), batch_size );
+			size_t dims = layers[code_layer_no]->y.rows();
 			
 			if ( ntype == AE || ntype == DAE ) {
 			
-				/* * * * * * */
+				// codes.resize ( dims, iterations * batch_size );
+				// codes_idxs.resize ( 1, iterations * batch_size );
+				
+				// targets.resize ( 1, batch_size );
+				// encoding.resize ( 1, 10 );
+				// encoding << 0, 1, 2, 3, 4, 5, 6, 7, 8, 9;
 				
 			}
 			else {
@@ -122,17 +130,10 @@ class NN {
 				// [784 x batch_size]
 				make_batch ( batch, data, random_numbers );
 				
-				if ( ntype == AE || ntype == DAE ) {
+				// make_targets ( targets, encoding, data, random_numbers );
 				
-				}
-				else
 				
-					make_targets ( targets, encoding, data, random_numbers );
-					
-					
 				ticf();
-				
-				
 				
 				//forward activations
 				if ( ntype == DAE ) {
@@ -154,6 +155,9 @@ class NN {
 				//backprogagation
 				if ( ntype == AE || ntype == DAE ) {
 				
+					// codes.block ( 0, ii * batch_size, dims, batch_size ) = layers[code_layer_no]->y;
+					// codes_idxs.block ( 0, ii * batch_size, 1, batch_size ) = targets;
+					
 					err = mse ( layers[layers.size() - 1]->y, batch ) / ( float ) batch_size;
 					
 					// reconstruct
@@ -227,7 +231,6 @@ class NN {
 		
 		void testcode ( std::deque<datapoint> data ) {
 		
-			size_t code_layer_no = 11;
 			size_t dims = layers[code_layer_no]->y.rows();
 			
 			codes.resize ( dims, data.size() );
@@ -245,7 +248,7 @@ class NN {
 				linspace ( numbers, ii, ii + batch_size );
 				make_batch ( batch, data, numbers );
 				
-				if ( ntype == DAE ) batch /= 8.0f;
+				if ( ntype == DAE ) batch /= 2.0f;
 				
 				make_targets ( targets, encoding, data, numbers );
 				

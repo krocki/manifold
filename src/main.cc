@@ -2,7 +2,7 @@
 * @Author: Kamil Rocki
 * @Date:   2017-02-28 11:25:34
 * @Last Modified by:   Kamil Rocki
-* @Last Modified time: 2017-03-14 09:52:46
+* @Last Modified time: 2017-03-14 10:21:09
 */
 
 #include <thread>
@@ -30,11 +30,12 @@
 
 NN *nn;
 
+int screen_scale = 2;
 #define DEF_WIDTH 1705
 #define DEF_HEIGHT 1221
 #define SCREEN_NAME "AE"
 
-const size_t batch_size = 100;
+const size_t batch_size = 50;
 const size_t image_size = 28;
 
 // Surfplot
@@ -61,7 +62,7 @@ class SurfPlot : public nanogui::GLCanvas {
 			
 			/* FPS GRAPH */
 			m_window = new nanogui::Window ( this, "" );
-			m_window->setPosition ( Eigen::Vector2i ( 5, 55 ) );
+			m_window->setPosition ( Eigen::Vector2i ( 5, 55 ) / screen_scale );
 			m_window->setLayout ( new nanogui::GroupLayout() );
 			
 			m_gridCheckBox = new nanogui::CheckBox ( m_window, "Grid" );
@@ -222,8 +223,8 @@ class SurfPlot : public nanogui::GLCanvas {
 			if ( glfwGetKey ( screen->glfwWindow(), 'Z' ) == GLFW_PRESS ) translation[2] -= 0.5 * keyboard_sensitivity;
 			if ( glfwGetKey ( screen->glfwWindow(), 'C' ) == GLFW_PRESS ) translation[2] += 0.5 * keyboard_sensitivity;
 			
-			if ( glfwGetKey ( screen->glfwWindow(), '1' ) == GLFW_PRESS ) fov += 0.5f;
-			if ( glfwGetKey ( screen->glfwWindow(), '2' ) == GLFW_PRESS ) fov -= 0.5f;
+			if ( glfwGetKey ( screen->glfwWindow(), '1' ) == GLFW_PRESS ) viewAngle += 0.05;
+			if ( glfwGetKey ( screen->glfwWindow(), '2' ) == GLFW_PRESS ) viewAngle -= 0.05;
 			
 			// rotation around x, y, z axes
 			if ( glfwGetKey ( screen->glfwWindow(), 'Q' ) == GLFW_PRESS ) model_angle[0] -= 0.05 * keyboard_sensitivity;
@@ -245,9 +246,9 @@ class SurfPlot : public nanogui::GLCanvas {
 			/* Set up a perspective camera matrix */
 			Eigen::Matrix4f view, proj, model;
 			
-			view = nanogui::lookAt ( Eigen::Vector3f ( 0, 0, 1 ), Eigen::Vector3f ( 0, 0, 0 ), Eigen::Vector3f ( 0, 1, 0 ) );
+			view = nanogui::lookAt ( Eigen::Vector3f ( 0, 0, 2 ), Eigen::Vector3f ( 0, 0, 0 ), Eigen::Vector3f ( 0, 1, 0 ) );
 			const float near = 0.01, far = 100;
-			float fH = std::tan ( fov / 360.0f * M_PI ) * near;
+			float fH = std::tan ( viewAngle / 360.0f * M_PI ) * near;
 			float fW = fH * ( float ) mSize.x() / ( float ) mSize.y();
 			proj = nanogui::frustum ( -fW, fW, -fH, fH, near, far );
 			
@@ -312,7 +313,7 @@ class SurfPlot : public nanogui::GLCanvas {
 		Eigen::MatrixXf line_positions;
 		Eigen::MatrixXf colors;
 		
-		float fov = 60;
+		float viewAngle = 30;
 		float drag_sensitivity, scroll_sensitivity, keyboard_sensitivity;
 		
 		
@@ -323,7 +324,7 @@ class GUI : public nanogui::Screen {
 	public:
 	
 		GUI ( ) :
-			nanogui::Screen ( Eigen::Vector2i ( DEF_WIDTH, DEF_HEIGHT ), SCREEN_NAME ),
+			nanogui::Screen ( Eigen::Vector2i ( DEF_WIDTH / screen_scale, DEF_HEIGHT / screen_scale ), SCREEN_NAME ),
 			vsync ( true ) { init(); }
 			
 		void init() {
@@ -352,13 +353,13 @@ class GUI : public nanogui::Screen {
 			nanogui::Window *images = new nanogui::Window ( this, "images" );
 			images->setLayout ( new nanogui::GroupLayout () );
 			
-			nanogui::ImagePanel *inp = new nanogui::ImagePanel ( images, 50, 2, 2, {10, batch_size / 10} );
+			nanogui::ImagePanel *inp = new nanogui::ImagePanel ( images, 50 / screen_scale, 2 / screen_scale, 2 / screen_scale, {10, batch_size / 10} );
 			inp->setImages ( xs );
-			nanogui::ImagePanel *out = new nanogui::ImagePanel ( images, 50, 2, 2, {10, batch_size / 10} );
+			nanogui::ImagePanel *out = new nanogui::ImagePanel ( images, 50 / screen_scale, 2 / screen_scale, 2 / screen_scale, {10, batch_size / 10} );
 			out->setImages ( ys );
 			
 			nanogui::Window *plot = new nanogui::Window ( this, "" );
-			plot->setPosition ( { 585, 15 } );
+			plot->setPosition ( { 585 / screen_scale, 15 / screen_scale } );
 			plot->setLayout ( new nanogui::GroupLayout() );
 			
 			
@@ -368,7 +369,7 @@ class GUI : public nanogui::Screen {
 			while ( ! ( nn->isready() ) )
 				usleep ( 10000 );
 				
-			mCanvas = new SurfPlot ( plot, {1070, 1070} );
+			mCanvas = new SurfPlot ( plot, {1070 / screen_scale, 1070 / screen_scale} );
 			mCanvas->setBackgroundColor ( {100, 100, 100, 32} );
 			
 			nanogui::Graph *graph = new nanogui::Graph ( plot, "", nanogui::GraphType::GRAPH_LEGEND );
@@ -489,49 +490,24 @@ int compute() {
 	// TODO: be able to change batch size, learning rate and decay dynamically
 	// serialization
 	
-	double learning_rate = 1e-4;
+	double learning_rate = 1e-3;
 	float decay = 1e-6;
 	
-	std::vector<int> layer_sizes = {image_size * image_size, 400, 256, 256, 100, 64, 3, 64, 100, 256, 256, 400, image_size * image_size};
-	
+	std::vector<int> layer_sizes = {image_size * image_size, 256, 64, 3, 64, 256, image_size * image_size};
 	nn = new NN ( batch_size, decay, DAE );
-	std::cout << "nn new" << std::endl;
 	
-	nn->layers.push_back ( new Linear ( layer_sizes[0], layer_sizes[1], batch_size ) );
-	nn->layers.push_back ( new ReLU ( layer_sizes[1], layer_sizes[1], batch_size ) );
+	nn->code_layer_no = 5;
 	
-	nn->layers.push_back ( new Linear ( layer_sizes[1], layer_sizes[2], batch_size ) );
-	nn->layers.push_back ( new ReLU ( layer_sizes[2], layer_sizes[2], batch_size ) );
+	size_t l = 0;
+	for ( l = 0; l < layer_sizes.size() - 1; l++ ) {
 	
-	nn->layers.push_back ( new Linear ( layer_sizes[2], layer_sizes[3], batch_size ) );
-	nn->layers.push_back ( new ReLU ( layer_sizes[3], layer_sizes[3], batch_size ) );
-	
-	nn->layers.push_back ( new Linear ( layer_sizes[3], layer_sizes[4], batch_size ) );
-	nn->layers.push_back ( new ReLU ( layer_sizes[4], layer_sizes[4], batch_size ) );
-	
-	nn->layers.push_back ( new Linear ( layer_sizes[4], layer_sizes[5], batch_size ) );
-	nn->layers.push_back ( new ReLU ( layer_sizes[5], layer_sizes[5], batch_size ) );
-	
-	nn->layers.push_back ( new Linear ( layer_sizes[5], layer_sizes[6], batch_size ) );
-	nn->layers.push_back ( new ReLU ( layer_sizes[6], layer_sizes[6], batch_size ) );
-	
-	nn->layers.push_back ( new Linear ( layer_sizes[6], layer_sizes[7], batch_size ) );
-	nn->layers.push_back ( new ReLU ( layer_sizes[7], layer_sizes[7], batch_size ) );
-	
-	nn->layers.push_back ( new Linear ( layer_sizes[7], layer_sizes[8], batch_size ) );
-	nn->layers.push_back ( new ReLU ( layer_sizes[8], layer_sizes[8], batch_size ) );
-	
-	nn->layers.push_back ( new Linear ( layer_sizes[8], layer_sizes[9], batch_size ) );
-	nn->layers.push_back ( new ReLU ( layer_sizes[9], layer_sizes[9], batch_size ) );
-	
-	nn->layers.push_back ( new Linear ( layer_sizes[9], layer_sizes[10], batch_size ) );
-	nn->layers.push_back ( new ReLU ( layer_sizes[10], layer_sizes[10], batch_size ) );
-	
-	nn->layers.push_back ( new Linear ( layer_sizes[10], layer_sizes[11], batch_size ) );
-	nn->layers.push_back ( new ReLU ( layer_sizes[11], layer_sizes[11], batch_size ) );
-	
-	nn->layers.push_back ( new Linear ( layer_sizes[11], layer_sizes[12], batch_size ) );
-	nn->layers.push_back ( new Sigmoid ( layer_sizes[12], layer_sizes[12], batch_size ) );
+		nn->layers.push_back ( new Linear ( layer_sizes[l], layer_sizes[l + 1], batch_size ) );
+		
+		if ( ( l + 1 ) == layer_sizes.size() - 1 )
+			nn->layers.push_back ( new Sigmoid ( layer_sizes[l + 1], layer_sizes[l + 1], batch_size ) );
+		else
+			nn->layers.push_back ( new ReLU ( layer_sizes[l + 1], layer_sizes[l + 1], batch_size ) );
+	}
 	
 	//[60000, 784]
 	std::deque<datapoint> train_data =
