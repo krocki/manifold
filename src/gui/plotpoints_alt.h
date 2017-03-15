@@ -168,36 +168,48 @@ class SurfPlot : public nanogui::GLCanvas {
 			
 			std::cout << x << ", " << y << ", " << std::endl;
 			
+			Eigen::Vector3f ray_nds ( x, y, -1.0f );
+			Eigen::Vector4f ray_clip ( x, y, -1.0f, -1.0f );
+			Eigen::Vector4f ray_eye = proj.inverse() * ray_clip;
+			ray_eye[2] = -1.0f; ray_eye[3] = 0.0f;
+			Eigen::Vector4f ray_world = view.inverse() * ray_eye;
+			ray_wor[0] = ray_world[0]; ray_wor[1] = ray_world[1]; ray_wor[2] = ray_world[2];
+			ray_wor.normalize();
 			// near clip plane
-			Eigen::Vector3f eye = Eigen::Vector3f ( 0, 0, -1 );
-			Eigen::Vector3f ray_clip_near = Eigen::Vector3f ( x, y, 2.0f );
-			Eigen::Vector3f ray_dir = eye - ray_clip_near;
-			ray_dir /= ray_dir[2];
+			// Eigen::Vector3f eye = Eigen::Vector3f ( 0, 0, -1 );
+			// Eigen::Vector3f ray_clip_near = Eigen::Vector3f ( x, y, 2.0f );
+			// Eigen::Vector3f ray_dir = eye - ray_clip_near;
+			// ray_dir /= ray_dir[2];
 			
-			std::cout << std::endl << "ray_clip_near" << std::endl;
-			std::cout << ray_clip_near << std::endl;
+			// std::cout << std::endl << "ray_clip_near" << std::endl;
+			// std::cout << ray_clip_near << std::endl;
 			
-			std::cout << std::endl << "ray_dir" << std::endl;
-			std::cout << ray_dir << std::endl;
+			// std::cout << std::endl << "ray_dir" << std::endl;
+			// std::cout << ray_dir << std::endl;
 			
-			Eigen::Vector3f ray_clip_far = 100.0f * Eigen::Vector3f ( ray_dir );
-			std::cout << std::endl << "ray_clip_farr" << std::endl;
-			std::cout << ray_clip_far << std::endl;
+			// Eigen::Vector3f ray_clip_far = 100.0f * Eigen::Vector3f ( ray_dir );
+			// std::cout << std::endl << "ray_clip_farr" << std::endl;
+			// std::cout << ray_clip_far << std::endl;
 			
-			Eigen::Vector3f ray_clip_zero = Eigen::Vector3f ( ray_dir );
-			std::cout << std::endl << "ray_clip_zero" << std::endl;
-			std::cout << ray_clip_zero << std::endl;
+			// Eigen::Vector3f ray_clip_zero = Eigen::Vector3f ( ray_dir );
+			// std::cout << std::endl << "ray_clip_zero" << std::endl;
+			// std::cout << ray_clip_zero << std::endl;
 			
-			Eigen::Matrix4f inversed_proj = proj;
-			inversed_proj.inverse();
-			Eigen::Matrix4f inversed_view = view;
-			inversed_view.inverse();
-			Eigen::Matrix4f inversed_model = model;
-			inversed_model.inverse();
+			// //Eigen::Matrix4f inversed_proj = proj;
+			// //inversed_proj.inverse();
+			// //Eigen::Matrix4f inversed_view = view;
+			// //inversed_view.inverse();
+			// // Eigen::Matrix4f inversed_model = model;
+			// // inversed_model = model.inverse();
 			
-			Eigen::Vector4f tmp = Eigen::Vector4f ( ray_clip_zero[0], ray_clip_zero[1], 0, 1.0f );
-			tmp = inversed_model * inversed_view * inversed_proj * tmp;
-			ray_wor = Eigen::Vector3f ( tmp[0], tmp[1], tmp[2] );
+			// std::cout << model << std::endl;
+			// std::cout << std::endl << model.inverse() << std::endl;
+			
+			// Eigen::Vector4f tmp = Eigen::Vector4f ( ray_clip_zero[0], ray_clip_zero[1], 0, 1.0f );
+			// tmp = model.inverse() * tmp;
+			// ray_wor = Eigen::Vector3f ( tmp[0], tmp[1], tmp[2] );
+			
+			
 			
 			return true;
 		}
