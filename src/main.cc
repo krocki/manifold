@@ -2,7 +2,7 @@
 * @Author: Kamil Rocki
 * @Date:   2017-02-28 11:25:34
 * @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-03-14 21:50:22
+* @Last Modified time: 2017-03-14 21:56:04
 */
 
 #include <thread>
@@ -36,16 +36,13 @@ int compute() {
 	// TODO: be able to change batch size, learning rate and decay dynamically
 	// serialization
 
-	double learning_rate = 1e-3;
+	double learning_rate = 1e-4;
 	float decay = 0;
 
-	std::vector<int> layer_sizes = {image_size * image_size, 100, 3, 100, image_size * image_size};
+	std::vector<int> layer_sizes = {image_size * image_size, 400, 400, 100, 3, 100, 400, 400, image_size * image_size};
 	nn = new NN ( batch_size, decay, DAE );
 
-	nn->code_layer_no = 3;
-
-
-	nn->code_layer_no = 3;
+	nn->code_layer_no = 7;
 
 	size_t l = 0;
 
