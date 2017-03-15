@@ -1,6 +1,7 @@
 #version 330
 
 out vec4 out_color;
+smooth in vec4 fragment_in_color;
 
 /*
 * @Author: Kamil Rocki
@@ -10,5 +11,5 @@ out vec4 out_color;
 */
 
 void main() {
-	out_color = vec4(vec3(1.0), 0.4);
+	out_color = vec4 ( fragment_in_color );
 }

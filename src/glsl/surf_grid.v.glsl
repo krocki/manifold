@@ -10,6 +10,11 @@ in vec3 position;
 * @Last Modified time: 2017-03-03 11:10:30
 */
 
+smooth out vec4 fragment_in_color;
+
 void main() {
-	gl_Position = mvp * vec4(position, 1.0);
+	gl_Position = mvp * vec4 ( position, 1.0 );
+	float d = distance ( position, vec3 ( 0, 0, 0 ) );
+	fragment_in_color = vec4 ( 1.0f, 1.0f, 1.0f, 0.5 / ( 1.0f + 5 * d ) );
+	// fragment_in_color.a = 0.25;
 }
