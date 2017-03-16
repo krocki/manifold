@@ -2,12 +2,13 @@
 * @Author: kmrocki
 * @Date:   2016-02-24 15:28:10
 * @Last Modified by:   Kamil Rocki
-* @Last Modified time: 2017-03-14 12:32:55
+* @Last Modified time: 2017-03-15 19:32:51
 */
 
 #ifndef __NN_H__
 #define __NN_H__
 
+#include <io/import.h>
 #include <nn/layers.h>
 #include <unistd.h>
 #include "perf.h"
@@ -19,6 +20,7 @@
 // VAE
 // Normal noise
 // Semantic hashing
+// ladder network
 
 typedef enum network_type { MLP = 0, AE = 1, DAE = 2 } network_type;
 
@@ -41,11 +43,15 @@ class NN {
 		Matrix batch;
 		Matrix targets;
 		Matrix encoding;
-		Matrix codes, codes_idxs;
+		Matrix codes, codes_colors;
+		Eigen::MatrixXi codes_idxs;
 		
 		bool _ready = false;
 		
 		size_t code_layer_no = 1;
+		
+		std::deque<datapoint> train_data;
+		std::deque<datapoint> test_data;
 		
 		void forward ( Matrix &input_data, int max_layer = -1 ) {
 		
@@ -107,7 +113,7 @@ class NN {
 			if ( ntype == AE || ntype == DAE ) {
 			
 				// codes.resize ( dims, iterations * batch_size );
-				// codes_idxs.resize ( 1, iterations * batch_size );
+				// codes_colors.resize ( 1, iterations * batch_size );
 				
 				// targets.resize ( 1, batch_size );
 				// encoding.resize ( 1, 10 );
@@ -156,7 +162,7 @@ class NN {
 				if ( ntype == AE || ntype == DAE ) {
 				
 					// codes.block ( 0, ii * batch_size, dims, batch_size ) = layers[code_layer_no]->y;
-					// codes_idxs.block ( 0, ii * batch_size, 1, batch_size ) = targets;
+					// codes_colors.block ( 0, ii * batch_size, 1, batch_size ) = targets;
 					
 					err = mse ( layers[layers.size() - 1]->y, batch ) / ( float ) batch_size;
 					
@@ -234,6 +240,7 @@ class NN {
 			size_t dims = layers[code_layer_no]->y.rows();
 			
 			codes.resize ( dims, data.size() );
+			codes_colors.resize ( 1, data.size() );
 			codes_idxs.resize ( 1, data.size() );
 			
 			Eigen::VectorXi numbers ( batch_size );
@@ -255,7 +262,8 @@ class NN {
 				forward ( batch, code_layer_no );
 				
 				codes.block ( 0, ii, dims, batch_size ) = layers[code_layer_no]->y;
-				codes_idxs.block ( 0, ii, 1, batch_size ) = targets;
+				codes_colors.block ( 0, ii, 1, batch_size ) = targets;
+				codes_idxs.block ( 0, ii, 1, batch_size ) = numbers.transpose();
 				
 			}
 			

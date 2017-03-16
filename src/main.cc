@@ -2,7 +2,7 @@
 * @Author: Kamil Rocki
 * @Date:   2017-02-28 11:25:34
 * @Last Modified by:   Kamil Rocki
-* @Last Modified time: 2017-03-15 11:23:24
+* @Last Modified time: 2017-03-15 19:39:00
 */
 
 #include <thread>
@@ -15,7 +15,6 @@
 #include <utils.h>
 
 //for NN
-#include <io/import.h>
 #include <nn/nn_utils.h>
 #include <nn/layers.h>
 #include <nn/nn.h>
@@ -37,9 +36,9 @@ int compute() {
 	// serialization
 	
 	double learning_rate = 1e-4;
-	float decay = 1e-6;
+	float decay = 0;
 	
-	std::vector<int> layer_sizes = {image_size * image_size, 256, 2, 256, image_size * image_size};
+	std::vector<int> layer_sizes = {image_size * image_size, 400, 100, 3, 100, 400, image_size * image_size};
 	nn = new NN ( batch_size, decay, AE );
 	
 	nn->code_layer_no = 2 * ( layer_sizes.size() - 1 ) / 2 - 1;
@@ -58,26 +57,26 @@ int compute() {
 	}
 	
 	//[60000, 784]
-	std::deque<datapoint> train_data =
+	nn->train_data =
 		MNISTImporter::importFromFile ( "data/mnist/train-images-idx3-ubyte", "data/mnist/train-labels-idx1-ubyte" );
 		
 	//[10000, 784]
-	std::deque<datapoint> test_data =
+	nn->test_data =
 		MNISTImporter::importFromFile ( "data/mnist/t10k-images-idx3-ubyte", "data/mnist/t10k-labels-idx1-ubyte" );
 		
-	nn->testcode ( train_data );
+	nn->testcode ( nn->test_data );
 	
 	std::cout << "nn ready" << std::endl;
 	nn->setready();
 	
 	for ( size_t e = 0; true; e++ ) {
 	
-		nn->train ( train_data, learning_rate, train_data.size() / batch_size );
-		nn->testcode ( train_data );
+		nn->train ( nn->train_data, learning_rate, nn->train_data.size() / batch_size );
+		nn->testcode ( nn->test_data );
 		
 		if ( nn->quit ) break;
 		
-		printf ( "Epoch %3lu: Loss: %.2f\n", e + 1, ( float ) nn->test ( test_data ) );
+		printf ( "Epoch %3lu: Loss: %.2f\n", e + 1, ( float ) nn->test ( nn->test_data ) );
 		
 	}
 	

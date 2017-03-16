@@ -2,7 +2,7 @@
 * @Author: kmrocki
 * @Date:   2016-02-24 10:47:03
 * @Last Modified by:   Kamil Rocki
-* @Last Modified time: 2017-03-14 10:20:19
+* @Last Modified time: 2017-03-15 19:35:49
 */
 
 #ifndef __NN_UTILS_H__
@@ -17,6 +17,7 @@
 typedef Eigen::MatrixXf Matrix;
 typedef Eigen::VectorXf Vector;
 
+#include <io/import.h>
 #include <iostream>
 #include <random>
 

@@ -16,6 +16,10 @@
 #define BOX_FRAG_FILE "./src/glsl/surf_box.f.glsl"
 #define BOX_VERT_FILE "./src/glsl/surf_box.v.glsl"
 
+#define MAGBOX_SHADER_NAME "mag_box_shader"
+#define MAGBOX_FRAG_FILE "./src/glsl/mag_box.f.glsl"
+#define MAGBOX_VERT_FILE "./src/glsl/mag_box.v.glsl"
+
 #include <colors.h>
 #include <nanogui/glutil.h>
 #include <nanogui/screen.h>
@@ -47,19 +51,229 @@ class SurfWindow : public nanogui::Window {
 			m_magbox = new nanogui::CheckBox ( this, "Box" );
 			
 			m_grid->setChecked ( true );
+			m_polar->setChecked ( true );
 			m_magbox->setChecked ( true );
+			
+			magbox_radius = Eigen::Vector3f ( 0.02f, 0.02f, 0.01f );
 			
 		}
 		
 		nanogui::Window *m_window;
 		nanogui::CheckBox *m_grid, *m_polar, *m_magbox;
 		
+		Eigen::Vector3f magbox;
+		Eigen::Vector3f magbox_radius;
+		
+		
+};
+
+float pt_scale = 30.0f;
+
+class MagPlot : public nanogui::GLCanvas {
+	public:
+	
+		MagPlot ( Widget *parent, const Eigen::Vector2i &w_size, SurfWindow &helper_window,
+				  std::vector<std::pair<int, std::string>> plotdata ) : widgets ( helper_window ) ,
+			nanogui::GLCanvas ( parent, true ) {
+			
+			setSize ( w_size );
+			setBackgroundColor ( nanogui::Color ( 0, 0, 0, 128 ) );
+			setDrawBorder ( true );
+			setVisible ( true );
+			
+			// init shaders
+			m_pointShader = new nanogui::GLShader();
+			m_pointShader->initFromFiles ( MAGBOX_SHADER_NAME, MAGBOX_VERT_FILE, MAGBOX_FRAG_FILE );
+			reset_view ();
+			
+			std::cout << plotdata.size() << std::endl;
+			
+			refresh();
+			
+		}
+		
+		void refresh() {
+		
+			bounds_min = widgets.magbox - widgets.magbox_radius;
+			bounds_max = widgets.magbox + widgets.magbox_radius;
+			
+			generate_points();
+			
+			/* Upload points to GPU */
+			m_pointShader->bind();
+			m_pointShader->uploadAttrib ( "position", positions );
+			m_pointShader->uploadAttrib ( "color", colors );
+			
+		}
+		
+		void generate_points() {
+		
+			size_t total_points = nn->codes.cols();
+			
+			m_pointCount = 0;
+			
+			positions.resize ( 3, total_points * 6 );
+			colors.resize ( 3, total_points * 6 );
+			
+			for ( size_t i = 0; i < total_points; i++ ) {
+			
+				Eigen::VectorXf coords;
+				int label;
+				
+				coords = nn->codes.col ( i );
+				label = nn->codes_colors ( i );
+				
+				float x, y, z;
+				
+				if ( widgets.m_polar->checked() ) {
+				
+					float r = coords[0];
+					float theta = coords[1];
+					x =	r * cos ( theta );
+					y = r * sin ( theta );
+				}
+				else {
+					x = coords[0];
+					y = coords[1];
+					
+				}
+				if ( coords.size() > 2 ) z = coords[2];
+				else z = 0.0f;
+				
+				Eigen::Vector3f pt = Eigen::Vector3f ( x / pt_scale, y / pt_scale, z / pt_scale );
+				
+				float quad_size = 0.0000002f;
+				float radius = sqrtf ( 2 * quad_size );
+				
+				// check if in box
+				if ( ( pt.array() >= bounds_min.array() ).all() && ( pt.array() <= bounds_max.array() ).all() ) {
+				
+					nanogui::Color c = nanogui::parula_lut[label];
+					
+					// upper left corner
+					positions.col ( m_pointCount ) = pt + Eigen::Vector3f ( -radius, -radius, 0 );
+					colors.col ( m_pointCount ) = Eigen::Vector3f ( c.r(), c.g(), c.b() );
+					m_pointCount++;
+					
+					positions.col ( m_pointCount ) = pt + Eigen::Vector3f ( -radius, radius, 0 );
+					colors.col ( m_pointCount ) = Eigen::Vector3f ( c.r(), c.g(), c.b() );
+					m_pointCount++;
+					
+					positions.col ( m_pointCount ) = pt + Eigen::Vector3f ( radius, -radius, 0 );
+					colors.col ( m_pointCount ) = Eigen::Vector3f ( c.r(), c.g(), c.b() );
+					m_pointCount++;
+					
+					positions.col ( m_pointCount ) = pt + Eigen::Vector3f ( radius, radius, 0 );
+					colors.col ( m_pointCount ) = Eigen::Vector3f ( c.r(), c.g(), c.b() );
+					m_pointCount++;
+					
+					positions.col ( m_pointCount ) = pt + Eigen::Vector3f ( -radius, radius, 0 );
+					colors.col ( m_pointCount ) = Eigen::Vector3f ( c.r(), c.g(), c.b() );
+					m_pointCount++;
+					
+					positions.col ( m_pointCount ) = pt + Eigen::Vector3f ( radius, -radius, 0 );
+					colors.col ( m_pointCount ) = Eigen::Vector3f ( c.r(), c.g(), c.b() );
+					m_pointCount++;
+					
+				}
+				
+			}
+			
+			//std::cout << "Mag: " << m_pointCount / 6 << " points" << std::endl;
+			
+		}
+		
+		void drawGL() override {
+		
+			Eigen::Vector3f eye = Eigen::Vector3f ( widgets.magbox[0], widgets.magbox[1], 1 );
+			view = nanogui::lookAt ( Eigen::Vector3f ( eye ), Eigen::Vector3f ( widgets.magbox[0], widgets.magbox[1], 0 ),
+									 Eigen::Vector3f ( 0, 1,
+											 0 ) );
+											 
+			const float near = eye[2] - bounds_max[2], far = eye[2] - bounds_min[2];
+			
+			// std::cout << "near " << near << ", far: " << far << std::endl;
+			
+			// std::cout << "min" << std::endl;
+			// std::cout << bounds_min << std::endl << std::endl;
+			// std::cout << "max" << std::endl;
+			// std::cout << bounds_max << std::endl << std::endl;
+			
+			float fH = fabs ( ( bounds_max[1] - bounds_min[1] ) / 2.0 * near );
+			float fW = fabs ( ( bounds_max[0] - bounds_min[0] ) / 2.0 * near );
+			
+			proj = nanogui::frustum ( -fW, fW, -fH, fH, near, far );
+			
+			model.setIdentity();
+			
+			// Eigen::Quaternionf q = Eigen::AngleAxisf ( model_angle[0] * M_PI, Eigen::Vector3f::UnitX() )
+			// 					   * Eigen::AngleAxisf ( model_angle[1] * M_PI,  Eigen::Vector3f::UnitY() )
+			// 					   * Eigen::AngleAxisf ( model_angle[2] * M_PI, Eigen::Vector3f::UnitZ() );
+			
+			
+			// model.block ( 0, 0, 3, 3 ) = q.matrix() * model.block ( 0, 0, 3, 3 );
+			
+			// // model = m_arcball.matrix() * model;
+			model = nanogui::translate ( Eigen::Vector3f ( translation ) ) * model;
+			
+			// /* Render the point set */
+			mvp = proj * view * model;
+			
+			if ( m_pointCount > 0 ) {
+			
+				m_pointShader->bind();
+				m_pointShader->setUniform ( "mvp", mvp );
+				
+				glPointSize ( 1 );
+				glEnable ( GL_DEPTH_TEST );
+				
+				glEnable ( GL_BLEND );
+				glBlendFunc ( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
+				
+				m_pointShader->drawArray ( GL_TRIANGLES, 0, m_pointCount );
+				
+				glDisable ( GL_BLEND );
+				glDisable ( GL_DEPTH_TEST );
+			}
+			
+		}
+		
+		void reset_view () {
+		
+			translation = Eigen::Vector3f::Zero();
+			model_angle = Eigen::Vector3f::Zero();
+			
+		}
+		
+		~MagPlot() {
+		
+			delete m_pointShader;
+			
+		}
+		
+		SurfWindow &widgets;
+		
+		// coords of points
+		Eigen::MatrixXf positions;
+		Eigen::MatrixXf colors;
+		
+		nanogui::GLShader *m_pointShader = nullptr;
+		
+		Eigen::Matrix4f view, proj, model, mvp;
+		Eigen::Vector3f translation;
+		Eigen::Vector3f model_angle;
+		Eigen::Vector3f bounds_min;
+		Eigen::Vector3f bounds_max;
+		
+		size_t m_pointCount = 1;
+		
 };
 
 class SurfPlot : public nanogui::GLCanvas {
+
 	public:
-		SurfPlot ( Widget *parent, const Eigen::Vector2i &w_size,
-				   SurfWindow &helper_window ) : widgets ( helper_window ) , nanogui::GLCanvas ( parent ) {
+		SurfPlot ( Widget *parent, const Eigen::Vector2i &w_size, SurfWindow &helper_window ) : widgets ( helper_window ) ,
+			nanogui::GLCanvas ( parent ) {
 			using namespace nanogui;
 			
 			
@@ -86,8 +300,6 @@ class SurfPlot : public nanogui::GLCanvas {
 			drag_sensitivity = 5.0f;
 			scroll_sensitivity = 10.0f;
 			keyboard_sensitivity = 0.1f;
-			
-			magbox_radius = Eigen::Vector3f ( 0.05f, 0.05f, 0.2f );
 			
 		}
 		
@@ -122,7 +334,7 @@ class SurfPlot : public nanogui::GLCanvas {
 			Eigen::Quaternionf q ( mat );
 			m_arcball.setState ( q );
 			
-			magbox.setOnes();
+			widgets.magbox.setOnes();
 			
 		}
 		
@@ -139,7 +351,7 @@ class SurfPlot : public nanogui::GLCanvas {
 				int label;
 				
 				coords = nn->codes.col ( i );
-				label = nn->codes_idxs ( i );
+				label = nn->codes_colors ( i );
 				
 				float x, y, z;
 				
@@ -169,19 +381,19 @@ class SurfPlot : public nanogui::GLCanvas {
 				if ( coords.size() > 2 ) z = coords[2];
 				else z = 0.0f;
 				
-				positions.col ( i ) << x / 30.0f, y / 30.0f, z / 30.0f;
+				positions.col ( i ) << x / pt_scale, y / pt_scale, z / pt_scale;
 				// std::cout << positions.col ( i ) << std::endl;
 				nanogui::Color c = nanogui::parula_lut[label];
 				
 				if ( widgets.m_magbox->checked() ) { // mag box mode
 				
 					// check if in box
-					if ( ( positions.col ( i ) [0] >= magbox[0] - magbox_radius[0] ) &&
-							( positions.col ( i ) [0] <= magbox[0] + magbox_radius[0] ) &&
-							( positions.col ( i ) [1] >= magbox[1] - magbox_radius[1] ) &&
-							( positions.col ( i ) [1] <= magbox[1] + magbox_radius[1] ) &&
-							( positions.col ( i ) [2] >= magbox[2] - magbox_radius[2] ) &&
-							( positions.col ( i ) [2] <= magbox[2] + magbox_radius[2] ) )
+					if ( ( positions.col ( i ) [0] >= widgets.magbox[0] - widgets.magbox_radius[0] ) &&
+							( positions.col ( i ) [0] <= widgets.magbox[0] + widgets.magbox_radius[0] ) &&
+							( positions.col ( i ) [1] >= widgets.magbox[1] - widgets.magbox_radius[1] ) &&
+							( positions.col ( i ) [1] <= widgets.magbox[1] + widgets.magbox_radius[1] ) &&
+							( positions.col ( i ) [2] >= widgets.magbox[2] - widgets.magbox_radius[2] ) &&
+							( positions.col ( i ) [2] <= widgets.magbox[2] + widgets.magbox_radius[2] ) )
 							
 						colors.col ( i ) << 2 * c.r(), 2 * c.g(), 2 * c.b();
 					else
@@ -221,12 +433,14 @@ class SurfPlot : public nanogui::GLCanvas {
 			
 			if ( widgets.m_magbox->checked() ) {
 			
-				magbox[0] = magboxld[0]; magbox[1] = magboxld[1]; magbox[2] = magboxld[2];
-				std::cout << "box: " << std::endl << magbox << std::endl;
+				widgets.magbox[0] = magboxld[0]; widgets.magbox[1] = magboxld[1];
+				widgets.magbox[2] = magboxld[2];
+				//std::cout << "box: " << std::endl << widgets.magbox << std::endl;
 				
 			}
 			
 		}
+		
 		bool mouseButtonEvent ( const Eigen::Vector2i &p, int button, bool down, int modifiers ) override {
 		
 			// if ( !SurfPlot::mouseButtonEvent ( p, button, down, modifiers ) ) {
@@ -297,48 +511,78 @@ class SurfPlot : public nanogui::GLCanvas {
 				m_boxlineCount = 12 * 2;
 				boxline_positions.resize ( 3, m_boxlineCount );
 				
-				boxline_positions.col ( 0 ) << magbox[0] - magbox_radius[0], magbox[1] - magbox_radius[1], magbox[2] - magbox_radius[2];
-				boxline_positions.col ( 1 ) << magbox[0] - magbox_radius[0], magbox[1] + magbox_radius[1],
-									  magbox[2] - magbox_radius[2]; //L
-				boxline_positions.col ( 2 ) << magbox[0] + magbox_radius[0], magbox[1] - magbox_radius[1], magbox[2] - magbox_radius[2];
-				boxline_positions.col ( 3 ) << magbox[0] + magbox_radius[0], magbox[1] + magbox_radius[1],
-									  magbox[2] - magbox_radius[2]; //R
-				boxline_positions.col ( 4 ) << magbox[0] - magbox_radius[0], magbox[1] - magbox_radius[1], magbox[2] - magbox_radius[2];
-				boxline_positions.col ( 5 ) << magbox[0] + magbox_radius[0], magbox[1] - magbox_radius[1],
-									  magbox[2] - magbox_radius[2]; //B
-				boxline_positions.col ( 6 ) << magbox[0] - magbox_radius[0], magbox[1] + magbox_radius[1], magbox[2] - magbox_radius[2];
-				boxline_positions.col ( 7 ) << magbox[0] + magbox_radius[0], magbox[1] + magbox_radius[1],
-									  magbox[2] - magbox_radius[2]; //T
-				boxline_positions.col ( 8 ) << magbox[0] - magbox_radius[0], magbox[1] - magbox_radius[1], magbox[2] - magbox_radius[2];
-				boxline_positions.col ( 9 ) << magbox[0] - magbox_radius[0], magbox[1] - magbox_radius[1], magbox[2] + magbox_radius[2];
-				boxline_positions.col ( 10 ) << magbox[0] + magbox_radius[0], magbox[1] - magbox_radius[1],
-									  magbox[2] - magbox_radius[2];
-				boxline_positions.col ( 11 ) << magbox[0] + magbox_radius[0], magbox[1] - magbox_radius[1],
-									  magbox[2] + magbox_radius[2];
-				boxline_positions.col ( 12 ) << magbox[0] - magbox_radius[0], magbox[1] + magbox_radius[1],
-									  magbox[2] - magbox_radius[2];
-				boxline_positions.col ( 13 ) << magbox[0] - magbox_radius[0], magbox[1] + magbox_radius[1],
-									  magbox[2] + magbox_radius[2];
-				boxline_positions.col ( 14 ) << magbox[0] + magbox_radius[0], magbox[1] + magbox_radius[1],
-									  magbox[2] - magbox_radius[2];
-				boxline_positions.col ( 15 ) << magbox[0] + magbox_radius[0], magbox[1] + magbox_radius[1],
-									  magbox[2] + magbox_radius[2];
-				boxline_positions.col ( 16 ) << magbox[0] - magbox_radius[0], magbox[1] - magbox_radius[1],
-									  magbox[2] + magbox_radius[2];
-				boxline_positions.col ( 17 ) << magbox[0] - magbox_radius[0], magbox[1] + magbox_radius[1],
-									  magbox[2] + magbox_radius[2]; //UL
-				boxline_positions.col ( 18 ) << magbox[0] + magbox_radius[0], magbox[1] - magbox_radius[1],
-									  magbox[2] + magbox_radius[2];
-				boxline_positions.col ( 19 ) << magbox[0] + magbox_radius[0], magbox[1] + magbox_radius[1],
-									  magbox[2] + magbox_radius[2]; //UR
-				boxline_positions.col ( 20 ) << magbox[0] - magbox_radius[0], magbox[1] - magbox_radius[1],
-									  magbox[2] + magbox_radius[2];
-				boxline_positions.col ( 21 ) << magbox[0] + magbox_radius[0], magbox[1] - magbox_radius[1],
-									  magbox[2] + magbox_radius[2]; //UB
-				boxline_positions.col ( 22 ) << magbox[0] - magbox_radius[0], magbox[1] + magbox_radius[1],
-									  magbox[2] + magbox_radius[2];
-				boxline_positions.col ( 23 ) << magbox[0] + magbox_radius[0], magbox[1] + magbox_radius[1],
-									  magbox[2] + magbox_radius[2]; //UT
+				boxline_positions.col ( 0 ) << widgets.magbox[0] - widgets.magbox_radius[0],
+									  widgets.magbox[1] - widgets.magbox_radius[1],
+									  widgets.magbox[2] - widgets.magbox_radius[2];
+				boxline_positions.col ( 1 ) << widgets.magbox[0] - widgets.magbox_radius[0],
+									  widgets.magbox[1] + widgets.magbox_radius[1],
+									  widgets.magbox[2] - widgets.magbox_radius[2]; //L
+				boxline_positions.col ( 2 ) << widgets.magbox[0] + widgets.magbox_radius[0],
+									  widgets.magbox[1] - widgets.magbox_radius[1],
+									  widgets.magbox[2] - widgets.magbox_radius[2];
+				boxline_positions.col ( 3 ) << widgets.magbox[0] + widgets.magbox_radius[0],
+									  widgets.magbox[1] + widgets.magbox_radius[1],
+									  widgets.magbox[2] - widgets.magbox_radius[2]; //R
+				boxline_positions.col ( 4 ) << widgets.magbox[0] - widgets.magbox_radius[0],
+									  widgets.magbox[1] - widgets.magbox_radius[1],
+									  widgets.magbox[2] - widgets.magbox_radius[2];
+				boxline_positions.col ( 5 ) << widgets.magbox[0] + widgets.magbox_radius[0],
+									  widgets.magbox[1] - widgets.magbox_radius[1],
+									  widgets.magbox[2] - widgets.magbox_radius[2]; //B
+				boxline_positions.col ( 6 ) << widgets.magbox[0] - widgets.magbox_radius[0],
+									  widgets.magbox[1] + widgets.magbox_radius[1],
+									  widgets.magbox[2] - widgets.magbox_radius[2];
+				boxline_positions.col ( 7 ) << widgets.magbox[0] + widgets.magbox_radius[0],
+									  widgets.magbox[1] + widgets.magbox_radius[1],
+									  widgets.magbox[2] - widgets.magbox_radius[2]; //T
+				boxline_positions.col ( 8 ) << widgets.magbox[0] - widgets.magbox_radius[0],
+									  widgets.magbox[1] - widgets.magbox_radius[1],
+									  widgets.magbox[2] - widgets.magbox_radius[2];
+				boxline_positions.col ( 9 ) << widgets.magbox[0] - widgets.magbox_radius[0],
+									  widgets.magbox[1] - widgets.magbox_radius[1],
+									  widgets.magbox[2] + widgets.magbox_radius[2];
+				boxline_positions.col ( 10 ) << widgets.magbox[0] + widgets.magbox_radius[0],
+									  widgets.magbox[1] - widgets.magbox_radius[1],
+									  widgets.magbox[2] - widgets.magbox_radius[2];
+				boxline_positions.col ( 11 ) << widgets.magbox[0] + widgets.magbox_radius[0],
+									  widgets.magbox[1] - widgets.magbox_radius[1],
+									  widgets.magbox[2] + widgets.magbox_radius[2];
+				boxline_positions.col ( 12 ) << widgets.magbox[0] - widgets.magbox_radius[0],
+									  widgets.magbox[1] + widgets.magbox_radius[1],
+									  widgets.magbox[2] - widgets.magbox_radius[2];
+				boxline_positions.col ( 13 ) << widgets.magbox[0] - widgets.magbox_radius[0],
+									  widgets.magbox[1] + widgets.magbox_radius[1],
+									  widgets.magbox[2] + widgets.magbox_radius[2];
+				boxline_positions.col ( 14 ) << widgets.magbox[0] + widgets.magbox_radius[0],
+									  widgets.magbox[1] + widgets.magbox_radius[1],
+									  widgets.magbox[2] - widgets.magbox_radius[2];
+				boxline_positions.col ( 15 ) << widgets.magbox[0] + widgets.magbox_radius[0],
+									  widgets.magbox[1] + widgets.magbox_radius[1],
+									  widgets.magbox[2] + widgets.magbox_radius[2];
+				boxline_positions.col ( 16 ) << widgets.magbox[0] - widgets.magbox_radius[0],
+									  widgets.magbox[1] - widgets.magbox_radius[1],
+									  widgets.magbox[2] + widgets.magbox_radius[2];
+				boxline_positions.col ( 17 ) << widgets.magbox[0] - widgets.magbox_radius[0],
+									  widgets.magbox[1] + widgets.magbox_radius[1],
+									  widgets.magbox[2] + widgets.magbox_radius[2]; //UL
+				boxline_positions.col ( 18 ) << widgets.magbox[0] + widgets.magbox_radius[0],
+									  widgets.magbox[1] - widgets.magbox_radius[1],
+									  widgets.magbox[2] + widgets.magbox_radius[2];
+				boxline_positions.col ( 19 ) << widgets.magbox[0] + widgets.magbox_radius[0],
+									  widgets.magbox[1] + widgets.magbox_radius[1],
+									  widgets.magbox[2] + widgets.magbox_radius[2]; //UR
+				boxline_positions.col ( 20 ) << widgets.magbox[0] - widgets.magbox_radius[0],
+									  widgets.magbox[1] - widgets.magbox_radius[1],
+									  widgets.magbox[2] + widgets.magbox_radius[2];
+				boxline_positions.col ( 21 ) << widgets.magbox[0] + widgets.magbox_radius[0],
+									  widgets.magbox[1] - widgets.magbox_radius[1],
+									  widgets.magbox[2] + widgets.magbox_radius[2]; //UB
+				boxline_positions.col ( 22 ) << widgets.magbox[0] - widgets.magbox_radius[0],
+									  widgets.magbox[1] + widgets.magbox_radius[1],
+									  widgets.magbox[2] + widgets.magbox_radius[2];
+				boxline_positions.col ( 23 ) << widgets.magbox[0] + widgets.magbox_radius[0],
+									  widgets.magbox[1] + widgets.magbox_radius[1],
+									  widgets.magbox[2] + widgets.magbox_radius[2]; //UT
 									  
 				m_boxShader->bind();
 				m_boxShader->uploadAttrib ( "position", boxline_positions );
@@ -374,8 +618,12 @@ class SurfPlot : public nanogui::GLCanvas {
 			if ( glfwGetKey ( screen->glfwWindow(), '2' ) == GLFW_PRESS )  reset_view ( 1 );
 			if ( glfwGetKey ( screen->glfwWindow(), '3' ) == GLFW_PRESS )  reset_view ( 2 );
 			
-			if ( glfwGetKey ( screen->glfwWindow(), '[' ) == GLFW_PRESS ) { magbox_radius[2] -= 0.01f; std::cout << "mag box radius = " << magbox_radius << std::endl; }
-			if ( glfwGetKey ( screen->glfwWindow(), ']' ) == GLFW_PRESS ) { magbox_radius[2] += 0.01f; std::cout << "mag box radius = " << magbox_radius << std::endl; }
+			if ( glfwGetKey ( screen->glfwWindow(), '[' ) == GLFW_PRESS )  widgets.magbox_radius[2] -= 0.01f;
+			
+			if ( glfwGetKey ( screen->glfwWindow(), ']' ) == GLFW_PRESS )  widgets.magbox_radius[2] += 0.01f;
+			if ( glfwGetKey ( screen->glfwWindow(), 'O' ) == GLFW_PRESS ) { widgets.magbox_radius[0] -= 0.01f; widgets.magbox_radius[1] -= 0.01f; }
+			if ( glfwGetKey ( screen->glfwWindow(), 'P' ) == GLFW_PRESS ) { widgets.magbox_radius[0] += 0.01f; widgets.magbox_radius[1] += 0.01f; }
+			
 			// std::cout << "transl " << translation << std::endl;
 			// std::cout << "model " << model_angle << std::endl;
 			// std::cout << "q " << m_arcball.matrix() << std::endl;
@@ -440,6 +688,8 @@ class SurfPlot : public nanogui::GLCanvas {
 				
 			}
 			
+			glDisable ( GL_DEPTH_TEST );
+			
 			// perf stats
 			update_FPS ( *graph_data );
 			
@@ -476,8 +726,6 @@ class SurfPlot : public nanogui::GLCanvas {
 		Eigen::MatrixXf colors;
 		
 		Eigen::Matrix4f view, proj, model, mvp;
-		Eigen::Vector3f magbox;
-		Eigen::Vector3f magbox_radius;
 		
 		SurfWindow &widgets;
 		
