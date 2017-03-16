@@ -13,7 +13,7 @@
 #include <gl/tex.h>
 
 #define DEF_WIDTH 3560
-#define DEF_HEIGHT 2026
+#define DEF_HEIGHT 2076
 #define SCREEN_NAME "AE"
 
 class GUI : public nanogui::Screen {
@@ -50,7 +50,7 @@ class GUI : public nanogui::Screen {
 			
 			images = new nanogui::Window ( this, "images" );
 			images->setLayout ( new nanogui::VGroupLayout () );
-			images->setPosition ( { 165 / screen_scale, 20 / screen_scale } );
+			images->setPosition ( { 165 / screen_scale, 5 / screen_scale } );
 			
 			nanogui::ImagePanel *inp = new nanogui::ImagePanel ( images, 50 / screen_scale, 2 / screen_scale, 2 / screen_scale, {10, batch_size / 10} );
 			inp->setImages ( xs );
@@ -58,7 +58,7 @@ class GUI : public nanogui::Screen {
 			out->setImages ( ys );
 			
 			nanogui::Window *plot = new nanogui::Window ( this, "plot" );
-			plot->setPosition ( { 15 / screen_scale, 333 / screen_scale } );
+			plot->setPosition ( { 15 / screen_scale, 275 / screen_scale } );
 			plot->setLayout ( new nanogui::GroupLayout() );
 			
 			nanogui::Window *plotmag = new nanogui::Window ( this, "plot mag" );
@@ -113,8 +113,6 @@ class GUI : public nanogui::Screen {
 			mCanvas = new SurfPlot ( plot, {1400, 1400}, *mCanvas_helper );
 			mCanvas->graph_data = graph_fps->values_ptr();
 			mCanvas->setBackgroundColor ( {100, 100, 100, 64} );
-			
-			
 			
 			std::cout << nn->train_data.size() << std::endl;
 			std::cout << nn->train_data[0].x.size() << std::endl;
@@ -209,6 +207,35 @@ class GUI : public nanogui::Screen {
 			
 			if ( mCanvas_helper ) {
 			
+				mCanvas_helper->console_text = string_format (
+												   "Points 0 : %zu, Points 1: %zu, Selected: %zu\n"
+												   "Box = (%.4f, %.4f, %.4f) +/- (%.4f, %.4f, %.4f)\n"
+												   "Raycast 0: m (%.4f, %.4f), "
+												   "Raycast 1: m (%.4f, %.4f), cursor 1: (%.2f, %.2f, %.2f)\n"
+												   "FOV 0: %f, Cam 0 = (%.2f, %.2f, %.2f), Cam 1 = (%.2f, %.2f, %.2f)\n"
+												   "Translation = (%.2f, %.2f, %.2f), Angle = (%.2f, %.2f, %.2f)\n",
+												   
+												   mCanvas->m_pointCount, mCanvasMag->m_pointCount/6, mCanvas_helper->selected_points.size(),
+												   mCanvas_helper->magbox[0], mCanvas_helper->magbox[1], mCanvas_helper->magbox[2],
+												   mCanvas_helper->magbox_radius[0], mCanvas_helper->magbox_radius[1], mCanvas_helper->magbox_radius[2],
+												   mCanvas->mouse_last_x, mCanvas->mouse_last_y,
+												   mCanvasMag->mouse_last_x, mCanvasMag->mouse_last_y,
+												   mCanvas_helper->cursor[0], mCanvas_helper->cursor[1], mCanvas_helper->cursor[2],
+												   mCanvas->fov, mCanvas->eye[0], mCanvas->eye[1], mCanvas->eye[2],
+												   mCanvasMag->eye[0], mCanvasMag->eye[1], mCanvasMag->eye[2],
+												   mCanvas->translation[0], mCanvas->translation[1], mCanvas->translation[2],
+												   mCanvas->model_angle[0], mCanvas->model_angle[1], mCanvas->model_angle[2] );
+				
+				std::string selected_contents = "";
+
+				for (size_t i = 0; i < mCanvas_helper->selected_points.size(); i++) {
+
+					selected_contents += std::to_string(mCanvas_helper->selected_points[i]);
+					if (i != mCanvas_helper->selected_points.size() - 1) selected_contents += ", ";
+				}
+
+				mCanvas_helper->console->setValue ( mCanvas_helper->console_text + selected_contents );
+				
 				if ( nn->clock ) {
 					nn->clock = false;
 					update_graph ( graph_loss, nn->current_loss );
@@ -247,7 +274,7 @@ class GUI : public nanogui::Screen {
 						mCanvas_helper->m_magbox->setChecked ( !mCanvas_helper->m_magbox->checked() );
 						return true;
 						
-					case GLFW_KEY_P:
+					case GLFW_KEY_L:
 						mCanvas_helper->m_polar->setChecked ( !mCanvas_helper->m_polar->checked() );
 						return true;
 						

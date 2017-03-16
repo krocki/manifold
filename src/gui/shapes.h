@@ -7,7 +7,7 @@
 
 void drawbox ( Eigen::MatrixXf &boxline_positions, size_t &m_boxlineCount, Eigen::Vector3f &pos, Eigen::Vector3f &r ) {
 
-	m_boxlineCount = 14 * 2;
+	m_boxlineCount = 13 * 2;
 	
 	boxline_positions.resize ( 3, m_boxlineCount );
 	
@@ -37,9 +37,7 @@ void drawbox ( Eigen::MatrixXf &boxline_positions, size_t &m_boxlineCount, Eigen
 	boxline_positions.col ( 23 ) << pos[0] + r[0], pos[1] + r[1], pos[2] + r[2]; //UT
 	
 	// dir
-	boxline_positions.col ( 24 ) << pos[0] + r[0] / 2, pos[1] - r[1], pos[2] + 3 * r[2] / 4;
-	boxline_positions.col ( 25 ) << pos[0], pos[1] - r[1], pos[2] + 2 * r[2] / 4;
-	boxline_positions.col ( 26 ) << pos[0], pos[1] - r[1], pos[2] + 2 *  r[2] / 4;
-	boxline_positions.col ( 27 ) << pos[0] - r[0] / 2, pos[1] - r[1], pos[2] + 3 * r[2] / 4;
+	boxline_positions.col ( 24 ) << pos[0] - r[0] / 2, pos[1] - r[1], pos[2] + 9 * r[2] / 10;
+	boxline_positions.col ( 25 ) << pos[0] + r[0] / 2, pos[1] - r[1], pos[2] + 9 * r[2] / 10;
 	
 }
