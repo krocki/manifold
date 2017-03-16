@@ -15,6 +15,6 @@ in vec2 uv;
 void main() {
 
 	vec4 col = texture ( image, uv );
-
-	out_color = min(fcolor, vec4(col.x, col.x, col.x, 0.7));
+	out_color = min ( fcolor, vec4 ( col.x, col.x, col.x, 0.7 ) );
+	
 }
