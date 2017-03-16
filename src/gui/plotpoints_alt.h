@@ -54,7 +54,7 @@ class SurfWindow : public nanogui::Window {
 		m_polar->setChecked ( true );
 		m_magbox->setChecked ( true );
 
-		magbox_radius = Eigen::Vector3f ( 0.02f, 0.02f, 0.01f );
+		magbox_radius = Eigen::Vector3f ( 0.01f, 0.01f, 0.2f );
 
 	}
 
@@ -99,6 +99,7 @@ class MagPlot : public nanogui::GLCanvas {
 		/* Upload points to GPU */
 		m_pointShader->bind();
 		// std::cout << (std::vector<std::pair<int, std::string>> (*textures)[0]).first << std::endl;
+		m_pointShader->uploadAttrib ( "texcoords", texcoords );
 		m_pointShader->uploadAttrib ( "position", positions );
 		m_pointShader->uploadAttrib ( "color", colors );
 
@@ -112,6 +113,7 @@ class MagPlot : public nanogui::GLCanvas {
 
 		positions.resize ( 3, total_points * 6 );
 		colors.resize ( 3, total_points * 6 );
+		texcoords.resize ( 3, total_points * 6 );
 
 		for ( size_t i = 0; i < total_points; i++ ) {
 
@@ -148,26 +150,32 @@ class MagPlot : public nanogui::GLCanvas {
 				nanogui::Color c = nanogui::parula_lut[label];
 
 				// upper left corner
+				texcoords.col (m_pointCount) = Eigen::Vector3f ( 0, 1, 0 );
 				positions.col ( m_pointCount ) = pt + Eigen::Vector3f ( -radius, -radius, 0 );
 				colors.col ( m_pointCount ) = Eigen::Vector3f ( c.r(), c.g(), c.b() );
 				m_pointCount++;
 
+				texcoords.col (m_pointCount) = Eigen::Vector3f ( 0, 0, 0 );
 				positions.col ( m_pointCount ) = pt + Eigen::Vector3f ( -radius, radius, 0 );
 				colors.col ( m_pointCount ) = Eigen::Vector3f ( c.r(), c.g(), c.b() );
 				m_pointCount++;
 
+				texcoords.col (m_pointCount) = Eigen::Vector3f ( 1, 1, 0 );
 				positions.col ( m_pointCount ) = pt + Eigen::Vector3f ( radius, -radius, 0 );
 				colors.col ( m_pointCount ) = Eigen::Vector3f ( c.r(), c.g(), c.b() );
 				m_pointCount++;
 
+				texcoords.col (m_pointCount) = Eigen::Vector3f ( 1, 0, 0 );
 				positions.col ( m_pointCount ) = pt + Eigen::Vector3f ( radius, radius, 0 );
 				colors.col ( m_pointCount ) = Eigen::Vector3f ( c.r(), c.g(), c.b() );
 				m_pointCount++;
 
+				texcoords.col (m_pointCount) = Eigen::Vector3f ( 0, 0, 0 );
 				positions.col ( m_pointCount ) = pt + Eigen::Vector3f ( -radius, radius, 0 );
 				colors.col ( m_pointCount ) = Eigen::Vector3f ( c.r(), c.g(), c.b() );
 				m_pointCount++;
 
+				texcoords.col (m_pointCount) = Eigen::Vector3f ( 1, 1, 0 );
 				positions.col ( m_pointCount ) = pt + Eigen::Vector3f ( radius, -radius, 0 );
 				colors.col ( m_pointCount ) = Eigen::Vector3f ( c.r(), c.g(), c.b() );
 				m_pointCount++;
@@ -221,7 +229,7 @@ class MagPlot : public nanogui::GLCanvas {
 			m_pointShader->bind();
 
 			glActiveTexture(GL_TEXTURE0);
-			glBindTexture(GL_TEXTURE_2D, (std::vector<std::pair<int, std::string>> (*textures)[0]).first);
+			glBindTexture(GL_TEXTURE_2D, (std::vector<std::pair<int, std::string>> (*textures)[4]).first);
 			m_pointShader->setUniform("image", 0);
 			m_pointShader->setUniform ("mvp", mvp );
 
@@ -256,6 +264,7 @@ class MagPlot : public nanogui::GLCanvas {
 
 	// coords of points
 	Eigen::MatrixXf positions;
+	Eigen::MatrixXf texcoords;
 	Eigen::MatrixXf colors;
 
 	nanogui::GLShader *m_pointShader = nullptr;

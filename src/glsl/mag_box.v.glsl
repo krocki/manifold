@@ -3,6 +3,7 @@
 uniform mat4 mvp;
 in vec3 position;
 in vec3 color;
+in vec3 texcoords;
 out vec4 fcolor;
 out vec4 pos;
 out vec2 uv;
@@ -17,7 +18,7 @@ out vec2 uv;
 void main() {
 
 	vec4 pos = mvp * vec4 ( position.x, position.y, 0.0, 1.0 );
-	uv = pos.xy;
+	uv = texcoords.xy;
 
 	fcolor = vec4(color, 1.0);
 	gl_Position = pos;
