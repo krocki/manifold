@@ -2,7 +2,7 @@
 * @Author: kmrocki
 * @Date:   2016-02-24 15:28:10
 * @Last Modified by:   Kamil Rocki
-* @Last Modified time: 2017-03-15 19:32:51
+* @Last Modified time: 2017-03-16 12:53:31
 */
 
 #ifndef __NN_H__
@@ -181,7 +181,7 @@ class NN {
 				
 				current_loss = current_loss < 0 ? err : 0.99 * current_loss + 0.01 * err;
 				
-				if ( ii % 5 == 0 ) clock = true;
+				if ( ii % 25 == 0 ) clock = true;
 				
 				//apply changes
 				update ( alpha, decay );

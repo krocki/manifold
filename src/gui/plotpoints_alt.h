@@ -27,9 +27,12 @@
 #include <nanogui/graph.h>
 #include <nanogui/layout.h>
 #include <nanogui/imagepanel.h>
+#include <nanogui/label.h>
 
 // FPS
 #include "fps.h"
+
+#include "shapes.h"
 
 class SurfWindow : public nanogui::Window {
 
@@ -37,29 +40,37 @@ class SurfWindow : public nanogui::Window {
 	
 		SurfWindow ( Widget *parent, const std::string &title ) : nanogui::Window ( parent, title ) {
 		
-			/* FPS GRAPH */
+			nanogui::Window *boxes = new nanogui::Window ( this, "" );
+			boxes->setLayout ( new nanogui::GroupLayout() );
+			m_grid = new nanogui::CheckBox ( boxes, "Grid" );
+			m_polar = new nanogui::CheckBox ( boxes, "Polar" );
+			m_magbox = new nanogui::CheckBox ( boxes, "Box" );
+			show_inputs = new nanogui::CheckBox ( boxes, "Inputs" );
+			
+			m_grid->setChecked ( true );
+			m_polar->setChecked ( true );
+			m_magbox->setChecked ( true );
+			show_inputs->setChecked ( false );
+			magmove = true;
+			magboxstate = new nanogui::Label ( boxes, string_format ( "Mag box locked: %d", !magmove ) );
+			
 			m_window = new nanogui::Window ( this, "" );
-			m_window->setLayout ( new nanogui::GroupLayout() );
+			m_window->setLayout ( new nanogui::VGroupLayout ( 15, 15, 15, 0 ) );
 			
 			//legend
 			nanogui::Graph *graph = new nanogui::Graph ( m_window, "", nanogui::GraphType::GRAPH_LEGEND );
 			graph->values().resize ( 10 );
 			graph->values() << 1, 1, 1, 1, 1, 1, 1, 1, 1, 1;
 			
-			m_grid = new nanogui::CheckBox ( this, "Grid" );
-			m_polar = new nanogui::CheckBox ( this, "Polar" );
-			m_magbox = new nanogui::CheckBox ( this, "Box" );
 			
-			m_grid->setChecked ( true );
-			m_polar->setChecked ( true );
-			m_magbox->setChecked ( true );
-			
-			magbox_radius = Eigen::Vector3f ( 0.01f, 0.01f, 0.2f );
+			magbox_radius = Eigen::Vector3f ( 0.05f, 0.05f, 0.1f );
 			
 		}
 		
 		nanogui::Window *m_window;
-		nanogui::CheckBox *m_grid, *m_polar, *m_magbox;
+		nanogui::CheckBox *m_grid, *m_polar, *m_magbox, *show_inputs;
+		nanogui::Label *magboxstate;
+		bool magmove;
 		
 		Eigen::Vector3f magbox;
 		Eigen::Vector3f magbox_radius;
@@ -144,7 +155,7 @@ class MagPlot : public nanogui::GLCanvas {
 				
 				float textures_per_dim = ceil ( sqrtf ( nn->test_data.size() ) );
 				
-				float quad_size = 0.0000002f;
+				float quad_size = 0.000001f * ( bounds_max[1] - bounds_min[1] );
 				float radius = sqrtf ( 2 * quad_size );
 				
 				//linear index to texture coords:
@@ -245,6 +256,7 @@ class MagPlot : public nanogui::GLCanvas {
 				
 				glEnable ( GL_BLEND );
 				// glBlendFunc ( GL_SRC_ALPHA, GL_DST_ALPHA );
+				glBlendFunc ( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
 				
 				m_pointShader->drawArray ( GL_TRIANGLES, 0, m_pointCount );
 				
@@ -415,7 +427,7 @@ class SurfPlot : public nanogui::GLCanvas {
 							
 						colors.col ( i ) << 2 * c.r(), 2 * c.g(), 2 * c.b();
 					else
-						colors.col ( i ) << 0.5 * c.r(), 0.5 * c.g(), 0.5 * c.b();
+						colors.col ( i ) << 0.7 * c.r(), 0.7 * c.g(), 0.7 * c.b();
 						
 				}
 				else
@@ -447,9 +459,9 @@ class SurfPlot : public nanogui::GLCanvas {
 			Eigen::Vector3f ray_nds ( mouse_last_x, mouse_last_y, -1.0f );
 			Eigen::Vector4f ray_clip ( mouse_last_x, mouse_last_y, -1.0f, -1.0f );
 			Eigen::Vector4f ray_eye = proj.inverse() * ray_clip; ray_eye[2] = -1.0f; ray_eye[3] = 1.0f;
-			Eigen::Vector4f magboxld = model.inverse() * ( view.inverse() * ray_eye );
+			Eigen::Vector4f magboxld = ( view.inverse() * ray_eye );
 			
-			if ( widgets.m_magbox->checked() ) {
+			if ( widgets.m_magbox->checked() && widgets.magmove ) {
 			
 				widgets.magbox[0] = magboxld[0]; widgets.magbox[1] = magboxld[1];
 				widgets.magbox[2] = magboxld[2];
@@ -467,19 +479,6 @@ class SurfPlot : public nanogui::GLCanvas {
 			// }
 			
 			return true;
-		}
-		
-		virtual bool keyboardEvent ( int key, int scancode, int action, int modifiers ) override {
-		
-			// if ( SurfPlot::keyboardEvent ( key, scancode, action, modifiers ) )
-			// 	return true;
-			
-			if ( key == GLFW_KEY_ESCAPE && action == GLFW_PRESS ) {
-				setVisible ( false );
-				return true;
-			}
-			
-			return false;
 		}
 		
 		void refresh() {
@@ -525,83 +524,8 @@ class SurfPlot : public nanogui::GLCanvas {
 			}
 			
 			if ( widgets.m_magbox->checked() ) {
-				// draw grid
-				m_boxlineCount = 12 * 2;
-				boxline_positions.resize ( 3, m_boxlineCount );
-				
-				boxline_positions.col ( 0 ) << widgets.magbox[0] - widgets.magbox_radius[0],
-									  widgets.magbox[1] - widgets.magbox_radius[1],
-									  widgets.magbox[2] - widgets.magbox_radius[2];
-				boxline_positions.col ( 1 ) << widgets.magbox[0] - widgets.magbox_radius[0],
-									  widgets.magbox[1] + widgets.magbox_radius[1],
-									  widgets.magbox[2] - widgets.magbox_radius[2]; //L
-				boxline_positions.col ( 2 ) << widgets.magbox[0] + widgets.magbox_radius[0],
-									  widgets.magbox[1] - widgets.magbox_radius[1],
-									  widgets.magbox[2] - widgets.magbox_radius[2];
-				boxline_positions.col ( 3 ) << widgets.magbox[0] + widgets.magbox_radius[0],
-									  widgets.magbox[1] + widgets.magbox_radius[1],
-									  widgets.magbox[2] - widgets.magbox_radius[2]; //R
-				boxline_positions.col ( 4 ) << widgets.magbox[0] - widgets.magbox_radius[0],
-									  widgets.magbox[1] - widgets.magbox_radius[1],
-									  widgets.magbox[2] - widgets.magbox_radius[2];
-				boxline_positions.col ( 5 ) << widgets.magbox[0] + widgets.magbox_radius[0],
-									  widgets.magbox[1] - widgets.magbox_radius[1],
-									  widgets.magbox[2] - widgets.magbox_radius[2]; //B
-				boxline_positions.col ( 6 ) << widgets.magbox[0] - widgets.magbox_radius[0],
-									  widgets.magbox[1] + widgets.magbox_radius[1],
-									  widgets.magbox[2] - widgets.magbox_radius[2];
-				boxline_positions.col ( 7 ) << widgets.magbox[0] + widgets.magbox_radius[0],
-									  widgets.magbox[1] + widgets.magbox_radius[1],
-									  widgets.magbox[2] - widgets.magbox_radius[2]; //T
-				boxline_positions.col ( 8 ) << widgets.magbox[0] - widgets.magbox_radius[0],
-									  widgets.magbox[1] - widgets.magbox_radius[1],
-									  widgets.magbox[2] - widgets.magbox_radius[2];
-				boxline_positions.col ( 9 ) << widgets.magbox[0] - widgets.magbox_radius[0],
-									  widgets.magbox[1] - widgets.magbox_radius[1],
-									  widgets.magbox[2] + widgets.magbox_radius[2];
-				boxline_positions.col ( 10 ) << widgets.magbox[0] + widgets.magbox_radius[0],
-									  widgets.magbox[1] - widgets.magbox_radius[1],
-									  widgets.magbox[2] - widgets.magbox_radius[2];
-				boxline_positions.col ( 11 ) << widgets.magbox[0] + widgets.magbox_radius[0],
-									  widgets.magbox[1] - widgets.magbox_radius[1],
-									  widgets.magbox[2] + widgets.magbox_radius[2];
-				boxline_positions.col ( 12 ) << widgets.magbox[0] - widgets.magbox_radius[0],
-									  widgets.magbox[1] + widgets.magbox_radius[1],
-									  widgets.magbox[2] - widgets.magbox_radius[2];
-				boxline_positions.col ( 13 ) << widgets.magbox[0] - widgets.magbox_radius[0],
-									  widgets.magbox[1] + widgets.magbox_radius[1],
-									  widgets.magbox[2] + widgets.magbox_radius[2];
-				boxline_positions.col ( 14 ) << widgets.magbox[0] + widgets.magbox_radius[0],
-									  widgets.magbox[1] + widgets.magbox_radius[1],
-									  widgets.magbox[2] - widgets.magbox_radius[2];
-				boxline_positions.col ( 15 ) << widgets.magbox[0] + widgets.magbox_radius[0],
-									  widgets.magbox[1] + widgets.magbox_radius[1],
-									  widgets.magbox[2] + widgets.magbox_radius[2];
-				boxline_positions.col ( 16 ) << widgets.magbox[0] - widgets.magbox_radius[0],
-									  widgets.magbox[1] - widgets.magbox_radius[1],
-									  widgets.magbox[2] + widgets.magbox_radius[2];
-				boxline_positions.col ( 17 ) << widgets.magbox[0] - widgets.magbox_radius[0],
-									  widgets.magbox[1] + widgets.magbox_radius[1],
-									  widgets.magbox[2] + widgets.magbox_radius[2]; //UL
-				boxline_positions.col ( 18 ) << widgets.magbox[0] + widgets.magbox_radius[0],
-									  widgets.magbox[1] - widgets.magbox_radius[1],
-									  widgets.magbox[2] + widgets.magbox_radius[2];
-				boxline_positions.col ( 19 ) << widgets.magbox[0] + widgets.magbox_radius[0],
-									  widgets.magbox[1] + widgets.magbox_radius[1],
-									  widgets.magbox[2] + widgets.magbox_radius[2]; //UR
-				boxline_positions.col ( 20 ) << widgets.magbox[0] - widgets.magbox_radius[0],
-									  widgets.magbox[1] - widgets.magbox_radius[1],
-									  widgets.magbox[2] + widgets.magbox_radius[2];
-				boxline_positions.col ( 21 ) << widgets.magbox[0] + widgets.magbox_radius[0],
-									  widgets.magbox[1] - widgets.magbox_radius[1],
-									  widgets.magbox[2] + widgets.magbox_radius[2]; //UB
-				boxline_positions.col ( 22 ) << widgets.magbox[0] - widgets.magbox_radius[0],
-									  widgets.magbox[1] + widgets.magbox_radius[1],
-									  widgets.magbox[2] + widgets.magbox_radius[2];
-				boxline_positions.col ( 23 ) << widgets.magbox[0] + widgets.magbox_radius[0],
-									  widgets.magbox[1] + widgets.magbox_radius[1],
-									  widgets.magbox[2] + widgets.magbox_radius[2]; //UT
-									  
+			
+				drawbox ( boxline_positions, m_boxlineCount, widgets.magbox, widgets.magbox_radius );
 				m_boxShader->bind();
 				m_boxShader->uploadAttrib ( "position", boxline_positions );
 				
@@ -614,23 +538,23 @@ class SurfPlot : public nanogui::GLCanvas {
 			// keyboard management
 			/*	TODO: move to nanogui - need to modify keyboardEvent to allow smooth opeartion */
 			// translation
-			if ( glfwGetKey ( screen->glfwWindow(), 'A' ) == GLFW_PRESS ) translation[0] -= 0.05 * keyboard_sensitivity;
-			if ( glfwGetKey ( screen->glfwWindow(), 'D' ) == GLFW_PRESS ) translation[0] += 0.05 * keyboard_sensitivity;
-			if ( glfwGetKey ( screen->glfwWindow(), 'S' ) == GLFW_PRESS ) translation[1] -= 0.05 * keyboard_sensitivity;
-			if ( glfwGetKey ( screen->glfwWindow(), 'W' ) == GLFW_PRESS ) translation[1] += 0.05 * keyboard_sensitivity;
-			if ( glfwGetKey ( screen->glfwWindow(), 'Z' ) == GLFW_PRESS ) translation[2] -= 0.5 * keyboard_sensitivity;
-			if ( glfwGetKey ( screen->glfwWindow(), 'C' ) == GLFW_PRESS ) translation[2] += 0.5 * keyboard_sensitivity;
+			if ( glfwGetKey ( screen->glfwWindow(), 'A' ) == GLFW_PRESS ) translation[0] += 0.05 * keyboard_sensitivity;
+			if ( glfwGetKey ( screen->glfwWindow(), 'D' ) == GLFW_PRESS ) translation[0] -= 0.05 * keyboard_sensitivity;
+			if ( glfwGetKey ( screen->glfwWindow(), 'S' ) == GLFW_PRESS ) translation[1] += 0.05 * keyboard_sensitivity;
+			if ( glfwGetKey ( screen->glfwWindow(), 'W' ) == GLFW_PRESS ) translation[1] -= 0.05 * keyboard_sensitivity;
+			if ( glfwGetKey ( screen->glfwWindow(), 'Q' ) == GLFW_PRESS ) translation[2] += 0.5 * keyboard_sensitivity;
+			if ( glfwGetKey ( screen->glfwWindow(), 'E' ) == GLFW_PRESS ) translation[2] -= 0.5 * keyboard_sensitivity;
 			
-			if ( glfwGetKey ( screen->glfwWindow(), '+' ) == GLFW_PRESS ) fov += 0.05;
-			if ( glfwGetKey ( screen->glfwWindow(), '-' ) == GLFW_PRESS ) fov -= 0.05;
+			if ( glfwGetKey ( screen->glfwWindow(), '9' ) == GLFW_PRESS ) { fov += 0.1f; fov = fmaxf ( fov, 0.1f ); };
+			if ( glfwGetKey ( screen->glfwWindow(), '0' ) == GLFW_PRESS ) { fov -= 0.1f; fov = fminf ( fov, 180.0f ); }
 			
 			// rotation around x, y, z axes
-			if ( glfwGetKey ( screen->glfwWindow(), 'Q' ) == GLFW_PRESS ) model_angle[1] -= 0.05 * keyboard_sensitivity;
-			if ( glfwGetKey ( screen->glfwWindow(), 'E' ) == GLFW_PRESS ) model_angle[1] += 0.05 * keyboard_sensitivity;
+			if ( glfwGetKey ( screen->glfwWindow(), 'Z' ) == GLFW_PRESS ) model_angle[1] -= 0.05 * keyboard_sensitivity;
+			if ( glfwGetKey ( screen->glfwWindow(), 'C' ) == GLFW_PRESS ) model_angle[1] += 0.05 * keyboard_sensitivity;
 			if ( glfwGetKey ( screen->glfwWindow(), GLFW_KEY_UP ) == GLFW_PRESS ) model_angle[0] -= 0.05 * keyboard_sensitivity;
 			if ( glfwGetKey ( screen->glfwWindow(), GLFW_KEY_DOWN ) == GLFW_PRESS ) model_angle[0] += 0.05 * keyboard_sensitivity;
-			if ( glfwGetKey ( screen->glfwWindow(), GLFW_KEY_LEFT ) == GLFW_PRESS ) model_angle[2] -= 0.05 * keyboard_sensitivity;
-			if ( glfwGetKey ( screen->glfwWindow(), GLFW_KEY_RIGHT ) == GLFW_PRESS ) model_angle[2] += 0.05 * keyboard_sensitivity;
+			if ( glfwGetKey ( screen->glfwWindow(), GLFW_KEY_LEFT ) == GLFW_PRESS ) model_angle[2] += 0.05 * keyboard_sensitivity;
+			if ( glfwGetKey ( screen->glfwWindow(), GLFW_KEY_RIGHT ) == GLFW_PRESS ) model_angle[2] -= 0.05 * keyboard_sensitivity;
 			
 			if ( glfwGetKey ( screen->glfwWindow(), '1' ) == GLFW_PRESS )  reset_view ( 0 );
 			if ( glfwGetKey ( screen->glfwWindow(), '2' ) == GLFW_PRESS )  reset_view ( 1 );
@@ -692,7 +616,7 @@ class SurfPlot : public nanogui::GLCanvas {
 			m_pointShader->bind();
 			m_pointShader->setUniform ( "mvp", mvp );
 			
-			glPointSize ( 1 );
+			glEnable ( GL_PROGRAM_POINT_SIZE );
 			glEnable ( GL_DEPTH_TEST );
 			
 			m_pointShader->drawArray ( GL_POINTS, 0, m_pointCount );
@@ -718,6 +642,7 @@ class SurfPlot : public nanogui::GLCanvas {
 			}
 			
 			glDisable ( GL_DEPTH_TEST );
+			glDisable ( GL_PROGRAM_POINT_SIZE );
 			
 			// perf stats
 			update_FPS ( *graph_data );

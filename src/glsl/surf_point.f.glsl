@@ -11,7 +11,16 @@ out vec4 out_color;
 */
 
 void main() {
-	if (frag_color == vec3(0.0))
+
+	vec2 p = gl_PointCoord;
+	vec2 circ = 2.0 * p - 1.0;
+	float distance = dot ( circ, circ );
+	
+	if ( distance > 1.0 )
 		discard;
-	out_color = vec4(frag_color, 1.0);
+		
+	if ( frag_color == vec3 ( 0.0 ) )
+		discard;
+		
+	out_color = vec4 ( frag_color, 1.0 - sqrt ( distance ) );
 }

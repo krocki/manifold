@@ -12,8 +12,8 @@
 // nvgCreateImageA
 #include <gl/tex.h>
 
-#define DEF_WIDTH 2560
-#define DEF_HEIGHT 1126
+#define DEF_WIDTH 3560
+#define DEF_HEIGHT 2026
 #define SCREEN_NAME "AE"
 
 class GUI : public nanogui::Screen {
@@ -48,20 +48,21 @@ class GUI : public nanogui::Screen {
 								  
 			}
 			
-			nanogui::Window *images = new nanogui::Window ( this, "images" );
-			images->setLayout ( new nanogui::GroupLayout () );
+			images = new nanogui::Window ( this, "images" );
+			images->setLayout ( new nanogui::VGroupLayout () );
+			images->setPosition ( { 165 / screen_scale, 20 / screen_scale } );
 			
 			nanogui::ImagePanel *inp = new nanogui::ImagePanel ( images, 50 / screen_scale, 2 / screen_scale, 2 / screen_scale, {10, batch_size / 10} );
 			inp->setImages ( xs );
 			nanogui::ImagePanel *out = new nanogui::ImagePanel ( images, 50 / screen_scale, 2 / screen_scale, 2 / screen_scale, {10, batch_size / 10} );
 			out->setImages ( ys );
 			
-			nanogui::Window *plot = new nanogui::Window ( this, "" );
-			plot->setPosition ( { 585 / screen_scale, 15 / screen_scale } );
+			nanogui::Window *plot = new nanogui::Window ( this, "plot" );
+			plot->setPosition ( { 15 / screen_scale, 333 / screen_scale } );
 			plot->setLayout ( new nanogui::GroupLayout() );
 			
-			nanogui::Window *plotmag = new nanogui::Window ( this, "" );
-			plotmag->setPosition ( { 1450 / screen_scale, 15 / screen_scale } );
+			nanogui::Window *plotmag = new nanogui::Window ( this, "plot mag" );
+			plotmag->setPosition ( { 1470 / screen_scale, 15 / screen_scale } );
 			plotmag->setLayout ( new nanogui::GroupLayout() );
 			
 			/* * * * * * * * * * * */
@@ -73,17 +74,47 @@ class GUI : public nanogui::Screen {
 				
 				
 			mCanvas_helper = new SurfWindow ( plot, "" );
-			mCanvas_helper->setSize ( {800, 100} );
-			mCanvas_helper->setLayout ( new nanogui::GroupLayout() );
+			mCanvas_helper->setSize ( {1400, 50} );
+			mCanvas_helper->setLayout ( new nanogui::GroupLayout ( 15, 0, 0, 0 ) );
 			
 			/* FPS GRAPH */
-			graph_fps = new nanogui::Graph ( mCanvas_helper, "" );
+			graph_fps = new nanogui::Graph ( mCanvas_helper->m_window, "" );
 			graph_fps->setGraphColor ( nanogui::Color ( 0, 160, 192, 255 ) );
 			graph_fps->setBackgroundColor ( nanogui::Color ( 0, 0, 0, 32 ) );
 			
-			mCanvas = new SurfPlot ( plot, {800, 800}, *mCanvas_helper );
+			graph_loss = new nanogui::Graph ( mCanvas_helper->m_window );
+			graph_loss->setFooter ( "loss" );
+			graph_loss->setGraphColor ( nanogui::Color ( 192, 160, 0, 255 ) );
+			graph_loss->setBackgroundColor ( nanogui::Color ( 0, 0, 0, 32 ) );
+			
+			//CPU graph
+			graph_cpu = new nanogui::Graph ( mCanvas_helper->m_window, "" );
+			graph_cpu->values().resize ( cpu_util.size() );
+			graph_cpu->setGraphColor ( nanogui::Color ( 192, 0, 0, 255 ) );
+			graph_cpu->setBackgroundColor ( nanogui::Color ( 0, 0, 0, 32 ) );
+			
+			// FlOP/s
+			graph_flops = new nanogui::Graph ( mCanvas_helper->m_window, "" );
+			graph_flops->values().resize ( cpu_flops.size() );
+			graph_flops->setGraphColor ( nanogui::Color ( 0, 192, 0, 255 ) );
+			graph_flops->setBackgroundColor ( nanogui::Color ( 0, 0, 0, 32 ) );
+			
+			// B/s
+			graph_bytes = new nanogui::Graph ( mCanvas_helper->m_window, "" );
+			graph_bytes->values().resize ( cpu_reads.size() );
+			graph_bytes->setGraphColor ( nanogui::Color ( 255, 192, 0, 255 ) );
+			graph_bytes->setBackgroundColor ( nanogui::Color ( 0, 0, 0, 32 ) );
+			
+			// nanogui::Window *graphs = new nanogui::Window ( mCanvas_helper, "" );
+			// graphs->setLayout ( new nanogui::VGroupLayout() );
+			
+			
+			
+			mCanvas = new SurfPlot ( plot, {1400, 1400}, *mCanvas_helper );
 			mCanvas->graph_data = graph_fps->values_ptr();
 			mCanvas->setBackgroundColor ( {100, 100, 100, 64} );
+			
+			
 			
 			std::cout << nn->train_data.size() << std::endl;
 			std::cout << nn->train_data[0].x.size() << std::endl;
@@ -113,7 +144,7 @@ class GUI : public nanogui::Screen {
 			plotdata[0] = ( std::pair<int, std::string> ( nvgCreateImageA ( nvgContext(),
 							sqr_dim * image_size, sqr_dim * image_size, NVG_IMAGE_NEAREST, ( unsigned char * ) rgba_image.data() ), "" ) );
 							
-			mCanvasMag = new MagPlot ( plotmag, {1050, 1050}, *mCanvas_helper, &plotdata );
+			mCanvasMag = new MagPlot ( plotmag, {1960, 1960}, *mCanvas_helper, &plotdata );
 			mCanvasMag->setBackgroundColor ( {100, 100, 100, 64} );
 			
 			drawAll();
@@ -131,45 +162,60 @@ class GUI : public nanogui::Screen {
 		virtual void drawContents() {
 		
 			refresh();
+			images->setVisible ( mCanvas_helper->show_inputs->checked() );
 			
 		}
 		
 		void refresh() {
 		
-			Eigen::Matrix<unsigned char, Eigen::Dynamic, Eigen::Dynamic> rgba_image;
-			rgba_image.resize ( image_size, image_size );
+			if ( mCanvas_helper->show_inputs->checked() ) {
 			
-			// xs
-			for ( size_t i = 0; i < nn->batch_size; i++ ) {
-			
-				Eigen::MatrixXf float_image = nn->layers[0]->x.col ( i );
+				Eigen::Matrix<unsigned char, Eigen::Dynamic, Eigen::Dynamic> rgba_image;
+				rgba_image.resize ( image_size, image_size );
 				
-				float_image.resize ( image_size, image_size );
-				float_image *= 255.0f;
+				// xs
+				for ( size_t i = 0; i < nn->batch_size; i++ ) {
 				
-				rgba_image = float_image.cast<unsigned char>();
-				nvgUpdateImage ( nvgContext(), xs[i].first, ( unsigned char * ) rgba_image.data() );
+					Eigen::MatrixXf float_image = nn->layers[0]->x.col ( i );
+					
+					float_image.resize ( image_size, image_size );
+					float_image *= 255.0f;
+					
+					rgba_image = float_image.cast<unsigned char>();
+					nvgUpdateImage ( nvgContext(), xs[i].first, ( unsigned char * ) rgba_image.data() );
+					
+					
+				}
 				
+				// ys
+				for ( size_t i = 0; i < nn->batch_size; i++ ) {
 				
-			}
-			
-			// ys
-			for ( size_t i = 0; i < nn->batch_size; i++ ) {
-			
-				Eigen::MatrixXf float_image = nn->layers.back()->y.col ( i );
-				
-				float_image.resize ( image_size, image_size );
-				float_image *= 255.0f;
-				
-				rgba_image = float_image.cast<unsigned char>();
-				nvgUpdateImage ( nvgContext(), ys[i].first, ( unsigned char * ) rgba_image.data() );
-				
+					Eigen::MatrixXf float_image = nn->layers.back()->y.col ( i );
+					
+					float_image.resize ( image_size, image_size );
+					float_image *= 255.0f;
+					
+					rgba_image = float_image.cast<unsigned char>();
+					nvgUpdateImage ( nvgContext(), ys[i].first, ( unsigned char * ) rgba_image.data() );
+					
+				}
 			}
 			
 			if ( mCanvas ) {
 				mCanvas->refresh();
 				if ( mCanvas->graph_data->size() > 0 )
 					graph_fps->setHeader ( string_format ( "%.1f FPS", mCanvas->graph_data->mean() ) );
+			}
+			
+			if ( mCanvas_helper ) {
+			
+				if ( nn->clock ) {
+					nn->clock = false;
+					update_graph ( graph_loss, nn->current_loss );
+					update_graph ( graph_cpu, cpu_util, 1000.0f, "ms" );
+					update_graph ( graph_flops, cpu_flops, 1.0f, "GF/s" );
+					update_graph ( graph_bytes, cpu_reads, 1.0f, "MB/s" );
+				}
 			}
 			
 			if ( mCanvasMag )
@@ -181,30 +227,40 @@ class GUI : public nanogui::Screen {
 		
 		virtual bool keyboardEvent ( int key, int scancode, int action, int modifiers ) {
 		
-			/* process subcomponents */
-			if ( Screen::keyboardEvent ( key, scancode, action, modifiers ) )
-				return true;
+			if ( action ) {
+				switch ( key ) {
 				
-			if ( key == GLFW_KEY_SPACE && action == GLFW_PRESS )
-				nn->pause = !nn->pause;
-				
-			if ( key == GLFW_KEY_N && action == GLFW_PRESS ) {
-			
-				if ( nn->pause )
-					nn->step = true;
-					
+					case GLFW_KEY_SPACE:
+						nn->pause = !nn->pause;
+						return true;
+						
+					case GLFW_KEY_N:
+						if ( nn->pause ) nn->step = true;
+						return true;
+						
+					case GLFW_KEY_ESCAPE:
+						nn->quit = true;
+						setVisible ( false );
+						return true;
+						
+					case GLFW_KEY_B:
+						mCanvas_helper->m_magbox->setChecked ( !mCanvas_helper->m_magbox->checked() );
+						return true;
+						
+					case GLFW_KEY_P:
+						mCanvas_helper->m_polar->setChecked ( !mCanvas_helper->m_polar->checked() );
+						return true;
+						
+					case GLFW_KEY_TAB:
+						mCanvas_helper->magmove = !mCanvas_helper->magmove;
+						mCanvas_helper->magboxstate->setCaption ( string_format ( "Mag box locked: %d", ! ( mCanvas_helper->magmove ) ) );
+						return true;
+						
+						
+				}
 			}
 			
-			/* close */
-			if ( key == GLFW_KEY_ESCAPE && action == GLFW_PRESS ) {
-			
-				nn->quit = true;
-				setVisible ( false );
-				
-				return true;
-			}
-			
-			return false;
+			return Screen::keyboardEvent ( key, scancode, action, modifiers );
 		}
 		
 		virtual bool resizeEvent ( const Eigen::Vector2i &size ) {
@@ -226,7 +282,10 @@ class GUI : public nanogui::Screen {
 		SurfWindow *mCanvas_helper;
 		SurfPlot *mCanvas;
 		MagPlot *mCanvasMag;
-		nanogui::Graph *graph_fps;
+		
+		nanogui::Window *images;
+		
+		nanogui::Graph *graph_fps, *graph_loss, *graph_cpu, *graph_flops, *graph_bytes;
 		
 		using imagesDataType = std::vector<std::pair<int, std::string>>;
 		imagesDataType xs, ys, plotdata;

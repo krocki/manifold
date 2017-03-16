@@ -17,10 +17,11 @@ out vec2 uv;
 
 void main() {
 
-	vec4 pos = mvp * vec4 ( position.x, position.y, 0.0, 1.0 );
+	vec4 pos = mvp * vec4 ( position.x, position.y, position.z, 1.0 );
+	
 	uv = texcoords.xy;
-
-	fcolor = vec4(color, 1.0);
+	
+	fcolor = vec4 ( color, 1.0 );
 	gl_Position = pos;
-
+	
 }
