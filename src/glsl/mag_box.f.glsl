@@ -1,6 +1,7 @@
 #version 330
 
 out vec4 out_color;
+in vec4 fcolor;
 uniform sampler2D image;
 in vec2 uv;
 
@@ -12,5 +13,7 @@ in vec2 uv;
 */
 
 void main() {
-	out_color = texture ( image, uv );
+
+	vec4 col = texture ( image, uv );
+	out_color = vec4(col.x, col.x, col.x, 1.0);
 }
