@@ -2,7 +2,6 @@
 
 uniform mat4 mvp;
 in vec3 position;
-in vec3 color;
 out vec2 uv;
 
 /*

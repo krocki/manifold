@@ -102,7 +102,7 @@ class MagPlot : public nanogui::GLCanvas {
 			/* Upload points to GPU */
 			m_pointShader->bind();
 			m_pointShader->uploadAttrib ( "position", positions );
-			m_pointShader->uploadAttrib ( "color", colors );
+			// m_pointShader->uploadAttrib ( "color", colors );
 			
 		}
 		
@@ -225,8 +225,8 @@ class MagPlot : public nanogui::GLCanvas {
 			
 				m_pointShader->bind();
 				m_pointShader->setUniform ( "mvp", mvp );
-				glActiveTexture ( GL_TEXTURE0 );
-				glBindTexture ( GL_TEXTURE_2D, textures[0].first );
+				// glActiveTexture ( GL_TEXTURE0 );
+				// glBindTexture ( GL_TEXTURE_2D, textures[0].first );
 				
 				glPointSize ( 1 );
 				glEnable ( GL_DEPTH_TEST );
