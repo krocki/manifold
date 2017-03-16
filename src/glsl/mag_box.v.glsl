@@ -3,7 +3,7 @@
 uniform mat4 mvp;
 in vec3 position;
 in vec3 color;
-out vec3 frag_color;
+out vec2 uv;
 
 /*
 * @Author: Kamil Rocki
@@ -13,9 +13,10 @@ out vec3 frag_color;
 */
 
 void main() {
-	gl_Position = mvp * vec4 ( position, 1.0 );
-	if ( isnan ( position.r ) ) /* nan (missing value) */
-		frag_color = vec3 ( 0.0 );
-	else
-		frag_color = color;
+
+	vec4 pos = mvp * vec4 ( position, 1.0 );
+	uv = pos.xy;
+	
+	gl_Position = pos;
+	
 }

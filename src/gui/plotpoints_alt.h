@@ -73,7 +73,7 @@ class MagPlot : public nanogui::GLCanvas {
 	public:
 	
 		MagPlot ( Widget *parent, const Eigen::Vector2i &w_size, SurfWindow &helper_window,
-				  std::vector<std::pair<int, std::string>> plotdata ) : widgets ( helper_window ) ,
+				  std::vector<std::pair<int, std::string>> plotdata ) : textures ( plotdata ), widgets ( helper_window ) ,
 			nanogui::GLCanvas ( parent, true ) {
 			
 			setSize ( w_size );
@@ -219,10 +219,14 @@ class MagPlot : public nanogui::GLCanvas {
 			// /* Render the point set */
 			mvp = proj * view * model;
 			
+			
+			
 			if ( m_pointCount > 0 ) {
 			
 				m_pointShader->bind();
 				m_pointShader->setUniform ( "mvp", mvp );
+				glActiveTexture ( GL_TEXTURE0 );
+				glBindTexture ( GL_TEXTURE_2D, textures[0].first );
 				
 				glPointSize ( 1 );
 				glEnable ( GL_DEPTH_TEST );
@@ -258,6 +262,7 @@ class MagPlot : public nanogui::GLCanvas {
 		Eigen::MatrixXf colors;
 		
 		nanogui::GLShader *m_pointShader = nullptr;
+		std::vector<std::pair<int, std::string>> &textures;
 		
 		Eigen::Matrix4f view, proj, model, mvp;
 		Eigen::Vector3f translation;

@@ -1,7 +1,8 @@
 #version 330
 
-in vec3 frag_color;
 out vec4 out_color;
+uniform sampler2D image;
+in vec2 uv;
 
 /*
 * @Author: Kamil Rocki
@@ -11,7 +12,5 @@ out vec4 out_color;
 */
 
 void main() {
-	if ( frag_color == vec3 ( 0.0 ) )
-		discard;
-	out_color = vec4 ( frag_color, 1.0 );
+	out_color = texture ( image, uv );
 }
