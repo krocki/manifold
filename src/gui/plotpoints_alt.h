@@ -74,7 +74,7 @@ class SurfWindow : public nanogui::Window {
 			
 			magbox_radius = Eigen::Vector3f ( 0.01f, 0.01f, 0.05f );
 			cursor = Eigen::Vector3f ( 0.000f, 0.000f, 0.00f );
-			cursor_radius = Eigen::Vector3f ( 0.0005f, 0.0005f, 0.01f );
+			cursor_radius = Eigen::Vector3f ( 0.0005f, 0.0005f, 0.3f );
 			
 		}
 		

@@ -38,7 +38,7 @@ int compute() {
 	double learning_rate = 1e-4;
 	float decay = 1e-7;
 	
-	std::vector<int> layer_sizes = {image_size * image_size, 256, 3, 256, image_size * image_size};
+	std::vector<int> layer_sizes = {image_size * image_size, 10, 10, 10, 3, 10, 10, 10, image_size * image_size};
 	nn = new NN ( batch_size, decay, AE );
 	
 	nn->code_layer_no = 2 * ( layer_sizes.size() - 1 ) / 2 - 1;
