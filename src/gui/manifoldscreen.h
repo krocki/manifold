@@ -210,16 +210,17 @@ class GUI : public nanogui::Screen {
 				mCanvas_helper->console_text = string_format (
 												   "Points 0 : %zu, Points 1: %zu, Selected: %zu\n"
 												   "Box = (%.4f, %.4f, %.4f) +/- (%.4f, %.4f, %.4f)\n"
-												   "Raycast 0: m (%.4f, %.4f), "
-												   "Raycast 1: m (%.4f, %.4f), cursor 1: (%.2f, %.2f, %.2f)\n"
+												   "Raycast 0: m (%.4f, %.4f), near: %.3f, far: %.3f, cursor 0: (%.2f, %.2f, %.2f)\n"
+												   "Raycast 1: m (%.4f, %.4f), near: %.3f, far: %.3f, cursor 1: (%.2f, %.2f, %.2f)\n"
 												   "FOV 0: %f, Cam 0 = (%.2f, %.2f, %.2f), Cam 1 = (%.2f, %.2f, %.2f)\n"
 												   "Translation = (%.2f, %.2f, %.2f), Angle = (%.2f, %.2f, %.2f)\n",
 												   
 												   mCanvas->m_pointCount, mCanvasMag->m_pointCount/6, mCanvas_helper->selected_points.size(),
 												   mCanvas_helper->magbox[0], mCanvas_helper->magbox[1], mCanvas_helper->magbox[2],
 												   mCanvas_helper->magbox_radius[0], mCanvas_helper->magbox_radius[1], mCanvas_helper->magbox_radius[2],
-												   mCanvas->mouse_last_x, mCanvas->mouse_last_y,
-												   mCanvasMag->mouse_last_x, mCanvasMag->mouse_last_y,
+												   mCanvas->mouse_last_x, mCanvas->mouse_last_y, mCanvas->near, mCanvas->far,
+												   mCanvas_helper->magbox[0], mCanvas_helper->magbox[0], mCanvas_helper->magbox[0],
+												   mCanvasMag->mouse_last_x, mCanvasMag->mouse_last_y, mCanvasMag->near, mCanvasMag->far,
 												   mCanvas_helper->cursor[0], mCanvas_helper->cursor[1], mCanvas_helper->cursor[2],
 												   mCanvas->fov, mCanvas->eye[0], mCanvas->eye[1], mCanvas->eye[2],
 												   mCanvasMag->eye[0], mCanvasMag->eye[1], mCanvasMag->eye[2],

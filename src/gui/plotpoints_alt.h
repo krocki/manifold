@@ -73,7 +73,8 @@ class SurfWindow : public nanogui::Window {
 			graph->values() << 1, 1, 1, 1, 1, 1, 1, 1, 1, 1;
 			
 			magbox_radius = Eigen::Vector3f ( 0.01f, 0.01f, 0.05f );
-			cursor_radius = Eigen::Vector3f ( 0.0005f, 0.0005f, 0.005f );
+			cursor = Eigen::Vector3f ( 0.000f, 0.000f, 0.00f );
+			cursor_radius = Eigen::Vector3f ( 0.0005f, 0.0005f, 0.01f );
 			
 		}
 		
@@ -84,7 +85,7 @@ class SurfWindow : public nanogui::Window {
 		std::string console_text = "";
 		
 		std::vector<int> selected_points;
-		
+
 		bool magmove;
 		
 		Eigen::Vector3f magbox;
@@ -247,7 +248,8 @@ class MagPlot : public nanogui::GLCanvas {
 									 Eigen::Vector3f ( 0, 1,
 											 0 ) );
 											 
-			const float near = eye[2] - bounds_max[2], far = eye[2] - bounds_min[2];
+			near = fmax(0.001f, eye[2] - bounds_max[2]);
+			far = eye[2] - bounds_min[2];
 			
 			// std::cout << "near " << near << ", far: " << far << std::endl;
 			
@@ -276,6 +278,12 @@ class MagPlot : public nanogui::GLCanvas {
 			// /* Render the point set */
 			mvp = proj * view * model;
 			
+			glEnable( GL_POLYGON_SMOOTH );
+			glEnable ( GL_LINE_SMOOTH );
+			glHint ( GL_LINE_SMOOTH_HINT, GL_NICEST );
+			glEnable(GL_MULTISAMPLE);
+			glfwWindowHint(GLFW_SAMPLES, 4);
+
 			if ( m_pointCount > 0 ) {
 			
 				m_pointShader->bind();
@@ -360,6 +368,7 @@ class MagPlot : public nanogui::GLCanvas {
 		std::vector<std::pair<int, std::string>> *textures;
 		
 		Eigen::Vector3f eye;
+		float near, far;
 		Eigen::Matrix4f view, proj, model, mvp;
 		Eigen::Vector3f translation;
 		Eigen::Vector3f model_angle;
@@ -617,8 +626,8 @@ class SurfPlot : public nanogui::GLCanvas {
 			if ( glfwGetKey ( screen->glfwWindow(), 'D' ) == GLFW_PRESS ) translation[0] -= 0.05 * keyboard_sensitivity;
 			if ( glfwGetKey ( screen->glfwWindow(), 'S' ) == GLFW_PRESS ) translation[1] += 0.05 * keyboard_sensitivity;
 			if ( glfwGetKey ( screen->glfwWindow(), 'W' ) == GLFW_PRESS ) translation[1] -= 0.05 * keyboard_sensitivity;
-			if ( glfwGetKey ( screen->glfwWindow(), 'Q' ) == GLFW_PRESS ) translation[2] += 0.5 * keyboard_sensitivity;
-			if ( glfwGetKey ( screen->glfwWindow(), 'E' ) == GLFW_PRESS ) translation[2] -= 0.5 * keyboard_sensitivity;
+			if ( glfwGetKey ( screen->glfwWindow(), 'E' ) == GLFW_PRESS ) translation[2] += 0.5 * keyboard_sensitivity;
+			if ( glfwGetKey ( screen->glfwWindow(), 'Q' ) == GLFW_PRESS ) translation[2] -= 0.5 * keyboard_sensitivity;
 			
 			if ( glfwGetKey ( screen->glfwWindow(), '9' ) == GLFW_PRESS ) { fov += 0.1f; fov = fmaxf ( fov, 0.1f ); };
 			if ( glfwGetKey ( screen->glfwWindow(), '0' ) == GLFW_PRESS ) { fov -= 0.1f; fov = fminf ( fov, 180.0f ); }
@@ -666,7 +675,8 @@ class SurfPlot : public nanogui::GLCanvas {
 			/* Set up a perspective camera matrix */
 			
 			view = nanogui::lookAt ( eye, Eigen::Vector3f ( 0, 0, 0 ), Eigen::Vector3f ( 0, 1, 0 ) );
-			const float near = 0.01, far = 100;
+			near = 0.01;
+			far = 100;
 			float fH = std::tan ( fov / 360.0f * M_PI ) * near;
 			float fW = fH * ( float ) mSize.x() / ( float ) mSize.y();
 			proj = nanogui::frustum ( -fW, fW, -fH, fH, near, far );
@@ -692,8 +702,15 @@ class SurfPlot : public nanogui::GLCanvas {
 			m_pointShader->setUniform ( "mvp", mvp );
 			
 			glEnable ( GL_PROGRAM_POINT_SIZE );
-			glEnable ( GL_DEPTH_TEST );
-			
+			//glEnable ( GL_DEPTH_TEST );
+
+			// antialiasing
+			glEnable( GL_POLYGON_SMOOTH );
+			glEnable ( GL_LINE_SMOOTH );
+			glHint ( GL_LINE_SMOOTH_HINT, GL_NICEST );
+			glEnable(GL_MULTISAMPLE);
+			glfwWindowHint(GLFW_SAMPLES, 4);
+
 			m_pointShader->drawArray ( GL_POINTS, 0, m_pointCount );
 			
 			if ( widgets.m_grid->checked() ) {
@@ -716,7 +733,7 @@ class SurfPlot : public nanogui::GLCanvas {
 				
 			}
 			
-			glDisable ( GL_DEPTH_TEST );
+			//glDisable ( GL_DEPTH_TEST );
 			glDisable ( GL_PROGRAM_POINT_SIZE );
 			
 			// perf stats
@@ -762,6 +779,7 @@ class SurfPlot : public nanogui::GLCanvas {
 		float mouse_last_x = -1, mouse_last_y = -1;
 		
 		float fov = 60;
+		float near, far;
 		float drag_sensitivity, scroll_sensitivity, keyboard_sensitivity;
 		
 		
