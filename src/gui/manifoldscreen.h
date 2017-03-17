@@ -50,11 +50,15 @@ class GUI : public nanogui::Screen {
 			
 			images = new nanogui::Window ( this, "images" );
 			images->setLayout ( new nanogui::VGroupLayout () );
-			images->setPosition ( { 165 / screen_scale, 5 / screen_scale } );
+			images->setPosition ( { 15 / screen_scale, 15 / screen_scale } );
 			
-			nanogui::ImagePanel *inp = new nanogui::ImagePanel ( images, 50 / screen_scale, 2 / screen_scale, 2 / screen_scale, {10, batch_size / 10} );
+			size_t icon_size = 33;
+			size_t grid_columns = 20;
+			size_t grid_rows = batch_size / grid_columns;
+			
+			nanogui::ImagePanel *inp = new nanogui::ImagePanel ( images, icon_size, 2, 2, {grid_columns, grid_rows} );
 			inp->setImages ( xs );
-			nanogui::ImagePanel *out = new nanogui::ImagePanel ( images, 50 / screen_scale, 2 / screen_scale, 2 / screen_scale, {10, batch_size / 10} );
+			nanogui::ImagePanel *out = new nanogui::ImagePanel ( images, icon_size, 2, 2, {grid_columns, grid_rows} );
 			out->setImages ( ys );
 			
 			nanogui::Window *plot = new nanogui::Window ( this, "plot" );
@@ -114,23 +118,23 @@ class GUI : public nanogui::Screen {
 			mCanvas->graph_data = graph_fps->values_ptr();
 			mCanvas->setBackgroundColor ( {100, 100, 100, 64} );
 			
-			std::cout << nn->train_data.size() << std::endl;
-			std::cout << nn->train_data[0].x.size() << std::endl;
+			// std::cout << nn->train_data.size() << std::endl;
+			// std::cout << nn->train_data[0].x.size() << std::endl;
 			
 			plotdata.resize ( 1 );
 			
 			Eigen::Matrix<unsigned char, Eigen::Dynamic, Eigen::Dynamic> rgba_image;
 			
-			size_t sqr_dim = ceil ( sqrtf ( nn->test_data.size() ) );
+			size_t sqr_dim = ceil ( sqrtf ( nn->train_data.size() ) );
 			std::cout << sqr_dim *sqr_dim << " " << ceil ( sqr_dim ) << std::endl;
 			
 			rgba_image.resize ( sqr_dim * image_size, sqr_dim * image_size );
 			Eigen::MatrixXf float_image = Eigen::MatrixXf ( image_size, image_size );
 			
-			for ( size_t i = 0; i < nn->test_data.size(); i++ ) {
+			for ( size_t i = 0; i < nn->train_data.size(); i++ ) {
 			
 				// std::cout << i << std::endl;
-				float_image =  nn->test_data[i].x;
+				float_image =  nn->train_data[i].x;
 				float_image.resize ( image_size, image_size );
 				float_image *= 255.0f;
 				
@@ -215,7 +219,7 @@ class GUI : public nanogui::Screen {
 												   "FOV 0: %f, Cam 0 = (%.2f, %.2f, %.2f), Cam 1 = (%.2f, %.2f, %.2f)\n"
 												   "Translation = (%.2f, %.2f, %.2f), Angle = (%.2f, %.2f, %.2f)\n",
 												   
-												   mCanvas->m_pointCount, mCanvasMag->m_pointCount/6, mCanvas_helper->selected_points.size(),
+												   mCanvas->m_pointCount, mCanvasMag->m_pointCount / 6, mCanvas_helper->selected_points.size(),
 												   mCanvas_helper->magbox[0], mCanvas_helper->magbox[1], mCanvas_helper->magbox[2],
 												   mCanvas_helper->magbox_radius[0], mCanvas_helper->magbox_radius[1], mCanvas_helper->magbox_radius[2],
 												   mCanvas->mouse_last_x, mCanvas->mouse_last_y, mCanvas->near, mCanvas->far,
@@ -226,15 +230,15 @@ class GUI : public nanogui::Screen {
 												   mCanvasMag->eye[0], mCanvasMag->eye[1], mCanvasMag->eye[2],
 												   mCanvas->translation[0], mCanvas->translation[1], mCanvas->translation[2],
 												   mCanvas->model_angle[0], mCanvas->model_angle[1], mCanvas->model_angle[2] );
-				
+												   
 				std::string selected_contents = "";
-
-				for (size_t i = 0; i < mCanvas_helper->selected_points.size(); i++) {
-
-					selected_contents += std::to_string(mCanvas_helper->selected_points[i]);
-					if (i != mCanvas_helper->selected_points.size() - 1) selected_contents += ", ";
+				
+				for ( size_t i = 0; i < mCanvas_helper->selected_points.size(); i++ ) {
+				
+					selected_contents += std::to_string ( mCanvas_helper->selected_points[i] );
+					if ( i != mCanvas_helper->selected_points.size() - 1 ) selected_contents += ", ";
 				}
-
+				
 				mCanvas_helper->console->setValue ( mCanvas_helper->console_text + selected_contents );
 				
 				if ( nn->clock ) {
@@ -277,6 +281,14 @@ class GUI : public nanogui::Screen {
 						
 					case GLFW_KEY_L:
 						mCanvas_helper->m_polar->setChecked ( !mCanvas_helper->m_polar->checked() );
+						return true;
+						
+					case GLFW_KEY_I:
+						mCanvas_helper->show_inputs->setChecked ( !mCanvas_helper->show_inputs->checked() );
+						return true;
+						
+					case GLFW_KEY_U:
+						mCanvas_helper->ortho_projection->setChecked ( !mCanvas_helper->ortho_projection->checked() );
 						return true;
 						
 					case GLFW_KEY_TAB:

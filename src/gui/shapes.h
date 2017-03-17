@@ -2,14 +2,36 @@
 * @Author: Kamil Rocki
 * @Date:   2017-03-16 14:57:29
 * @Last Modified by:   Kamil Rocki
-* @Last Modified time: 2017-03-16 15:03:00
+* @Last Modified time: 2017-03-17 11:17:38
 */
+void drawline ( Eigen::MatrixXf &boxline_positions, Eigen::MatrixXf &boxline_colors, size_t &m_boxlineCount,
+				Eigen::Vector3f pos0, Eigen::Vector3f pos1, Eigen::Vector4f color ) {
+				
+	m_boxlineCount = 6;
+	boxline_positions.resize ( 3, m_boxlineCount );
+	boxline_colors.resize ( 4, m_boxlineCount );
+	
+	boxline_positions.col ( 0 ) << pos0[0], pos0[1], pos0[2];
+	boxline_positions.col ( 1 ) << pos1[0], pos1[1], pos1[2];
+	
+	//crosshair
+	boxline_positions.col ( 2 ) << pos0[0] - 0.001f, pos0[1], pos1[2] - 0.0001f;
+	boxline_positions.col ( 3 ) << pos1[0] + 0.001f, pos1[1], pos1[2] - 0.0001f;
+	boxline_positions.col ( 4 ) << pos0[0], pos0[1] - 0.001f, pos0[2] + 0.0001f;
+	boxline_positions.col ( 5 ) << pos1[0], pos1[1] + 0.001f, pos0[2] + 0.0001f;
+	
+	for ( size_t i = 0; i < m_boxlineCount; i++ )
+		boxline_colors.col ( i ) = color;
+		
+}
 
-void drawbox ( Eigen::MatrixXf &boxline_positions, size_t &m_boxlineCount, Eigen::Vector3f &pos, Eigen::Vector3f &r ) {
-
+void drawbox ( Eigen::MatrixXf &boxline_positions, Eigen::MatrixXf &boxline_colors, size_t &m_boxlineCount,
+			   Eigen::Vector3f &pos, Eigen::Vector3f &r, Eigen::Vector4f color ) {
+			   
 	m_boxlineCount = 13 * 2;
 	
 	boxline_positions.resize ( 3, m_boxlineCount );
+	boxline_colors.resize ( 4, m_boxlineCount );
 	
 	boxline_positions.col ( 0 ) << pos[0] - r[0], pos[1] - r[1], pos[2] - r[2];
 	boxline_positions.col ( 1 ) << pos[0] - r[0], pos[1] + r[1], pos[2] - r[2]; //L
@@ -40,4 +62,7 @@ void drawbox ( Eigen::MatrixXf &boxline_positions, size_t &m_boxlineCount, Eigen
 	boxline_positions.col ( 24 ) << pos[0] - r[0] / 2, pos[1] - r[1], pos[2] + 9 * r[2] / 10;
 	boxline_positions.col ( 25 ) << pos[0] + r[0] / 2, pos[1] - r[1], pos[2] + 9 * r[2] / 10;
 	
+	for ( size_t i = 0; i < m_boxlineCount; i++ )
+		boxline_colors.col ( i ) = color;
+		
 }

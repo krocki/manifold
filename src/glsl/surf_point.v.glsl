@@ -15,7 +15,7 @@ out vec3 frag_color;
 void main() {
 
 	gl_Position = mvp * vec4 ( position, 1.0 );
-	gl_PointSize = 3;
+	gl_PointSize = 2;
 	
 	if ( isnan ( position.r ) ) /* nan (missing value) */
 		frag_color = vec3 ( 0.0 );

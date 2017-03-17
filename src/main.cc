@@ -2,7 +2,7 @@
 * @Author: Kamil Rocki
 * @Date:   2017-02-28 11:25:34
 * @Last Modified by:   Kamil Rocki
-* @Last Modified time: 2017-03-16 14:37:03
+* @Last Modified time: 2017-03-17 09:14:35
 */
 
 #include <thread>
@@ -22,7 +22,7 @@
 NN *nn;
 
 int screen_scale = 1;
-const size_t batch_size = 50;
+const size_t batch_size = 100;
 const size_t image_size = 28;
 
 nanogui::Screen *screen;
@@ -35,10 +35,11 @@ int compute() {
 	// TODO: be able to change batch size, learning rate and decay dynamically
 	// serialization
 	
-	double learning_rate = 1e-4;
-	float decay = 1e-7;
+	double learning_rate = 1e-3;
+	float decay = 0;
 	
-	std::vector<int> layer_sizes = {image_size * image_size, 10, 10, 10, 3, 10, 10, 10, image_size * image_size};
+	// std::vector<int> layer_sizes = {image_size * image_size, 256, 256, 100, 64, 16, 8, 3, 8, 16, 64, 100, 256, 256, image_size * image_size};
+	std::vector<int> layer_sizes = {image_size * image_size, 64, 3, 64, image_size * image_size};
 	nn = new NN ( batch_size, decay, AE );
 	
 	nn->code_layer_no = 2 * ( layer_sizes.size() - 1 ) / 2 - 1;
@@ -48,6 +49,15 @@ int compute() {
 	
 	for ( l = 0; l < layer_sizes.size() - 1; l++ ) {
 	
+	
+	
+		// semantic hashing, gaussian noise
+		// if ( ( l + 1 )  == nn->code_layer_no )
+		
+		// 	nn->layers.push_back ( new Linear ( layer_sizes[l], layer_sizes[l + 1], batch_size, true ) );
+		
+		// else
+		
 		nn->layers.push_back ( new Linear ( layer_sizes[l], layer_sizes[l + 1], batch_size ) );
 		
 		if ( ( l + 1 ) == layer_sizes.size() - 1 )
@@ -64,7 +74,7 @@ int compute() {
 	nn->test_data =
 		MNISTImporter::importFromFile ( "data/mnist/t10k-images-idx3-ubyte", "data/mnist/t10k-labels-idx1-ubyte" );
 		
-	nn->testcode ( nn->test_data );
+	nn->testcode ( nn->train_data );
 	
 	std::cout << "nn ready" << std::endl;
 	nn->setready();
@@ -72,7 +82,7 @@ int compute() {
 	for ( size_t e = 0; true; e++ ) {
 	
 		nn->train ( nn->train_data, learning_rate, nn->train_data.size() / batch_size );
-		nn->testcode ( nn->test_data );
+		nn->testcode ( nn->train_data );
 		
 		if ( nn->quit ) break;
 		

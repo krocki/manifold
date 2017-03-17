@@ -50,11 +50,14 @@ class SurfWindow : public nanogui::Window {
 			m_polar = new nanogui::CheckBox ( boxes, "Polar" );
 			m_magbox = new nanogui::CheckBox ( boxes, "Box" );
 			show_inputs = new nanogui::CheckBox ( boxes, "Inputs" );
+			ortho_projection = new nanogui::CheckBox ( boxes, "ortho" );
 			
 			m_grid->setChecked ( true );
 			m_polar->setChecked ( true );
 			m_magbox->setChecked ( true );
+			ortho_projection->setChecked ( true );
 			show_inputs->setChecked ( false );
+			
 			magmove = true;
 			magboxstate = new nanogui::Label ( boxes, string_format ( "Mag box locked: %d", !magmove ) );
 			
@@ -72,20 +75,20 @@ class SurfWindow : public nanogui::Window {
 			graph->values().resize ( 10 );
 			graph->values() << 1, 1, 1, 1, 1, 1, 1, 1, 1, 1;
 			
-			magbox_radius = Eigen::Vector3f ( 0.01f, 0.01f, 0.05f );
+			magbox_radius = Eigen::Vector3f ( 0.02f, 0.02f, 0.05f );
 			cursor = Eigen::Vector3f ( 0.000f, 0.000f, 0.00f );
-			cursor_radius = Eigen::Vector3f ( 0.0005f, 0.0005f, 0.3f );
+			cursor_radius = Eigen::Vector3f ( 0.00001f, 0.00001f, 0.1f );
 			
 		}
 		
 		nanogui::Window *m_window;
-		nanogui::CheckBox *m_grid, *m_polar, *m_magbox, *show_inputs;
+		nanogui::CheckBox *m_grid, *m_polar, *m_magbox, *show_inputs, *ortho_projection;
 		nanogui::Label *magboxstate;
 		nanogui::Console *console;
 		std::string console_text = "";
 		
 		std::vector<int> selected_points;
-
+		
 		bool magmove;
 		
 		Eigen::Vector3f magbox;
@@ -93,10 +96,12 @@ class SurfWindow : public nanogui::Window {
 		Eigen::Vector3f cursor_radius;
 		Eigen::Vector3f magbox_radius;
 		
-		
+		size_t m_cursorlineCount = 12 * 2;
+		Eigen::MatrixXf cursorline_positions;
+		Eigen::MatrixXf cursorline_colors;
 };
 
-float pt_scale = 30.0f;
+float pt_scale = 20.0f;
 
 class MagPlot : public nanogui::GLCanvas {
 	public:
@@ -114,7 +119,7 @@ class MagPlot : public nanogui::GLCanvas {
 			m_pointShader = new nanogui::GLShader();
 			m_pointShader->initFromFiles ( MAGBOX_SHADER_NAME, MAGBOX_VERT_FILE, MAGBOX_FRAG_FILE );
 			// init shaders
-
+			
 			m_cursorShader = new nanogui::GLShader();
 			m_cursorShader->initFromFiles ( BOX_SHADER_NAME, BOX_VERT_FILE, BOX_FRAG_FILE );
 			
@@ -127,10 +132,10 @@ class MagPlot : public nanogui::GLCanvas {
 		
 			bounds_min = widgets.magbox - widgets.magbox_radius;
 			bounds_max = widgets.magbox + widgets.magbox_radius;
-
+			
 			cursor_min = widgets.cursor - widgets.cursor_radius;
 			cursor_max = widgets.cursor + widgets.cursor_radius;
-
+			
 			generate_points();
 			
 			/* Upload points to GPU */
@@ -153,7 +158,7 @@ class MagPlot : public nanogui::GLCanvas {
 			texcoords.resize ( 3, total_points * 6 );
 			
 			widgets.selected_points.clear();
-
+			
 			for ( size_t i = 0; i < total_points; i++ ) {
 			
 				Eigen::VectorXf coords;
@@ -181,7 +186,7 @@ class MagPlot : public nanogui::GLCanvas {
 				
 				Eigen::Vector3f pt = Eigen::Vector3f ( x / pt_scale, y / pt_scale, z / pt_scale );
 				
-				float textures_per_dim = ceil ( sqrtf ( nn->test_data.size() ) );
+				float textures_per_dim = ceil ( sqrtf ( nn->train_data.size() ) );
 				
 				float quad_size = 0.000001f * ( bounds_max[1] - bounds_min[1] );
 				float radius = sqrtf ( 2 * quad_size );
@@ -194,13 +199,31 @@ class MagPlot : public nanogui::GLCanvas {
 				if ( ( pt.array() >= bounds_min.array() ).all() && ( pt.array() <= bounds_max.array() ).all() ) {
 				
 					nanogui::Color c = nanogui::parula_lut[label];
-
-					if (( pt.array() >= cursor_min.array() ).all() && ( pt.array() <= cursor_max.array() ).all()) {
-
+					
+					Eigen::Vector3f cpt = Eigen::Vector3f ( widgets.cursor[0], widgets.cursor[1], 0 );
+					Eigen::Vector3f pt_min_bounds = pt + Eigen::Vector3f ( -radius, -radius, 0 );
+					Eigen::Vector3f pt_max_bounds = pt + Eigen::Vector3f ( radius, radius, 0 );
+					
+					// std::cout << "CPT" << std::endl << cpt << std::endl;
+					// std::cout << "PT" << std::endl << pt << std::endl;
+					// std::cout << "min" << std::endl << pt_min_bounds << std::endl;
+					// std::cout << "max" << std::endl << pt_max_bounds << std::endl;
+					
+					if ( widgets.ortho_projection->checked() ) {
+						float dist = sqrtf ( ( pt[0] - eye[0] ) * ( pt[0] - eye[0] ) + ( pt[1] - eye[1] ) * ( pt[1] - eye[1] ) +
+											 ( pt[2] - eye[2] ) * ( pt[2] - eye[2] ) );
+						quad_size = quad_size / dist ;
+					}
+					
+					if ( ( cpt[0] >= pt_min_bounds[0] )  && ( cpt[1] >= pt_min_bounds[1] ) &&
+							( cpt[0] <= pt_max_bounds[0] )  && ( cpt[1] <= pt_max_bounds[1] ) ) {
+							
 						radius = 2 * sqrtf ( 2 * quad_size );
-						widgets.selected_points.push_back(i);
-
-					} else radius = sqrtf ( 2 * quad_size );
+						widgets.selected_points.push_back ( i );
+						
+					}
+					
+					else radius = sqrtf ( 2 * quad_size );
 					
 					// upper left corner
 					texcoords.col ( m_pointCount ) = tex_pos + Eigen::Vector3f ( 0, 1.0f / textures_per_dim, 0 );
@@ -236,7 +259,7 @@ class MagPlot : public nanogui::GLCanvas {
 				}
 				
 			}
-	
+			
 			//std::cout << "Mag: " << m_pointCount / 6 << " points" << std::endl;
 			
 		}
@@ -248,7 +271,7 @@ class MagPlot : public nanogui::GLCanvas {
 									 Eigen::Vector3f ( 0, 1,
 											 0 ) );
 											 
-			near = fmax(0.001f, eye[2] - bounds_max[2]);
+			near = fmax ( 0.001f, eye[2] - bounds_max[2] );
 			far = eye[2] - bounds_min[2];
 			
 			// std::cout << "near " << near << ", far: " << far << std::endl;
@@ -261,8 +284,11 @@ class MagPlot : public nanogui::GLCanvas {
 			float fH = fabs ( ( bounds_max[1] - bounds_min[1] ) / 2.0 * near );
 			float fW = fabs ( ( bounds_max[0] - bounds_min[0] ) / 2.0 * near );
 			
-			proj = nanogui::frustum ( -fW, fW, -fH, fH, near, far );
-			
+			if ( widgets.ortho_projection->checked() )
+				proj = nanogui::ortho ( -fW, fW, -fH, fH, near, far );
+			else
+				proj = nanogui::frustum ( -fW, fW, -fH, fH, near, far );
+				
 			model.setIdentity();
 			
 			// Eigen::Quaternionf q = Eigen::AngleAxisf ( model_angle[0] * M_PI, Eigen::Vector3f::UnitX() )
@@ -278,12 +304,12 @@ class MagPlot : public nanogui::GLCanvas {
 			// /* Render the point set */
 			mvp = proj * view * model;
 			
-			glEnable( GL_POLYGON_SMOOTH );
-			glEnable ( GL_LINE_SMOOTH );
-			glHint ( GL_LINE_SMOOTH_HINT, GL_NICEST );
-			glEnable(GL_MULTISAMPLE);
-			glfwWindowHint(GLFW_SAMPLES, 4);
-
+			// glEnable ( GL_POLYGON_SMOOTH );
+			// glEnable ( GL_LINE_SMOOTH );
+			// glHint ( GL_LINE_SMOOTH_HINT, GL_NICEST );
+			// glEnable ( GL_MULTISAMPLE );
+			// glfwWindowHint ( GLFW_SAMPLES, 4 );
+			
 			if ( m_pointCount > 0 ) {
 			
 				m_pointShader->bind();
@@ -308,10 +334,11 @@ class MagPlot : public nanogui::GLCanvas {
 			
 			m_cursorShader->bind();
 			m_cursorShader->setUniform ( "mvp", mvp );
-			m_cursorShader->uploadAttrib ( "position", cursorline_positions );
+			m_cursorShader->uploadAttrib ( "position", widgets.cursorline_positions );
+			m_cursorShader->uploadAttrib ( "color", widgets.cursorline_colors );
 			glEnable ( GL_BLEND );
 			glBlendFunc ( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
-			m_cursorShader->drawArray ( GL_LINES, 0, m_cursorlineCount );
+			m_cursorShader->drawArray ( GL_LINES, 0, widgets.m_cursorlineCount );
 			glDisable ( GL_BLEND );
 		}
 		
@@ -333,12 +360,16 @@ class MagPlot : public nanogui::GLCanvas {
 		
 			// ray casting
 			Eigen::Vector3f ray_nds ( mouse_last_x, mouse_last_y, -1.0f );
-			Eigen::Vector4f ray_clip ( mouse_last_x, mouse_last_y, -1.0f, -1.0f );
+			Eigen::Vector4f ray_clip ( mouse_last_x, mouse_last_y, -0.1f, -1.0f );
 			Eigen::Vector4f ray_eye = proj.inverse() * ray_clip; ray_eye[2] = -1.0f; ray_eye[3] = 1.0f;
 			Eigen::Vector4f cursorld = ( view.inverse() * ray_eye );
 			
 			widgets.cursor[0] = cursorld[0]; widgets.cursor[1] = cursorld[1]; widgets.cursor[2] = cursorld[2];
-			drawbox ( cursorline_positions, m_cursorlineCount, widgets.cursor, widgets.cursor_radius );	
+			drawline ( widgets.cursorline_positions, widgets.cursorline_colors, widgets.m_cursorlineCount,
+					   Eigen::Vector3f ( widgets.cursor[0], widgets.cursor[1], bounds_min[2] ),
+					   Eigen::Vector3f ( widgets.cursor[0], widgets.cursor[1], bounds_max[2] ),
+					   Eigen::Vector4f ( 0.7, 0.0, 0.0, 0.7 ) );
+					   
 		}
 		
 		void reset_view () {
@@ -360,11 +391,9 @@ class MagPlot : public nanogui::GLCanvas {
 		Eigen::MatrixXf positions;
 		Eigen::MatrixXf texcoords;
 		Eigen::MatrixXf colors;
-		size_t m_cursorlineCount = 12 * 2;
-		Eigen::MatrixXf cursorline_positions;		
 		nanogui::GLShader *m_cursorShader = nullptr;
 		nanogui::GLShader *m_pointShader = nullptr;
-
+		
 		std::vector<std::pair<int, std::string>> *textures;
 		
 		Eigen::Vector3f eye;
@@ -401,6 +430,8 @@ class SurfPlot : public nanogui::GLCanvas {
 			m_gridShader->initFromFiles ( GRID_SHADER_NAME, GRID_VERT_FILE, GRID_FRAG_FILE );
 			m_boxShader = new nanogui::GLShader();
 			m_boxShader->initFromFiles ( BOX_SHADER_NAME, BOX_VERT_FILE, BOX_FRAG_FILE );
+			m_cursorShader = new nanogui::GLShader();
+			m_cursorShader->initFromFiles ( BOX_SHADER_NAME, BOX_VERT_FILE, BOX_FRAG_FILE );
 			
 			refresh();
 			setVisible ( true );
@@ -609,9 +640,16 @@ class SurfPlot : public nanogui::GLCanvas {
 			
 			if ( widgets.m_magbox->checked() ) {
 			
-				drawbox ( boxline_positions, m_boxlineCount, widgets.magbox, widgets.magbox_radius );
+				drawbox ( boxline_positions, boxline_colors, m_boxlineCount, widgets.magbox, widgets.magbox_radius,
+						  Eigen::Vector4f ( 0.7, 0.7, 0.0, 0.7 ) );
+						  
 				m_boxShader->bind();
 				m_boxShader->uploadAttrib ( "position", boxline_positions );
+				m_boxShader->uploadAttrib ( "color", boxline_colors );
+				
+				m_cursorShader->bind();
+				m_cursorShader->uploadAttrib ( "position", widgets.cursorline_positions );
+				m_cursorShader->uploadAttrib ( "color", widgets.cursorline_colors );
 				
 			}
 		}
@@ -703,14 +741,14 @@ class SurfPlot : public nanogui::GLCanvas {
 			
 			glEnable ( GL_PROGRAM_POINT_SIZE );
 			//glEnable ( GL_DEPTH_TEST );
-
+			
 			// antialiasing
-			glEnable( GL_POLYGON_SMOOTH );
-			glEnable ( GL_LINE_SMOOTH );
-			glHint ( GL_LINE_SMOOTH_HINT, GL_NICEST );
-			glEnable(GL_MULTISAMPLE);
-			glfwWindowHint(GLFW_SAMPLES, 4);
-
+			// glEnable ( GL_POLYGON_SMOOTH );
+			// glEnable ( GL_LINE_SMOOTH );
+			// glHint ( GL_LINE_SMOOTH_HINT, GL_NICEST );
+			// glEnable ( GL_MULTISAMPLE );
+			// glfwWindowHint ( GLFW_SAMPLES, 4 );
+			
 			m_pointShader->drawArray ( GL_POINTS, 0, m_pointCount );
 			
 			if ( widgets.m_grid->checked() ) {
@@ -731,6 +769,13 @@ class SurfPlot : public nanogui::GLCanvas {
 				m_boxShader->drawArray ( GL_LINES, 0, m_boxlineCount );
 				glDisable ( GL_BLEND );
 				
+				m_cursorShader->bind();
+				m_cursorShader->setUniform ( "mvp", mvp );
+				glEnable ( GL_BLEND );
+				glBlendFunc ( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
+				m_cursorShader->drawArray ( GL_LINES, 0, widgets.m_cursorlineCount );
+				glDisable ( GL_BLEND );
+				
 			}
 			
 			//glDisable ( GL_DEPTH_TEST );
@@ -746,7 +791,7 @@ class SurfPlot : public nanogui::GLCanvas {
 			delete m_pointShader;
 			delete m_gridShader;
 			delete m_boxShader;
-			
+			delete m_cursorShader;
 		}
 		
 		size_t m_pointCount = 1;
@@ -757,6 +802,7 @@ class SurfPlot : public nanogui::GLCanvas {
 		nanogui::GLShader *m_pointShader = nullptr;
 		nanogui::GLShader *m_gridShader = nullptr;
 		nanogui::GLShader *m_boxShader = nullptr;
+		nanogui::GLShader *m_cursorShader = nullptr;
 		
 		nanogui::Arcball m_arcball;
 		
@@ -769,6 +815,7 @@ class SurfPlot : public nanogui::GLCanvas {
 		Eigen::MatrixXf positions;
 		Eigen::MatrixXf gridline_positions;
 		Eigen::MatrixXf boxline_positions;
+		Eigen::MatrixXf boxline_colors;
 		Eigen::MatrixXf colors;
 		
 		Eigen::Vector3f eye;

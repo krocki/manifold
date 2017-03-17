@@ -1,6 +1,7 @@
 #version 330
 
 out vec4 out_color;
+in vec4 fcolor;
 
 /*
 * @Author: Kamil Rocki
@@ -10,5 +11,5 @@ out vec4 out_color;
 */
 
 void main() {
-	out_color = vec4 ( 0.7, 0.7, 0.0, 0.7 );
+	out_color = fcolor;
 }
