@@ -61,12 +61,12 @@ class GUI : public nanogui::Screen {
 		nanogui::ImagePanel *out = new nanogui::ImagePanel ( images, icon_size, 2, 2, {grid_columns, grid_rows} );
 		out->setImages ( ys );
 
-		nanogui::Window *plot = new nanogui::Window ( this, "plot" );
-		plot->setPosition ( { 50 , 370  } );
+		nanogui::Window *plot = new nanogui::Window ( this, "" );
+		plot->setPosition ( { 50 , 400  } );
 		plot->setLayout ( new nanogui::GroupLayout() );
 
-		nanogui::Window *plotmag = new nanogui::Window ( this, "plot mag" );
-		plotmag->setPosition ( { 1000 , 370  } );
+		nanogui::Window *plotmag = new nanogui::Window ( this, "" );
+		plotmag->setPosition ( { 1000 , 400  } );
 		plotmag->setLayout ( new nanogui::GroupLayout() );
 
 		/* * * * * * * * * * * */
@@ -301,6 +301,11 @@ class GUI : public nanogui::Screen {
 			case GLFW_KEY_TAB:
 				mCanvas_helper->magmove = !mCanvas_helper->magmove;
 				mCanvas_helper->magboxstate->setCaption ( string_format ( "Mag box locked: %d", ! ( mCanvas_helper->magmove ) ) );
+				return true;
+
+			case GLFW_KEY_F1:
+				mCanvas_helper->crossmove = !mCanvas_helper->crossmove;
+				mCanvas_helper->crosshairstate->setCaption ( string_format ( "Crosshair locked: %d", ! ( mCanvas_helper->crossmove ) ) );
 				return true;
 
 

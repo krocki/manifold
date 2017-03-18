@@ -2,7 +2,7 @@
 * @Author: Kamil Rocki
 * @Date:   2017-03-16 14:57:29
 * @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-03-17 20:31:57
+* @Last Modified time: 2017-03-18 09:37:12
 */
 void drawline ( Eigen::MatrixXf &boxline_positions, Eigen::MatrixXf &boxline_colors, size_t &m_boxlineCount,
                 Eigen::Vector3f pos0, Eigen::Vector3f pos1, Eigen::Vector4f color ) {
@@ -63,13 +63,13 @@ void drawbox ( Eigen::MatrixXf &boxline_positions, Eigen::MatrixXf &boxline_colo
 	boxline_positions.col ( 25 ) << pos[0] + r[0] / 2, pos[1] - r[1], pos[2] + 9 * r[2] / 10;
 
 	//crosshair
-	boxline_positions.col ( 26 ) << pos[0] + cursor_x, pos[1] + cursor_y, pos[2] - r[2] + 0.001f;
-	boxline_positions.col ( 27 ) << pos[0] + cursor_x, pos[1] + cursor_y, pos[2] + r[2] - 0.001f;
+	boxline_positions.col ( 26 ) << pos[0] + cursor_x, pos[1] + cursor_y, pos[2] - r[2] + 0.0001f;
+	boxline_positions.col ( 27 ) << pos[0] + cursor_x, pos[1] + cursor_y, pos[2] + r[2] - 0.0001f;
 
-	boxline_positions.col ( 28 ) << pos[0] + cursor_x - 0.001f, pos[1] + cursor_y, pos[2] - r[2] + 0.001f;
-	boxline_positions.col ( 29 ) << pos[0] + cursor_x + 0.001f, pos[1] + cursor_y, pos[2] - r[2] + 0.001f;
-	boxline_positions.col ( 30 ) << pos[0] + cursor_x, pos[1] + cursor_y - 0.001f, pos[2] - r[2] - 0.001f;
-	boxline_positions.col ( 31 ) << pos[0] + cursor_x, pos[1] + cursor_y + 0.001f, pos[2] - r[2] - 0.001f;
+	boxline_positions.col ( 28 ) << pos[0] + cursor_x - 0.01f, pos[1] + cursor_y, pos[2] - r[2] + 0.0001f;
+	boxline_positions.col ( 29 ) << pos[0] + cursor_x + 0.01f, pos[1] + cursor_y, pos[2] - r[2] + 0.0001f;
+	boxline_positions.col ( 30 ) << pos[0] + cursor_x, pos[1] + cursor_y - 0.01f, pos[2] + r[2] - 0.0001f;
+	boxline_positions.col ( 31 ) << pos[0] + cursor_x, pos[1] + cursor_y + 0.01f, pos[2] + r[2] - 0.0001f;
 
 	for ( size_t i = 0; i < 26; i++ )
 		boxline_colors.col ( i ) = color;

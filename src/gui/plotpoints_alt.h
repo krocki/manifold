@@ -61,8 +61,9 @@ class SurfWindow : public nanogui::Window {
 		show_magbox->setChecked ( true );
 
 		magmove = false;
-		magboxstate = new nanogui::Label ( boxes, string_format ( "Mag box locked: %d", !magmove ) );
-
+		crossmove = false;
+		magboxstate = new nanogui::Label ( boxes, string_format ( "Mag box locked: %d", !magmove) );
+		crosshairstate = new nanogui::Label ( boxes, string_format ( "Crosshair locked: %d", !crossmove ) );
 		m_window = new nanogui::Window ( this, "" );
 		m_window->setLayout ( new nanogui::VGroupLayout ( 15, 15, 15, 0 ) );
 
@@ -89,13 +90,14 @@ class SurfWindow : public nanogui::Window {
 
 	nanogui::Window *m_window;
 	nanogui::CheckBox *m_grid, *m_polar, *m_magbox, *show_inputs, *ortho_projection, *show_magbox;
-	nanogui::Label *magboxstate;
+	nanogui::Label *magboxstate, *crosshairstate;
 	nanogui::Console *console;
 	std::string console_text = "";
 
+	std::vector<int> picked;
 	std::vector<int> selected_points;
 
-	bool magmove;
+	bool magmove, crossmove;
 
 	Eigen::Vector3f magbox;
 	Eigen::Vector3f magbox_angle;
@@ -137,6 +139,8 @@ class MagPlot : public nanogui::GLCanvas {
 
 		m_cursorShader = new nanogui::GLShader();
 		m_cursorShader->initFromFiles ( BOX_SHADER_NAME, BOX_VERT_FILE, BOX_FRAG_FILE );
+
+		lab = new nanogui::Label ( this, string_format ( "test") );
 
 		reset_view ();
 		refresh();
@@ -222,28 +226,7 @@ class MagPlot : public nanogui::GLCanvas {
 
 				nanogui::Color c = nanogui::parula_lut[label];
 
-				Eigen::Vector3f cpt = Eigen::Vector3f ( widgets.cursor[0], widgets.cursor[1], 0 );
-				Eigen::Vector3f v = cpt;
-				Eigen::Vector4f vertex_original = Eigen::Vector4f ( v[0], v[1], v[2], 1 );
-				Eigen::Vector4f vertex_boxmodel = widgets.boxmodel.inverse() * vertex_original;
-				cpt = Eigen::Vector3f(vertex_boxmodel[0], vertex_boxmodel[1], vertex_boxmodel[2]);
-
-				Eigen::Vector3f pt_min_bounds = pt + Eigen::Vector3f ( -radius, -radius, 0 );
-				Eigen::Vector3f pt_max_bounds = pt + Eigen::Vector3f ( radius, radius, 0 );
-
-				// std::cout << "CPT" << std::endl << cpt << std::endl;
-				// std::cout << "PT" << std::endl << pt << std::endl;
-				// std::cout << "min" << std::endl << pt_min_bounds << std::endl;
-				// std::cout << "max" << std::endl << pt_max_bounds << std::endl;
-
-				// if ( widgets.ortho_projection->checked() ) {
-				// 	float dist = sqrtf ( ( pt[0] - eye[0] ) * ( pt[0] - eye[0] ) + ( pt[1] - eye[1] ) * ( pt[1] - eye[1] ) +
-				// 						 ( pt[2] - eye[2] ) * ( pt[2] - eye[2] ) );
-				// 	quad_size = quad_size / dist ;
-				// }
-
-				if ( ( cpt[0] >= pt_min_bounds[0] )  && ( cpt[1] >= pt_min_bounds[1] ) &&
-				        ( cpt[0] <= pt_max_bounds[0] )  && ( cpt[1] <= pt_max_bounds[1] ) ) {
+				if ( widgets.picked[i] == 1 ) {
 
 					radius = 2 * sqrtf ( 2 * quad_size );
 					widgets.selected_points.push_back ( i );
@@ -379,6 +362,7 @@ class MagPlot : public nanogui::GLCanvas {
 		glBlendFunc ( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
 		m_cursorShader->drawArray ( GL_LINES, 0, widgets.m_boxlineCount );
 		glDisable ( GL_BLEND );
+
 	}
 
 	bool mouseMotionEvent ( const Eigen::Vector2i &p, const Eigen::Vector2i &rel, int button, int modifiers ) override {
@@ -398,16 +382,19 @@ class MagPlot : public nanogui::GLCanvas {
 	void update_mouse_overlay() {
 
 		// ray casting
-		Eigen::Vector3f ray_nds ( mouse_last_x, mouse_last_y, -1.0f );
-		Eigen::Vector4f ray_clip ( mouse_last_x, mouse_last_y, -0.1f, -1.0f );
-		Eigen::Vector4f ray_eye = proj.inverse() * ray_clip; ray_eye[2] = -1.0f; ray_eye[3] = 1.0f;
-		Eigen::Vector4f cursorld = ( model.inverse() * ray_eye );
 
-		// std::cout << "ray eye" << std::endl << ray_eye << std::endl;
-		// std::cout << "cursorld " << std::endl << cursorld << std::endl;
+		if (widgets.crossmove) {
+			Eigen::Vector3f ray_nds ( mouse_last_x, mouse_last_y, -1.0f );
+			Eigen::Vector4f ray_clip ( mouse_last_x, mouse_last_y, -0.1f, -1.0f );
+			Eigen::Vector4f ray_eye = proj.inverse() * ray_clip; ray_eye[2] = -1.0f; ray_eye[3] = 1.0f;
+			Eigen::Vector4f cursorld = ( model.inverse() * ray_eye );
 
-		widgets.cursor[0] = cursorld[0]; widgets.cursor[1] = cursorld[1]; widgets.cursor[2] = cursorld[2];
+			// std::cout << "ray eye" << std::endl << ray_eye << std::endl;
+			// std::cout << "cursorld " << std::endl << cursorld << std::endl;
 
+			widgets.cursor[0] = cursorld[0]; widgets.cursor[1] = cursorld[1]; widgets.cursor[2] = cursorld[2];
+
+		}
 	}
 
 	void reset_view () {
@@ -443,6 +430,7 @@ class MagPlot : public nanogui::GLCanvas {
 	float mouse_last_x = -1, mouse_last_y = - 1;
 
 	size_t m_pointCount = 1;
+	nanogui::Label *lab;
 
 };
 
@@ -478,6 +466,13 @@ class SurfPlot : public nanogui::GLCanvas {
 		drag_sensitivity = 5.0f;
 		scroll_sensitivity = 10.0f;
 		keyboard_sensitivity = 0.1f;
+
+	}
+
+	void reset_box ( int i = 0 ) {
+
+		widgets.magbox = Eigen::Vector3f(0, 0, 0);
+		widgets.magbox_angle = Eigen::Vector3f(0, 0, 0);
 
 	}
 
@@ -522,6 +517,8 @@ class SurfPlot : public nanogui::GLCanvas {
 
 		positions.resize ( 3, m_pointCount );
 		colors.resize ( 3, m_pointCount );
+
+		widgets.picked.resize( m_pointCount );
 
 		for ( size_t i = 0; i < m_pointCount; i++ ) {
 
@@ -574,15 +571,30 @@ class SurfPlot : public nanogui::GLCanvas {
 				        ( vertex_boxmodel [1] >= widgets.magbox[1] - widgets.magbox_radius[1] ) &&
 				        ( vertex_boxmodel [1] <= widgets.magbox[1] + widgets.magbox_radius[1] ) &&
 				        ( vertex_boxmodel [2] >= widgets.magbox[2] - widgets.magbox_radius[2] ) &&
-				        ( vertex_boxmodel [2] <= widgets.magbox[2] + widgets.magbox_radius[2] ) )
+				        ( vertex_boxmodel [2] <= widgets.magbox[2] + widgets.magbox_radius[2] ) ) {
 
 					colors.col ( i ) << 2 * c.r(), 2 * c.g(), 2 * c.b();
+					if (( fabs(vertex_boxmodel [0] - (widgets.magbox[0] + widgets.cursor[0])) < 1e-3f) &&
+					        ( fabs(vertex_boxmodel [1] - (widgets.magbox[1] + widgets.cursor[1])) < 1e-3f)) {
+						widgets.picked[i] = 1;
+						colors.col ( i ) << 255 , 0 , 0 ;
+					}
+
+					else
+						widgets.picked[i] = 0;
+				}
+
 				else
 					colors.col ( i ) << 0.7 * c.r(), 0.7 * c.g(), 0.7 * c.b();
+
+
 
 			} else
 				colors.col ( i ) << c.r(), c.g(), c.b();
 
+			// check if picked
+
+			// else widgets.picked[i] = 0;
 		}
 
 	}
@@ -656,16 +668,6 @@ class SurfPlot : public nanogui::GLCanvas {
 				gridline_positions.col ( ii + 4 ) << -k , -k , 0; gridline_positions.col ( ii + 5 ) << k, -k, 0; //B
 				gridline_positions.col ( ii + 6 ) << -k, k, 0; gridline_positions.col ( ii + 7 ) << k, k, 0; //T
 
-				// gridline_positions.col ( ii + 8 ) << 0, 0, 0; gridline_positions.col ( ii + 9 ) << 0, 0, k;
-				// gridline_positions.col ( ii + 10 ) << k, 0, 0; gridline_positions.col ( ii + 11 ) << k, 0, k;
-				// gridline_positions.col ( ii + 12 ) << 0, k, 0; gridline_positions.col ( ii + 13 ) << 0, k, k;
-				// gridline_positions.col ( ii + 14 ) << k, k, 0; gridline_positions.col ( ii + 15 ) << k, k, k;
-
-				// gridline_positions.col ( ii + 16 ) << 0, 0, k; gridline_positions.col ( ii + 17 ) << 0, k, k; //UL
-				// gridline_positions.col ( ii + 18 ) << k, 0, k; gridline_positions.col ( ii + 19 ) << k, k, k; //UR
-				// gridline_positions.col ( ii + 20 ) << 0, 0, k; gridline_positions.col ( ii + 21 ) << k, 0, k; //UB
-				// gridline_positions.col ( ii + 22 ) << 0, k, k; gridline_positions.col ( ii + 23 ) << k, k, k; //UT
-
 				ii += 4 * 2;
 			}
 
@@ -720,10 +722,10 @@ class SurfPlot : public nanogui::GLCanvas {
 		else {
 
 			// mag box
-			if ( glfwGetKey ( screen->glfwWindow(), 'A' ) == GLFW_PRESS ) widgets.magbox[0] -= 0.05 * keyboard_sensitivity;
-			if ( glfwGetKey ( screen->glfwWindow(), 'D' ) == GLFW_PRESS ) widgets.magbox[0] += 0.05 * keyboard_sensitivity;
-			if ( glfwGetKey ( screen->glfwWindow(), 'S' ) == GLFW_PRESS ) widgets.magbox[1] -= 0.05 * keyboard_sensitivity;
-			if ( glfwGetKey ( screen->glfwWindow(), 'W' ) == GLFW_PRESS ) widgets.magbox[1] += 0.05 * keyboard_sensitivity;
+			if ( glfwGetKey ( screen->glfwWindow(), 'A' ) == GLFW_PRESS ) widgets.magbox[0] -= 0.005 * keyboard_sensitivity;
+			if ( glfwGetKey ( screen->glfwWindow(), 'D' ) == GLFW_PRESS ) widgets.magbox[0] += 0.005 * keyboard_sensitivity;
+			if ( glfwGetKey ( screen->glfwWindow(), 'S' ) == GLFW_PRESS ) widgets.magbox[1] -= 0.005 * keyboard_sensitivity;
+			if ( glfwGetKey ( screen->glfwWindow(), 'W' ) == GLFW_PRESS ) widgets.magbox[1] += 0.005 * keyboard_sensitivity;
 			if ( glfwGetKey ( screen->glfwWindow(),
 			                  'Q' ) == GLFW_PRESS ) widgets.magbox -= 0.15 * widgets.boxdir * keyboard_sensitivity;
 			if ( glfwGetKey ( screen->glfwWindow(),
@@ -750,6 +752,7 @@ class SurfPlot : public nanogui::GLCanvas {
 		if ( glfwGetKey ( screen->glfwWindow(), '1' ) == GLFW_PRESS )  reset_view ( 0 );
 		if ( glfwGetKey ( screen->glfwWindow(), '2' ) == GLFW_PRESS )  reset_view ( 1 );
 		if ( glfwGetKey ( screen->glfwWindow(), '3' ) == GLFW_PRESS )  reset_view ( 2 );
+		if ( glfwGetKey ( screen->glfwWindow(), '4' ) == GLFW_PRESS )  reset_box ( 0 );
 
 		if ( glfwGetKey ( screen->glfwWindow(), '[' ) == GLFW_PRESS )  {
 
