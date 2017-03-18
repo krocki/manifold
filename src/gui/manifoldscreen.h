@@ -214,16 +214,16 @@ class GUI : public nanogui::Screen {
 
 			mCanvas_helper->console_text = string_format (
 
-			                                   "Points 0 : %zu, Points 1: %zu, Selected: %zu\n"
+			                                   "Points 0 : %zu, Points 1: %zu, Candidates: %zu, Selected: %zu\n"
 			                                   "Box = (%.4f, %.4f, %.4f) +/- (%.4f, %.4f, %.4f), Angle = (%.4f, %.4f, %.4f)\n"
 			                                   "Transformed: (%.4f, %.4f, %.4f), Dir: (%.4f, %.4f, %.4f)\n"
 			                                   "Raycast 0: m (%.4f, %.4f), near: %.3f, far: %.3f, cursor 0: (%.2f, %.2f, %.2f)\n"
 			                                   "Raycast 1: m (%.4f, %.4f), near: %.3f, far: %.3f, cursor 1: (%.2f, %.2f, %.2f)\n"
-			                                   "FOV 0: %f, Cam 0 = (%.2f, %.2f, %.2f), Cam 1 = (%.2f, %.2f, %.2f), Plot 2 normal: (%.2f, %.2f, %.2f)\n"
+			                                   "FOV 0: %f, Lookdir 0 = (%.2f, %.2f, %.2f), Cam 0 = (%.2f, %.2f, %.2f), Cam 1 = (%.2f, %.2f, %.2f), Plot 2 normal: (%.2f, %.2f, %.2f)\n"
 			                                   "Translation = (%.2f, %.2f, %.2f), Angle = (%.2f, %.2f, %.2f)\n",
 
-			                                   mCanvas->m_pointCount, mCanvasMag->m_pointCount / 6, mCanvas_helper->selected_points.size(),
-			                                   mCanvas_helper->magbox[0], mCanvas_helper->magbox[1], mCanvas_helper->magbox[2],
+			                                   mCanvas->m_pointCount, mCanvasMag->m_pointCount / 6, mCanvas_helper->candidate_points.size(),
+			                                   mCanvas_helper->selected_points.size(), mCanvas_helper->magbox[0], mCanvas_helper->magbox[1], mCanvas_helper->magbox[2],
 			                                   mCanvas_helper->magbox_radius[0], mCanvas_helper->magbox_radius[1], mCanvas_helper->magbox_radius[2],
 			                                   mCanvas_helper->magbox_angle[0], mCanvas_helper->magbox_angle[1], mCanvas_helper->magbox_angle[2],
 			                                   mCanvasMag->box_coord3f[0], mCanvasMag->box_coord3f[1], mCanvasMag->box_coord3f[2],
@@ -232,7 +232,8 @@ class GUI : public nanogui::Screen {
 			                                   mCanvas_helper->magbox[0], mCanvas_helper->magbox[0], mCanvas_helper->magbox[0],
 			                                   mCanvasMag->mouse_last_x, mCanvasMag->mouse_last_y, mCanvasMag->near, mCanvasMag->far,
 			                                   mCanvas_helper->cursor[0], mCanvas_helper->cursor[1], mCanvas_helper->cursor[2],
-			                                   mCanvas->fov, mCanvas->eye[0], mCanvas->eye[1], mCanvas->eye[2],
+			                                   mCanvas->fov, mCanvas->lookdir[0], mCanvas->lookdir[1], mCanvas->lookdir[2],
+			                                   mCanvas->eye[0], mCanvas->eye[1], mCanvas->eye[2],
 			                                   mCanvasMag->eye[0], mCanvasMag->eye[1], mCanvasMag->eye[2],
 			                                   mCanvasMag->normal[0], mCanvasMag->normal[1], mCanvasMag->normal[2],
 			                                   mCanvas->translation[0], mCanvas->translation[1], mCanvas->translation[2],

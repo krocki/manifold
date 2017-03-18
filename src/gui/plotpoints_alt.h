@@ -35,6 +35,8 @@
 
 #include "shapes.h"
 
+#include <set>
+
 class SurfWindow : public nanogui::Window {
 
   public:
@@ -85,6 +87,7 @@ class SurfWindow : public nanogui::Window {
 		cursor_radius = Eigen::Vector3f ( 0.00001f, 0.00001f, 0.1f );
 
 		boxmodel.setIdentity();
+		selected_points.clear();
 
 	}
 
@@ -95,7 +98,8 @@ class SurfWindow : public nanogui::Window {
 	std::string console_text = "";
 
 	std::vector<int> picked;
-	std::vector<int> selected_points;
+	std::vector<int> candidate_points;
+	std::set<int> selected_points;
 
 	bool magmove, crossmove;
 
@@ -175,8 +179,6 @@ class MagPlot : public nanogui::GLCanvas {
 		colors.resize ( 3, total_points * 6 );
 		texcoords.resize ( 3, total_points * 6 );
 
-		widgets.selected_points.clear();
-
 		for ( size_t i = 0; i < total_points; i++ ) {
 
 			Eigen::VectorXf coords;
@@ -229,7 +231,6 @@ class MagPlot : public nanogui::GLCanvas {
 				if ( widgets.picked[i] == 1 ) {
 
 					radius = 2 * sqrtf ( 2 * quad_size );
-					widgets.selected_points.push_back ( i );
 
 				}
 
@@ -284,10 +285,8 @@ class MagPlot : public nanogui::GLCanvas {
 		eye = Eigen::Vector3f ( eye_boxmodel[0], eye_boxmodel[1], eye_boxmodel[2] );
 
 		Eigen::Vector4f box_coords = Eigen::Vector4f ( widgets.magbox[0], widgets.magbox[1], widgets.magbox[2], 1 );
-		// std::cout << "box_coords " << box_coords << std::endl;
 		Eigen::Vector4f box_transformed = widgets.boxmodel * box_coords;
-		// std::cout << "transformed " << box_transformed << std::endl;
-		// std::cout << "widgets.boxmodel " << widgets.boxmodel << std::endl;
+
 		box_coord3f = Eigen::Vector3f ( box_transformed[0], box_transformed[1], box_transformed[2] );
 
 		view = nanogui::lookAt ( eye, box_coord3f, normal );
@@ -310,25 +309,11 @@ class MagPlot : public nanogui::GLCanvas {
 
 		model.setIdentity();
 
-		// Eigen::Quaternionf q = Eigen::AngleAxisf ( model_angle[0] * M_PI, Eigen::Vector3f::UnitX() )
-		// 					   * Eigen::AngleAxisf ( model_angle[1] * M_PI,  Eigen::Vector3f::UnitY() )
-		// 					   * Eigen::AngleAxisf ( model_angle[2] * M_PI, Eigen::Vector3f::UnitZ() );
-
-
-		// model.block ( 0, 0, 3, 3 ) = q.matrix() * model.block ( 0, 0, 3, 3 );
-
-		// // model = m_arcball.matrix() * model;
 		model = nanogui::translate ( Eigen::Vector3f ( translation ) ) * model;
 
 		// /* Render the point set */
 		mvp = proj * view * model;
 		mvpbox = proj * view * widgets.boxmodel;
-
-		// glEnable ( GL_POLYGON_SMOOTH );
-		// glEnable ( GL_LINE_SMOOTH );
-		// glHint ( GL_LINE_SMOOTH_HINT, GL_NICEST );
-		// glEnable ( GL_MULTISAMPLE );
-		// glfwWindowHint ( GLFW_SAMPLES, 4 );
 
 		if ( m_pointCount > 0 ) {
 
@@ -378,6 +363,17 @@ class MagPlot : public nanogui::GLCanvas {
 
 		return true;
 	}
+
+	bool mouseButtonEvent ( const Eigen::Vector2i &p, int button, bool down, int modifiers ) override {
+
+		if ( button == GLFW_MOUSE_BUTTON_1 && down) {
+			std::cout << "Clicked: " << widgets.candidate_points[0] << std::endl;
+			std::copy( widgets.candidate_points.begin(), widgets.candidate_points.end(), std::inserter( widgets.selected_points, widgets.selected_points.end() ) );
+		}
+
+		return true;
+	}
+
 
 	void update_mouse_overlay() {
 
@@ -519,6 +515,7 @@ class SurfPlot : public nanogui::GLCanvas {
 		colors.resize ( 3, m_pointCount );
 
 		widgets.picked.resize( m_pointCount );
+		widgets.candidate_points.clear();
 
 		for ( size_t i = 0; i < m_pointCount; i++ ) {
 
@@ -547,6 +544,7 @@ class SurfPlot : public nanogui::GLCanvas {
 				float theta = coords[1];
 				x =	r * cos ( theta );
 				y = r * sin ( theta );
+
 			} else {
 				x = coords[0];
 				y = coords[1];
@@ -577,11 +575,14 @@ class SurfPlot : public nanogui::GLCanvas {
 					if (( fabs(vertex_boxmodel [0] - (widgets.magbox[0] + widgets.cursor[0])) < 1e-3f) &&
 					        ( fabs(vertex_boxmodel [1] - (widgets.magbox[1] + widgets.cursor[1])) < 1e-3f)) {
 						widgets.picked[i] = 1;
+						widgets.candidate_points.push_back(i);
 						colors.col ( i ) << 255 , 0 , 0 ;
 					}
 
-					else
+					else {
+
 						widgets.picked[i] = 0;
+					}
 				}
 
 				else
@@ -702,20 +703,22 @@ class SurfPlot : public nanogui::GLCanvas {
 
 		if ( !left_shift ) {
 
-			if ( glfwGetKey ( screen->glfwWindow(), 'A' ) == GLFW_PRESS ) translation[0] += 0.05 * keyboard_sensitivity;
-			if ( glfwGetKey ( screen->glfwWindow(), 'D' ) == GLFW_PRESS ) translation[0] -= 0.05 * keyboard_sensitivity;
-			if ( glfwGetKey ( screen->glfwWindow(), 'S' ) == GLFW_PRESS ) translation[1] += 0.05 * keyboard_sensitivity;
-			if ( glfwGetKey ( screen->glfwWindow(), 'W' ) == GLFW_PRESS ) translation[1] -= 0.05 * keyboard_sensitivity;
-			if ( glfwGetKey ( screen->glfwWindow(), 'E' ) == GLFW_PRESS ) translation[2] -= 0.25 * keyboard_sensitivity;
-			if ( glfwGetKey ( screen->glfwWindow(), 'Q' ) == GLFW_PRESS ) translation[2] += 0.25 * keyboard_sensitivity;
+			lookdir = ( mvp * Eigen::Vector4f::UnitZ()  ).block ( 0, 0, 3, 1 );
+
+			if ( glfwGetKey ( screen->glfwWindow(), 'S' ) == GLFW_PRESS ) translation += 0.1 * ( mvp * Eigen::Vector4f::UnitZ()  ).block ( 0, 0, 3, 1 ) * keyboard_sensitivity;
+			if ( glfwGetKey ( screen->glfwWindow(), 'W' ) == GLFW_PRESS ) translation -= 0.1 * ( mvp * Eigen::Vector4f::UnitZ()  ).block ( 0, 0, 3, 1 ) * keyboard_sensitivity;
+			if ( glfwGetKey ( screen->glfwWindow(), 'E' ) == GLFW_PRESS ) translation += 0.1 * ( mvp * Eigen::Vector4f::UnitY()  ).block ( 0, 0, 3, 1 ) * keyboard_sensitivity;
+			if ( glfwGetKey ( screen->glfwWindow(), 'Q' ) == GLFW_PRESS ) translation -= 0.1 * ( mvp * Eigen::Vector4f::UnitY()  ).block ( 0, 0, 3, 1 ) * keyboard_sensitivity;
+			if ( glfwGetKey ( screen->glfwWindow(), 'D' ) == GLFW_PRESS ) translation -= 0.1 * ( mvp * Eigen::Vector4f::UnitX()  ).block ( 0, 0, 3, 1 ) * keyboard_sensitivity;
+			if ( glfwGetKey ( screen->glfwWindow(), 'A' ) == GLFW_PRESS ) translation += 0.1 * ( mvp * Eigen::Vector4f::UnitX()  ).block ( 0, 0, 3, 1 ) * keyboard_sensitivity;
 
 			// rotation around x, y, z axes
-			if ( glfwGetKey ( screen->glfwWindow(), 'Z' ) == GLFW_PRESS ) model_angle[1] -= 0.05 * keyboard_sensitivity;
-			if ( glfwGetKey ( screen->glfwWindow(), 'C' ) == GLFW_PRESS ) model_angle[1] += 0.05 * keyboard_sensitivity;
-			if ( glfwGetKey ( screen->glfwWindow(), GLFW_KEY_UP ) == GLFW_PRESS ) model_angle[0] -= 0.05 * keyboard_sensitivity;
-			if ( glfwGetKey ( screen->glfwWindow(), GLFW_KEY_DOWN ) == GLFW_PRESS ) model_angle[0] += 0.05 * keyboard_sensitivity;
-			if ( glfwGetKey ( screen->glfwWindow(), GLFW_KEY_LEFT ) == GLFW_PRESS ) model_angle[2] += 0.05 * keyboard_sensitivity;
-			if ( glfwGetKey ( screen->glfwWindow(), GLFW_KEY_RIGHT ) == GLFW_PRESS ) model_angle[2] -= 0.05 * keyboard_sensitivity;
+			if ( glfwGetKey ( screen->glfwWindow(), GLFW_KEY_RIGHT ) == GLFW_PRESS ) model_angle[1] -= 0.1 * keyboard_sensitivity;
+			if ( glfwGetKey ( screen->glfwWindow(), GLFW_KEY_LEFT ) == GLFW_PRESS ) model_angle[1] += 0.1 * keyboard_sensitivity;
+			if ( glfwGetKey ( screen->glfwWindow(), GLFW_KEY_DOWN ) == GLFW_PRESS ) model_angle[0] -= 0.1 * keyboard_sensitivity;
+			if ( glfwGetKey ( screen->glfwWindow(), GLFW_KEY_UP ) == GLFW_PRESS ) model_angle[0] += 0.1 * keyboard_sensitivity;
+			if ( glfwGetKey ( screen->glfwWindow(), 'Z' ) == GLFW_PRESS ) model_angle[2] += 0.1 * keyboard_sensitivity;
+			if ( glfwGetKey ( screen->glfwWindow(), 'C' ) == GLFW_PRESS ) model_angle[2] -= 0.1 * keyboard_sensitivity;
 
 		}
 
@@ -914,6 +917,7 @@ class SurfPlot : public nanogui::GLCanvas {
 	Eigen::MatrixXf colors;
 
 	Eigen::Vector3f eye;
+	Eigen::Vector3f lookdir;
 	Eigen::Matrix4f view, proj, model, mvp;
 	Eigen::Matrix4f boxmvp;
 
