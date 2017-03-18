@@ -2,7 +2,7 @@
 * @Author: Kamil Rocki
 * @Date:   2017-02-28 11:25:34
 * @Last Modified by:   Kamil Rocki
-* @Last Modified time: 2017-03-17 09:14:35
+* @Last Modified time: 2017-03-17 18:19:36
 */
 
 #include <thread>
@@ -36,10 +36,10 @@ int compute() {
 	// serialization
 	
 	double learning_rate = 1e-3;
-	float decay = 0;
+	float decay = 1e-7;
 	
 	// std::vector<int> layer_sizes = {image_size * image_size, 256, 256, 100, 64, 16, 8, 3, 8, 16, 64, 100, 256, 256, image_size * image_size};
-	std::vector<int> layer_sizes = {image_size * image_size, 64, 3, 64, image_size * image_size};
+	std::vector<int> layer_sizes = {image_size * image_size, 64, 2, 64, image_size * image_size};
 	nn = new NN ( batch_size, decay, AE );
 	
 	nn->code_layer_no = 2 * ( layer_sizes.size() - 1 ) / 2 - 1;
