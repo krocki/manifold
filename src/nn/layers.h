@@ -2,7 +2,7 @@
 * @Author: kmrocki@us.ibm.com
 * @Date:   2017-03-03 15:06:37
 * @Last Modified by:   Kamil Rocki
-* @Last Modified time: 2017-03-17 09:06:18
+* @Last Modified time: 2017-03-18 18:13:26
 */
 
 #ifndef __LAYERS_H__
@@ -87,9 +87,9 @@ class Linear : public Layer {
 			
 		}
 		
-		Linear ( size_t inputs, size_t outputs, size_t batch_size, bool n = false ) : add_gaussian_noise ( n ), Layer ( inputs,
-					outputs, batch_size ) {
-					
+		Linear ( size_t inputs, size_t outputs, size_t batch_size, bool n = false ) : Layer ( inputs, outputs, batch_size ),
+			add_gaussian_noise ( n ) {
+			
 			W = Matrix ( outputs, inputs );
 			b = Vector::Zero ( outputs );
 			randn ( W, 0, 0.1 );

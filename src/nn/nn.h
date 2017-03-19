@@ -2,7 +2,7 @@
 * @Author: kmrocki
 * @Date:   2016-02-24 15:28:10
 * @Last Modified by:   Kamil Rocki
-* @Last Modified time: 2017-03-16 12:53:31
+* @Last Modified time: 2017-03-18 18:18:31
 */
 
 #ifndef __NN_H__
@@ -21,6 +21,7 @@
 // Normal noise
 // Semantic hashing
 // ladder network
+// resnet/ highway
 
 typedef enum network_type { MLP = 0, AE = 1, DAE = 2 } network_type;
 
@@ -136,8 +137,7 @@ class NN {
 				// [784 x batch_size]
 				make_batch ( batch, data, random_numbers );
 				
-				// make_targets ( targets, encoding, data, random_numbers );
-				
+				if ( ntype == MLP ) make_targets ( targets, encoding, data, random_numbers );
 				
 				ticf();
 				
