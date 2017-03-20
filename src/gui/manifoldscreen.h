@@ -20,14 +20,16 @@
 #define GL_MAJOR 3
 #define GL_MINOR 3
 #define VSYNC true
+#define AUTOSIZE true
+#define SIZE_RATIO 2.0f/3.0f
 
 class GUI : public nanogui::Screen {
 
-public:
+  public:
 
 	GUI ( ) :
 
-		nanogui::Screen ( { DEF_WIDTH , DEF_HEIGHT  }, SCREEN_NAME, RESIZABLE, FULLSCREEN, COLOR_BITS, ALPHA_BITS, DEPTH_BITS, STENCIL_BITS, MSAA_SAMPLES, GL_MAJOR, GL_MINOR, VSYNC) { init(); }
+		nanogui::Screen ( { DEF_WIDTH , DEF_HEIGHT  }, SCREEN_NAME, RESIZABLE, FULLSCREEN, COLOR_BITS, ALPHA_BITS, DEPTH_BITS, STENCIL_BITS, MSAA_SAMPLES, GL_MAJOR, GL_MINOR, VSYNC, AUTOSIZE, SIZE_RATIO) { init(); }
 
 	void init() {
 
@@ -35,11 +37,6 @@ public:
 		printf ( "GL_RENDERER: %s\n", glGetString ( GL_RENDERER ) );
 		printf ( "GL_VERSION: %s\n", glGetString ( GL_VERSION ) );
 		printf ( "GLSL_VERSION: %s\n\n", glGetString ( GL_SHADING_LANGUAGE_VERSION ) );
-
-		std::vector<Eigen::Vector2i> modes = glfw_video_modes();
-		/* rescale if needed */
-		resizeEvent ( { DEF_WIDTH , DEF_HEIGHT } );
-		UNUSED(modes);
 
 		/* * create widgets  * */
 
