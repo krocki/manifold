@@ -2,7 +2,7 @@
 * @Author: kmrocki@us.ibm.com
 * @Date:   2017-03-20 10:11:47
 * @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-03-20 17:35:11
+* @Last Modified time: 2017-03-20 20:55:44
 */
 
 #ifndef __PLOTDATA_H__
@@ -27,24 +27,21 @@ class PlotData {
 
 };
 
-void generate_rand_points(Eigen::MatrixXf& vertices, Eigen::MatrixXf& colors, size_t N) {
+void generate_rand_points(Eigen::MatrixXf& points, size_t N, float minval = 0.0f, float maxval = 1.0f) {
 
-	vertices.resize ( 3, N );
-	colors.resize ( 3, N );
+	points.resize ( 3, N );
 
 	for ( size_t i = 0; i < N; i++ ) {
 
-		vertices.col ( i ) << rand_float(-0.25f, 0.25f), rand_float(-0.25f, 0.25f), rand_float(-0.25f, 0.25f);
-		colors.col ( i ) = Eigen::Vector3f(0.0f, 1.0f, 0.0f);
+		points.col ( i ) << rand_float(minval, maxval), rand_float(minval, maxval), rand_float(minval, maxval);
 
 	}
 
 }
 
-void generate_randn_points(Eigen::MatrixXf& vertices, Eigen::MatrixXf& colors, size_t N, float mean = 0.0f, float stddev = 1.0f) {
+void generate_randn_points(Eigen::MatrixXf& points, size_t N, float mean = 0.0f, float stddev = 1.0f) {
 
-	vertices.resize ( 3, N );
-	colors.resize ( 3, N );
+	points.resize ( 3, N );
 
 	std::random_device rd;
 	std::mt19937 mt ( rd() );
@@ -52,8 +49,7 @@ void generate_randn_points(Eigen::MatrixXf& vertices, Eigen::MatrixXf& colors, s
 
 	for ( size_t i = 0; i < N; i++ ) {
 
-		vertices.col ( i ) << randn ( mt ), randn ( mt ), randn ( mt );
-		colors.col ( i ) = Eigen::Vector3f(0.0f, 1.0f, 0.0f);
+		points.col ( i ) << randn ( mt ), randn ( mt ), randn ( mt );
 
 	}
 

@@ -1,8 +1,8 @@
 /*
 * @Author: Kamil Rocki
 * @Date:   2017-02-28 11:25:34
-* @Last Modified by:   Kamil M Rocki
-* @Last Modified time: 2017-03-19 20:13:22
+* @Last Modified by:   kmrocki@us.ibm.com
+* @Last Modified time: 2017-03-20 21:20:02
 */
 
 #include <thread>
@@ -12,10 +12,33 @@
 
 //GUI
 #include "gui/manifoldscreen.h"
+#include "compute/nbody.h"
+
+GUI *screen;
 
 int compute() {
 
+	size_t point_count = 2000;
+
+	Eigen::MatrixXf velocities;
+
+	PlotData* gl_data = screen->plot_data;
+	generate_randn_points(gl_data->p_vertices, point_count);
+	generate_rand_points(gl_data->p_colors, point_count);
+	generate_rand_points(velocities, point_count);
+
+	gl_data->updated();
+
+	/* work until main window is open */
+	while (screen->getVisible()) {
+
+		nbody::calculate_forces(gl_data->p_vertices, velocities);
+		gl_data->updated();
+
+	}
+
 	return 0;
+
 }
 
 int main ( int /* argc */, char ** /* argv */ ) {
@@ -24,10 +47,10 @@ int main ( int /* argc */, char ** /* argv */ ) {
 
 		/* init GUI */
 		nanogui::init();
-		nanogui::Screen *screen = new GUI();
+		screen = new GUI();
 
 		// launch a compute thread
-		std::thread compute_thread ( compute );
+		std::thread compute_thread(compute);
 
 		nanogui::mainloop ( 1 );
 

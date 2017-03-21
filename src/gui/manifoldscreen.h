@@ -44,7 +44,6 @@ class GUI : public nanogui::Screen {
 
 		// init data
 		plot_data = new PlotData();
-		generate_randn_points(plot_data->p_vertices, plot_data->p_colors, 50000);
 		generate_cube(plot_data->c_vertices, plot_data->c_colors, {0, 0, 0}, 5.0f, {1.0f, 0, 0});
 		plot_data->updated();
 

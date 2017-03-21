@@ -2,7 +2,7 @@
 * @Author: kmrocki@us.ibm.com
 * @Date:   2017-03-20 10:09:39
 * @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-03-20 20:14:26
+* @Last Modified time: 2017-03-20 20:29:44
 */
 
 #ifndef __GLPLOT_H__
@@ -216,8 +216,6 @@ class Plot : public nanogui::GLCanvas {
 	PlotData *data;
 
 	size_t local_data_checksum = 0;
-
-
 
 	// for intercepting keyboard events
 	GLFWwindow *glfw_window = nullptr;
