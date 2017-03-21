@@ -1,8 +1,8 @@
 /*
 * @Author: kmrocki@us.ibm.com
 * @Date:   2017-03-20 10:11:47
-* @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-03-20 23:48:45
+* @Last Modified by:   Kamil M Rocki
+* @Last Modified time: 2017-03-21 01:36:21
 */
 
 #ifndef __PLOTDATA_H__
@@ -13,7 +13,7 @@
 
 class PlotData {
 
-  public:
+public:
 
 	PlotData() {};
 	~PlotData() {};
@@ -29,6 +29,18 @@ class PlotData {
 	size_t checksum = 0; // or write update time
 
 };
+
+void generate_points(Eigen::MatrixXf& points, size_t N, const Eigen::Vector3f c) {
+
+	points.resize ( 3, N );
+
+	for ( size_t i = 0; i < N; i++ ) {
+
+		points.col ( i ) = c;
+
+	}
+
+}
 
 void generate_rand_points(Eigen::MatrixXf& points, size_t N, float minval = 0.0f, float maxval = 1.0f) {
 
@@ -86,22 +98,9 @@ void generate_cube(Eigen::Matrix<uint32_t, Eigen::Dynamic, Eigen::Dynamic>& indi
 	positions.col ( 6 ) <<  r, -r, -r;
 	positions.col ( 7 ) <<  r, -r,  r;
 
-	colors.col ( 0 ) << 1, 0, 0;
-	colors.col ( 1 ) << 0, 1, 0;
-	colors.col ( 2 ) << 1, 1, 0;
-	colors.col ( 3 ) << 0, 0, 1;
-	colors.col ( 4 ) << 1, 0, 1;
-	colors.col ( 5 ) << 0, 1, 1;
-	colors.col ( 6 ) << 1, 1, 1;
-	colors.col ( 7 ) << 0.5, 0.5, 0.5;
-	colors.col ( 8 ) << 1, 0, 0.5;
-	colors.col ( 9 ) << 1, 0.5, 0;
-	colors.col ( 10 ) << 0.5, 1, 0;
-	colors.col ( 11 ) << 0.5, 1, 0.5;
-
 	// translation
 	positions.colwise() += t;
-	// colors.colwise() = color;
+	colors.colwise() = color;
 };
 
 #endif

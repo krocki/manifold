@@ -1,8 +1,8 @@
 /*
 * @Author: kmrocki@us.ibm.com
 * @Date:   2017-03-20 10:09:39
-* @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-03-21 00:46:31
+* @Last Modified by:   Kamil M Rocki
+* @Last Modified time: 2017-03-21 09:09:25
 */
 
 #ifndef __GLPLOT_H__
@@ -23,7 +23,7 @@
 
 class Plot : public nanogui::GLCanvas {
 
-  public:
+public:
 
 	Plot ( Widget *parent, bool transparent = false ) : nanogui::GLCanvas ( parent, transparent ) {
 
@@ -38,7 +38,7 @@ class Plot : public nanogui::GLCanvas {
 		m_camShader = new nanogui::GLShader();
 		m_camShader->initFromFiles ( POINT_SHADER_NAME, POINT_VERT_FILE, POINT_FRAG_FILE );
 
-		setBackgroundColor ( nanogui::Color ( 0, 0, 0, 64 ) );
+		setBackgroundColor ( nanogui::Color ( 64, 64, 64, 16 ) );
 		setDrawBorder ( true );
 		setVisible ( true );
 
@@ -50,9 +50,21 @@ class Plot : public nanogui::GLCanvas {
 
 	}
 
-	Plot ( Widget *parent, const Eigen::Vector2i &w_size, bool transparent = false): Plot(parent, transparent) { setSize(w_size); }
+	Plot ( Widget *parent, const Eigen::Vector2i &w_size, bool transparent = false, GLFWwindow *w = nullptr): Plot(parent, transparent) {
 
-	void init_camera(float _fovy = 67.0f, const Eigen::Vector3f _camera = Eigen::Vector3f(0.0f, 0.0f, 5.0f),  const Eigen::Vector3f _rotation = Eigen::Vector3f(0.0f, 0.0f, 0.0f)) {
+		GLCanvas::setSize (w_size);
+		glfw_window = w;
+
+	}
+
+	Plot ( Widget *parent, const Eigen::Vector2i &w_size, int i, PlotData *plot_data, bool transparent = false, GLFWwindow *w = nullptr, float _fovy = 67.0f, const Eigen::Vector3f _camera = Eigen::Vector3f(0.0f, 0.0f, 5.0f), const Eigen::Vector3f _rotation = Eigen::Vector3f(0.0f, 0.0f, 0.0f)): Plot ( parent, w_size, transparent, w) {
+
+		index = i;
+		init_camera(_fovy, _camera, _rotation);
+		bind_data(plot_data);
+	}
+
+	void init_camera(float _fovy, const Eigen::Vector3f _camera,  const Eigen::Vector3f _rotation) {
 
 		camera = _camera;
 		rotation = _rotation;
@@ -218,7 +230,6 @@ class Plot : public nanogui::GLCanvas {
 		m_cubeShader->bind();
 		m_cubeShader->setUniform("mvp", mvp);
 		m_cubeShader->drawIndexed ( GL_LINES, 0, data->c_indices.cols() );
-
 
 		glEnable ( GL_PROGRAM_POINT_SIZE );
 

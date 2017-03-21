@@ -1,8 +1,8 @@
 /*
 * @Author: Kamil Rocki
 * @Date:   2017-02-28 11:25:34
-* @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-03-21 00:47:35
+* @Last Modified by:   Kamil M Rocki
+* @Last Modified time: 2017-03-21 09:17:12
 */
 
 #include <thread>
@@ -18,13 +18,13 @@ GUI *screen;
 
 int compute() {
 
-	size_t point_count = 1000;
+	size_t point_count = 3000;
 
 	Eigen::MatrixXf velocities;
 
 	PlotData* gl_data = screen->plot_data;
 	generate_randn_points(gl_data->p_vertices, point_count);
-	generate_rand_points(gl_data->p_colors, point_count);
+	generate_points(gl_data->p_colors, point_count, Eigen::Vector3f (0.0f, 1.0f, 0.0f));
 	generate_rand_points(velocities, point_count);
 
 	gl_data->updated();

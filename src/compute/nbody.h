@@ -1,8 +1,8 @@
 /*
 * @Author: kmrocki@us.ibm.com
 * @Date:   2017-03-20 21:17:46
-* @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-03-20 21:20:22
+* @Last Modified by:   Kamil M Rocki
+* @Last Modified time: 2017-03-21 09:14:34
 */
 
 #ifndef __NBODY_H__
@@ -10,9 +10,9 @@
 
 namespace nbody {
 
-void calculate_forces(Eigen::MatrixXf& points, Eigen::MatrixXf& velocities, float softening = 1e-1f, float dt = 0.0005f) {
+void calculate_forces(Eigen::MatrixXf& points, Eigen::MatrixXf& velocities, float softening = 0.5f * 1e-1f, float dt = 0.0001f) {
 
-	#pragma omp parallel for schedule(dynamic)
+	//#pragma omp parallel for schedule(dynamic)
 	for (size_t i = 0; i < (size_t) points.cols(); i++) {
 
 		Eigen::Vector3f p = points.col(i);
