@@ -2,7 +2,7 @@
 
 uniform mat4 mvp;
 in vec3 position;
-in vec4 color;
+in vec3 color;
 out vec4 fcolor;
 /*
 * @Author: Kamil Rocki
@@ -13,5 +13,5 @@ out vec4 fcolor;
 
 void main() {
 	gl_Position = mvp * vec4 ( position, 1.0 );
-	fcolor = color;
+	fcolor = vec4(color, 1.0);
 }

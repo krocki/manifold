@@ -44,16 +44,38 @@ class GUI : public nanogui::Screen {
 
 		// init data
 		plot_data = new PlotData();
-		generate_cube(plot_data->c_vertices, plot_data->c_colors, {0, 0, 0}, 5.0f, {1.0f, 0, 0});
+		generate_cube(plot_data->c_indices, plot_data->c_vertices, plot_data->c_colors, {0, 0, 0}, 10.0f, {0.7f, 0.7f, 0});
 		plot_data->updated();
 
 		// gui elements
 		nanogui::Window *window = new nanogui::Window ( this, "" );
-		window->setLayout ( new nanogui::GroupLayout() );
+		nanogui::GridLayout *gridlayout = new nanogui::GridLayout ( nanogui::Orientation::Horizontal, 2, nanogui::Alignment::Middle, 2, 2 );
+		gridlayout->setColAlignment ( { nanogui::Alignment::Maximum, nanogui::Alignment::Fill });
+		gridlayout->setSpacing ( 0, 5 );
 
-		plot = new Plot ( window, {650, 650}, true );
+		window->setLayout ( gridlayout );
+
+		int number_of_cameras = 3;
+		plot_data->e_vertices.resize(3, 2 * number_of_cameras);
+		plot_data->e_colors.resize(3, 2 * number_of_cameras);
+
+		plot = new Plot ( window, {350, 350}, true);
+		plot->index = 0;
+		plot->init_camera();
 		plot->bind_data(plot_data);
 		plot->glfw_window = mGLFWWindow;
+
+		plot_wide = new Plot ( window, {350, 350}, true);
+		plot_wide->init_camera(90, Eigen::Vector3f(0.0f, 35.0f, 0.0f), Eigen::Vector3f(0.0f, 0.0f, -M_PI / 4.0f));
+		plot_wide->index = 1;
+		plot_wide->bind_data(plot_data);
+
+		plot_ortho = new Plot ( window, {350, 350}, true);
+		plot_ortho->fovy = 70;
+
+		plot_ortho->init_camera(175);
+		plot_ortho->index = 2;
+		plot_ortho->bind_data(plot_data);
 
 		// todo: set/save layout (including dynamically created widgets)
 		// be able to load everything
@@ -101,8 +123,8 @@ class GUI : public nanogui::Screen {
 
 	~GUI() { /* free resources */}
 
-	Plot* plot;
-	PlotData* plot_data;
+	Plot *plot, *plot_wide, *plot_ortho;
+	PlotData *plot_data;
 
 };
 
