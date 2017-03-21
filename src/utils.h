@@ -2,7 +2,7 @@
 * @Author: kmrocki@us.ibm.com
 * @Date:   2017-03-03 15:22:47
 * @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-03-09 20:43:32
+* @Last Modified time: 2017-03-20 20:06:50
 */
 
 #ifndef __UTIL_MAIN_H__
@@ -42,5 +42,34 @@ std::string string_format(const std::string fmt_str, ...) {
 	}
 	return std::string(formatted.get());
 }
+
+// rands
+float rand_float ( float mn, float mx ) {
+
+	float r = random() / ( float ) RAND_MAX;
+	return mn + ( mx - mn ) * r;
+}
+
+Eigen::Matrix4f quat_to_mat(const Eigen::Quaternionf &q) {
+
+	Eigen::Matrix4f mat = Eigen::Matrix4f::Identity();
+	mat.block(0, 0, 3, 3) = q.matrix();
+	return mat;
+
+}
+
+Eigen::Matrix4f translate(const Eigen::Vector3f &v) {
+	return Eigen::Affine3f(Eigen::Translation<float, 3>(v)).matrix();
+}
+
+Eigen::Quaternionf rotate(const Eigen::Vector3f &angle, const Eigen::Vector3f &forward, const Eigen::Vector3f &up, const Eigen::Vector3f &right) {
+
+	Eigen::AngleAxisf roll(angle[0], forward);
+	Eigen::AngleAxisf yaw(angle[1], up);
+	Eigen::AngleAxisf pitch(angle[2], right);
+
+	return yaw * pitch * roll;
+}
+
 
 #endif

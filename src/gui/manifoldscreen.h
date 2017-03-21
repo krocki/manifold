@@ -4,11 +4,15 @@
 #include <nanogui/screen.h>
 #include <nanogui/glutil.h>
 
-//helpers
+// helpers
 #include <utils.h>
 
-#define DEF_WIDTH 640
-#define DEF_HEIGHT 480
+// app-specific GUI code
+#include <gui/gldata.h>
+#include <gui/glplot.h>
+
+#define DEF_WIDTH 960
+#define DEF_HEIGHT 700
 #define SCREEN_NAME "Manifold"
 #define RESIZABLE true
 #define FULLSCREEN false
@@ -20,7 +24,7 @@
 #define GL_MAJOR 3
 #define GL_MINOR 3
 #define VSYNC true
-#define AUTOSIZE true
+#define AUTOSIZE false
 #define SIZE_RATIO 2.0f/3.0f
 
 class GUI : public nanogui::Screen {
@@ -38,7 +42,19 @@ class GUI : public nanogui::Screen {
 		printf ( "GL_VERSION: %s\n", glGetString ( GL_VERSION ) );
 		printf ( "GLSL_VERSION: %s\n\n", glGetString ( GL_SHADING_LANGUAGE_VERSION ) );
 
-		/* * create widgets  * */
+		// init data
+		plot_data = new PlotData();
+		generate_randn_points(plot_data->p_vertices, plot_data->p_colors, 50000);
+		generate_cube(plot_data->c_vertices, plot_data->c_colors, {0, 0, 0}, 5.0f, {1.0f, 0, 0});
+		plot_data->updated();
+
+		// gui elements
+		nanogui::Window *window = new nanogui::Window ( this, "" );
+		window->setLayout ( new nanogui::GroupLayout() );
+
+		plot = new Plot ( window, {650, 650}, true );
+		plot->bind_data(plot_data);
+		plot->glfw_window = mGLFWWindow;
 
 		// todo: set/save layout (including dynamically created widgets)
 		// be able to load everything
@@ -85,6 +101,9 @@ class GUI : public nanogui::Screen {
 	}
 
 	~GUI() { /* free resources */}
+
+	Plot* plot;
+	PlotData* plot_data;
 
 };
 

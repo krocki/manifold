@@ -2,18 +2,11 @@
 * @Author: kmrocki@us.ibm.com
 * @Date:   2017-03-03 14:00:12
 * @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-03-12 20:10:33
+* @Last Modified time: 2017-03-20 13:34:56
 */
 
 #ifndef _AUX_H_
 #define _AUX_H_
-
-// rands
-float rand_float ( float mn, float mx ) {
-
-	float r = random() / ( float ) RAND_MAX;
-	return mn + ( mx - mn ) * r;
-}
 
 // functions
 float hat ( float x, float y ) {
