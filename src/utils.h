@@ -1,8 +1,8 @@
 /*
 * @Author: kmrocki@us.ibm.com
 * @Date:   2017-03-03 15:22:47
-* @Last Modified by:   Kamil M Rocki
-* @Last Modified time: 2017-03-21 00:47:45
+* @Last Modified by:   kmrocki@us.ibm.com
+* @Last Modified time: 2017-03-21 15:16:00
 */
 
 #ifndef __UTIL_MAIN_H__
@@ -72,6 +72,5 @@ Eigen::Quaternionf rotate(const Eigen::Vector3f &angle, const Eigen::Vector3f &f
 
 	return yaw * pitch * roll;
 }
-
 
 #endif

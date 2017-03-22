@@ -1,8 +1,8 @@
 /*
 * @Author: kmrocki@us.ibm.com
 * @Date:   2017-03-20 10:11:47
-* @Last Modified by:   Kamil M Rocki
-* @Last Modified time: 2017-03-21 01:36:21
+* @Last Modified by:   kmrocki@us.ibm.com
+* @Last Modified time: 2017-03-21 10:25:37
 */
 
 #ifndef __PLOTDATA_H__
@@ -13,7 +13,7 @@
 
 class PlotData {
 
-public:
+  public:
 
 	PlotData() {};
 	~PlotData() {};

@@ -1,11 +1,12 @@
 /*
 * @Author: Kamil Rocki
 * @Date:   2017-02-28 11:25:34
-* @Last Modified by:   Kamil M Rocki
-* @Last Modified time: 2017-03-21 09:17:12
+* @Last Modified by:   kmrocki@us.ibm.com
+* @Last Modified time: 2017-03-21 22:16:59
 */
 
 #include <thread>
+#include <unistd.h>
 
 //nanogui
 #include <nanogui/screen.h>
@@ -34,7 +35,7 @@ int compute() {
 
 		nbody::calculate_forces(gl_data->p_vertices, velocities);
 		gl_data->updated();
-
+		usleep(10000);
 	}
 
 	return 0;

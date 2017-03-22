@@ -1,8 +1,8 @@
 /*
 * @Author: kmrocki@us.ibm.com
 * @Date:   2017-03-20 10:09:39
-* @Last Modified by:   Kamil M Rocki
-* @Last Modified time: 2017-03-21 09:09:25
+* @Last Modified by:   kmrocki@us.ibm.com
+* @Last Modified time: 2017-03-21 22:40:39
 */
 
 #ifndef __GLPLOT_H__
@@ -11,11 +11,25 @@
 #include <nanogui/window.h>
 #include <nanogui/layout.h>
 #include <nanogui/glcanvas.h>
+#include <nanogui/label.h>
 #include <gui/gldata.h>
 
 #define POINT_SHADER_NAME "point_shader"
 #define POINT_FRAG_FILE "./src/glsl/surf_point.f.glsl"
 #define POINT_VERT_FILE "./src/glsl/surf_point.v.glsl"
+
+#define ORTHO_SHADER_NAME "ortho_shader"
+#define ORTHO_FRAG_FILE "./src/glsl/ortho.f.glsl"
+#define ORTHO_VERT_FILE "./src/glsl/ortho.v.glsl"
+
+#define CONTOUR_SHADER_NAME "contour_shader"
+#define CONTOUR_FRAG_FILE "./src/glsl/contour.f.glsl"
+#define CONTOUR_VERT_FILE "./src/glsl/contour.v.glsl"
+
+#define CAM_SHADER_NAME "cam_shader"
+#define CAM_FRAG_FILE "./src/glsl/cam.f.glsl"
+#define CAM_GEOM_FILE "./src/glsl/cam.g.glsl"
+#define CAM_VERT_FILE "./src/glsl/cam.v.glsl"
 
 #define BOX_SHADER_NAME "box_shader"
 #define BOX_FRAG_FILE "./src/glsl/surf_box.f.glsl"
@@ -23,22 +37,17 @@
 
 class Plot : public nanogui::GLCanvas {
 
-public:
+  public:
 
-	Plot ( Widget *parent, bool transparent = false ) : nanogui::GLCanvas ( parent, transparent ) {
+	Plot ( Widget *parent, std::string _caption, const Eigen::Vector2i &w_size, int i, PlotData *plot_data, bool transparent = false, GLFWwindow *w = nullptr, NVGcontext *nvg = nullptr, float _fovy = 67.0f, const Eigen::Vector3f _camera = Eigen::Vector3f(0.0f, 0.0f, 5.0f), const Eigen::Vector3f _rotation = Eigen::Vector3f(0.0f, 0.0f, 0.0f), bool _ortho = false) : nanogui::GLCanvas ( parent, transparent ) {
+
+		GLCanvas::setSize (w_size);
+		glfw_window = w;
+		vg = nvg;
 
 		data = nullptr;
 
-		m_pointShader = new nanogui::GLShader();
-		m_pointShader->initFromFiles ( POINT_SHADER_NAME, POINT_VERT_FILE, POINT_FRAG_FILE );
-
-		m_cubeShader = new nanogui::GLShader();
-		m_cubeShader->initFromFiles ( BOX_SHADER_NAME, BOX_VERT_FILE, BOX_FRAG_FILE );
-
-		m_camShader = new nanogui::GLShader();
-		m_camShader->initFromFiles ( POINT_SHADER_NAME, POINT_VERT_FILE, POINT_FRAG_FILE );
-
-		setBackgroundColor ( nanogui::Color ( 64, 64, 64, 16 ) );
+		setBackgroundColor ( nanogui::Color ( 64, 64, 64, 64 ) );
 		setDrawBorder ( true );
 		setVisible ( true );
 
@@ -46,25 +55,44 @@ public:
 		right = Eigen::Vector3f ( 1.0f, 0.0f, 0.0f);
 		up = Eigen::Vector3f (0.0f, 1.0f, 0.0f);
 
+		index = i;
+		caption = _caption;
+		bind_data(plot_data);
+
 		translation.setZero();
 
-	}
+		init_camera(_fovy, _camera, _rotation, _ortho);
+		init_shaders();
 
-	Plot ( Widget *parent, const Eigen::Vector2i &w_size, bool transparent = false, GLFWwindow *w = nullptr): Plot(parent, transparent) {
-
-		GLCanvas::setSize (w_size);
-		glfw_window = w;
+		tic = glfwGetTime();
 
 	}
 
-	Plot ( Widget *parent, const Eigen::Vector2i &w_size, int i, PlotData *plot_data, bool transparent = false, GLFWwindow *w = nullptr, float _fovy = 67.0f, const Eigen::Vector3f _camera = Eigen::Vector3f(0.0f, 0.0f, 5.0f), const Eigen::Vector3f _rotation = Eigen::Vector3f(0.0f, 0.0f, 0.0f)): Plot ( parent, w_size, transparent, w) {
+	void init_shaders() {
 
-		index = i;
-		init_camera(_fovy, _camera, _rotation);
-		bind_data(plot_data);
+		if (ortho) {
+
+			m_pointShader = new nanogui::GLShader();
+			m_pointShader->initFromFiles ( CONTOUR_SHADER_NAME, CONTOUR_VERT_FILE, CONTOUR_FRAG_FILE );
+
+		} else {
+
+			m_pointShader = new nanogui::GLShader();
+			m_pointShader->initFromFiles ( POINT_SHADER_NAME, POINT_VERT_FILE, POINT_FRAG_FILE );
+
+		}
+
+		m_cubeShader = new nanogui::GLShader();
+		m_cubeShader->initFromFiles ( BOX_SHADER_NAME, BOX_VERT_FILE, BOX_FRAG_FILE );
+
+		m_camShader = new nanogui::GLShader();
+		m_camShader->initFromFiles ( CAM_SHADER_NAME, CAM_VERT_FILE, CAM_FRAG_FILE, CAM_GEOM_FILE );
+
 	}
 
-	void init_camera(float _fovy, const Eigen::Vector3f _camera,  const Eigen::Vector3f _rotation) {
+	void init_camera(float _fovy, const Eigen::Vector3f _camera,  const Eigen::Vector3f _rotation, bool _ortho = false) {
+
+		ortho = _ortho;
 
 		camera = _camera;
 		rotation = _rotation;
@@ -83,10 +111,22 @@ public:
 
 	void update_projection() {
 
-		float fH = std::tan(fovy / 360.0f * M_PI) * near;
-		float fW = fH * (float) mSize.x() / (float) mSize.y();
+		float fH;
+		float fW;
 
-		proj = nanogui::frustum(-fW, fW, -fH, fH, near, far);
+		if (ortho) {
+
+			fH = 11.0f;
+			fW = 11.0f;
+			near = 0.0f;
+			far = fH + fW;
+			proj = nanogui::ortho(-fW, fW, -fH, fH, near, far);
+
+		} else {
+			fH = std::tan(fovy / 360.0f * M_PI) * near;
+			fW = fH * (float) mSize.x() / (float) mSize.y();
+			proj = nanogui::frustum(-fW, fW, -fH, fH, near, far);
+		}
 
 	}
 
@@ -135,40 +175,37 @@ public:
 
 		if (data) {
 
-			m_pointShader->bind();
-			m_pointShader->uploadAttrib("position", data->p_vertices);
-			m_pointShader->uploadAttrib("color", data->p_colors);
+			if (index == 0) {
+
+				m_pointShader->bind();
+				m_pointShader->uploadAttrib("position", data->p_vertices);
+				m_pointShader->uploadAttrib("color", data->p_colors);
+			}
 
 			m_cubeShader->bind();
 			m_cubeShader->uploadIndices ( data->c_indices );
 			m_cubeShader->uploadAttrib("position", data->c_vertices);
 			m_cubeShader->uploadAttrib("color", data->c_colors);
 
-			m_camShader->bind();
-			m_camShader->uploadAttrib("position", data->e_vertices);
-			m_camShader->uploadAttrib("color", data->e_colors);
-
 			local_data_checksum = data->checksum;
-
-			// update cam position
-			data->e_vertices.col (2 * index) = camera;
-			data->e_vertices.col (2 * index + 1) = camera + forward * 0.5;
-
-			if (index == 2) {
-				data->e_colors.col ( 2 * index ) << 0, 1, 0;
-				data->e_colors.col ( 2 * index + 1 ) << 1, 0, 0;
-			} else {
-				data->e_colors.col ( 2 * index ) << 0, 0, 1;
-				data->e_colors.col ( 2 * index + 1 ) << 1, 0, 0;
-
-			}
-
 
 		} else {
 
 			/* printf("data is null... not refreshing\n") */;
 
 		}
+
+	}
+
+	void refresh_camera_positions() {
+
+		// update cam position
+		data->e_vertices.col (2 * index) = camera - forward;
+		data->e_vertices.col (2 * index + 1) = camera;
+
+		m_camShader->bind();
+		m_camShader->uploadAttrib("position", data->e_vertices);
+		m_camShader->uploadAttrib("color", data->e_colors);
 
 	}
 
@@ -207,17 +244,26 @@ public:
 
 	}
 
+	void update_frame_count() {
+
+		frame_time = glfwGetTime() - tic;
+		num_frames++;
+		tic = glfwGetTime();
+
+	}
+
 	void drawGL() override {
+
+		update_frame_count();
 
 		process_keyboard();
 
 		/* Upload points to GPU */
 
-		if (data->checksum != local_data_checksum) {
-
+		if (data->checksum != local_data_checksum)
 			refresh_data();
 
-		}
+		refresh_camera_positions();
 
 		update_mvp();
 
@@ -231,19 +277,91 @@ public:
 		m_cubeShader->setUniform("mvp", mvp);
 		m_cubeShader->drawIndexed ( GL_LINES, 0, data->c_indices.cols() );
 
-		glEnable ( GL_PROGRAM_POINT_SIZE );
-
 		m_camShader->bind();
 		m_camShader->setUniform("mvp", mvp);
-		m_camShader->drawArray(GL_POINTS, 0, data->e_vertices.cols());
+		m_camShader->drawArray(GL_LINES, 0, data->e_vertices.cols());
 
+		glEnable ( GL_PROGRAM_POINT_SIZE );
 		m_pointShader->bind();
 		m_pointShader->setUniform("mvp", mvp);
+
+		if (index != 0 && master_pointShader) {
+
+			m_pointShader->shareAttrib (*master_pointShader, "position");
+			m_pointShader->shareAttrib (*master_pointShader, "color");
+
+		}
+
 		m_pointShader->drawArray(GL_POINTS, 0, data->p_vertices.cols());
 
 		glDisable ( GL_PROGRAM_POINT_SIZE );
 		glDisable ( GL_BLEND );
 		glEnable ( GL_DEPTH_TEST );
+
+		// additional stuff, directly in nanovg
+
+		if (vg) {
+
+			nvgSave(vg);
+
+			// border
+			nvgBeginPath(vg);
+			nvgStrokeWidth(vg, 1);
+			nvgRoundedRect(vg, mPos.x() + 0.5f, mPos.y() + 0.5f, mSize.x() - 1, mSize.y() - 1, 0);
+			nvgStrokeColor(vg, nanogui::Color(1.0f, 1.0f, 1.0f, 0.1f));
+			nvgStroke(vg);
+
+			// caption, bottom-left
+			if (!caption.empty()) {
+
+				nvgFontFace(vg, "sans");
+				nvgFontSize(vg, 9);
+				nvgFontBlur(vg, 0.3f);
+				nvgFillColor(vg, nanogui::Color(1.0f, 1.0f, 1.0f, 0.5f));
+				nvgText(vg, mPos.x() + 3, mPos.y() + size().y() - 3, caption.c_str(), nullptr);
+
+			}
+			// bottom-right label
+			nvgFontFace(vg, "sans");
+			nvgFontSize(vg, 9);
+			nvgFontBlur(vg, 0.3f);
+			nvgFillColor(vg, nanogui::Color(1.0f, 1.0f, 1.0f, 0.5f));
+			nvgText(vg, mPos.x() + size().x() - 28, mPos.y() + size().y() - 3, string_format ( "%.1f fps", 1.0f / frame_time ).c_str(), nullptr);
+
+			// draw cameras' coords
+			for (int i = 0; i < data->e_vertices.cols(); i += 2) {
+
+				// skip self
+				if (i / 2 == index) continue;
+
+				nvgFontSize(vg, 6);
+
+				Eigen::Vector3f coords3f = data->e_vertices.col(i + 1);
+				Eigen::Vector3f screen_coords = nanogui::project(coords3f, model * view, proj, size());
+				screen_coords[1] = size().y() - screen_coords[1];
+
+				// background
+				nvgBeginPath(vg);
+				nvgRoundedRect(vg, mPos.x() + screen_coords[0] + 1, mPos.y() + screen_coords[1], 16, 16, 4);
+				nvgFillColor(vg, nanogui::Color(0.5f, 0.5f, 0.5f, 0.5f));
+				nvgFill(vg);
+
+				Eigen::Vector3f color = data->e_colors.col(i);
+				nvgFillColor(vg, nanogui::Color(color[0], color[1], color[2], 0.5f));
+				nvgText(vg, mPos.x() + screen_coords[0] + 5, mPos.y() + screen_coords[1] + 5, string_format ( "%1.1f", coords3f[0]).c_str(), nullptr);
+				nvgText(vg, mPos.x() + screen_coords[0] + 5, mPos.y() + screen_coords[1] + 10, string_format ( "%1.1f", coords3f[1]).c_str(), nullptr);
+				nvgText(vg, mPos.x() + screen_coords[0] + 5, mPos.y() + screen_coords[1] + 15, string_format ( "%1.1f", coords3f[2]).c_str(), nullptr);
+
+			}
+
+			nvgRestore(vg);
+
+		} else {
+
+			/* printf("cam %d: nanovg context == nullptr \n", index); */
+
+		}
+
 
 	}
 
@@ -262,11 +380,16 @@ public:
 
 	// for intercepting keyboard events
 	GLFWwindow *glfw_window = nullptr;
+	NVGcontext *vg = nullptr;
 
 	// shaders
 	nanogui::GLShader *m_pointShader = nullptr;
 	nanogui::GLShader *m_cubeShader = nullptr;
 	nanogui::GLShader *m_camShader = nullptr;
+
+	nanogui::GLShader *master_pointShader = nullptr;
+	nanogui::GLShader *master_cubeShader = nullptr;
+	nanogui::GLShader *master_camShader = nullptr;
 
 	//model, view, projection...
 	Eigen::Vector3f translation, rotation, camera, forward, right, up;
@@ -274,10 +397,16 @@ public:
 	Eigen::Matrix4f T, R;
 	Eigen::Quaternionf q;
 
+	bool ortho = false;
+
 	float near, far, fovy;
 	float cam_speed, cam_angular_speed;
 
+	std::string caption = "";
 	int index = 0;
+
+	float frame_time, tic;
+	size_t num_frames = 0;
 };
 
 #endif

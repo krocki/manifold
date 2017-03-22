@@ -6,13 +6,14 @@
 
 // helpers
 #include <utils.h>
+#include <colors.h>
 
 // app-specific GUI code
 #include <gui/gldata.h>
 #include <gui/glplot.h>
 
-#define DEF_WIDTH 960
-#define DEF_HEIGHT 700
+#define DEF_WIDTH 1300
+#define DEF_HEIGHT 900
 #define SCREEN_NAME "Manifold"
 #define RESIZABLE true
 #define FULLSCREEN false
@@ -29,7 +30,7 @@
 
 class GUI : public nanogui::Screen {
 
-public:
+  public:
 
 	GUI ( ) :
 
@@ -44,25 +45,39 @@ public:
 
 		// init data
 		plot_data = new PlotData();
-		generate_cube(plot_data->c_indices, plot_data->c_vertices, plot_data->c_colors, {0, 0, 0}, 10.0f, {0.8f, 0.8f, 0.8f});
+		generate_cube(plot_data->c_indices, plot_data->c_vertices, plot_data->c_colors, {0, 0, 0}, 10.0f, {0.5f, 0.5f, 0.5f});
 		plot_data->updated();
 
 		// gui elements
 		nanogui::Window *window = new nanogui::Window ( this, "" );
-		nanogui::GridLayout *gridlayout = new nanogui::GridLayout ( nanogui::Orientation::Horizontal, 2, nanogui::Alignment::Middle, 2, 2 );
+		nanogui::GridLayout *gridlayout = new nanogui::GridLayout ( nanogui::Orientation::Horizontal, 3, nanogui::Alignment::Middle, 2, 2 );
 		gridlayout->setColAlignment ( { nanogui::Alignment::Maximum, nanogui::Alignment::Fill });
 		gridlayout->setSpacing ( 0, 5 );
 
 		window->setLayout ( gridlayout );
 
-		plots.push_back(new Plot ( window, {350, 350}, 0, plot_data, true, mGLFWWindow));
-		plots.push_back(new Plot ( window, {350, 350}, 1, plot_data, true, nullptr, 40.0f, {0.0f, 65.0f, 0.0f}, {0.0f, 0.0f, -M_PI / 4.0f}));
-		plots.push_back(new Plot ( window, {350, 350}, 2, plot_data, true, nullptr, 60.0f, {0.0f, 0.0f, 30.0f}, {0.0f, 0.0f, 0}));
-		plots.push_back(new Plot ( window, {350, 350}, 3, plot_data, true, nullptr, 60.0f, {30.0f, 0.0f, 0.0f}, {0.0f, M_PI / 4.0f, 0.0f}));
+		plots.push_back(new Plot ( window, "forward", {400, 400}, 0, plot_data, true, mGLFWWindow, mNVGContext, 60.0f, {0.0f, 0.0f, 5.0f}, {0.0f, 0.0f, 0.0f}));
+		plots.push_back(new Plot ( window, "top frustum", {400, 400}, 1, plot_data, false, nullptr, mNVGContext, 40.0f, {0.0f, 35.0f, 0.0f}, {0.0f, 0.0f, -M_PI / 4.0f}));
+		plots.push_back(new Plot ( window, "right frustum", {400, 400}, 2, plot_data, false, nullptr, mNVGContext, 60.0f, {30.0f, 0.0f, 0.0f}, {0.0f, M_PI / 4.0f, 0.0f}));
+		plots.push_back(new Plot ( window, "top ortho", {400, 400}, 3, plot_data, false, nullptr, mNVGContext, 60.0f, {0.0f, 11.0f, 0.0f}, {0.0f, 0.0f, -M_PI / 4.0f}, true));
+		plots.push_back(new Plot ( window, "back ortho", {400, 400}, 4, plot_data, false, nullptr, mNVGContext, 60.0f, {0.0f, 0.0f, -15.0f}, { 0.0f, -M_PI / 2.0f, 0.0f}, true));
+		plots.push_back(new Plot ( window, "left ortho", {400, 400}, 5, plot_data, false, nullptr, mNVGContext, 60.0f, { -15.0f, 0.0f, 0.0f}, {0.0f, -M_PI / 4.0f, 0.0f}, true));
 
 		int number_of_cameras = plots.size();
 		plot_data->e_vertices.resize(3, 2 * number_of_cameras);
 		plot_data->e_colors.resize(3, 2 * number_of_cameras);
+
+		plot_data->e_colors.col(0) << 1, 0, 0; plot_data->e_colors.col(1) << 1, 0, 0;
+		plot_data->e_colors.col(2) << 0, 1, 0; plot_data->e_colors.col(3) << 0, 1, 0;
+		plot_data->e_colors.col(4) << 0, 0, 1; plot_data->e_colors.col(5) << 0, 0, 1;
+		plot_data->e_colors.col(6) << 0.5, 0.5, 0; plot_data->e_colors.col(7) << 0.5, 0.5, 0;
+		plot_data->e_colors.col(8) << 0.0, 0.5, 0.5; plot_data->e_colors.col(9) << 0.0, 0.5, 0.5;
+		plot_data->e_colors.col(10) << 0.5, 0.0, 0.5; plot_data->e_colors.col(11) << 0.5, 0.0, 0.5;
+
+		// share shader data
+		for (int i = 0; i < number_of_cameras; i++) {
+			plots[i]->master_pointShader = plots[0]->m_pointShader;
+		}
 
 		// todo: set/save layout (including dynamically created widgets)
 		// be able to load everything
