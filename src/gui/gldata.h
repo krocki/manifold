@@ -2,7 +2,7 @@
 * @Author: kmrocki@us.ibm.com
 * @Date:   2017-03-20 10:11:47
 * @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-03-21 10:25:37
+* @Last Modified time: 2017-03-22 11:31:43
 */
 
 #ifndef __PLOTDATA_H__
@@ -29,46 +29,6 @@ class PlotData {
 	size_t checksum = 0; // or write update time
 
 };
-
-void generate_points(Eigen::MatrixXf& points, size_t N, const Eigen::Vector3f c) {
-
-	points.resize ( 3, N );
-
-	for ( size_t i = 0; i < N; i++ ) {
-
-		points.col ( i ) = c;
-
-	}
-
-}
-
-void generate_rand_points(Eigen::MatrixXf& points, size_t N, float minval = 0.0f, float maxval = 1.0f) {
-
-	points.resize ( 3, N );
-
-	for ( size_t i = 0; i < N; i++ ) {
-
-		points.col ( i ) << rand_float(minval, maxval), rand_float(minval, maxval), rand_float(minval, maxval);
-
-	}
-
-}
-
-void generate_randn_points(Eigen::MatrixXf& points, size_t N, float mean = 0.0f, float stddev = 1.0f) {
-
-	points.resize ( 3, N );
-
-	std::random_device rd;
-	std::mt19937 mt ( rd() );
-	std::normal_distribution<> randn ( mean, stddev );
-
-	for ( size_t i = 0; i < N; i++ ) {
-
-		points.col ( i ) << randn ( mt ), randn ( mt ), randn ( mt );
-
-	}
-
-}
 
 void generate_cube(Eigen::Matrix<uint32_t, Eigen::Dynamic, Eigen::Dynamic>& indices, Eigen::MatrixXf& positions, Eigen::MatrixXf& colors, Eigen::Vector3f t, float r = 1.0f, Eigen::Vector3f color = Eigen::Vector3f(1.0f, 1.0f, 1.0f)) {
 

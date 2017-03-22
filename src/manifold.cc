@@ -2,7 +2,7 @@
 * @Author: Kamil Rocki
 * @Date:   2017-02-28 11:25:34
 * @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-03-21 22:16:59
+* @Last Modified time: 2017-03-22 12:25:49
 */
 
 #include <thread>
@@ -13,28 +13,32 @@
 
 //GUI
 #include "gui/manifoldscreen.h"
-#include "compute/nbody.h"
-
+// #include "compute/nbody.h"
+#include <compute/functions.h>
 GUI *screen;
+
 
 int compute() {
 
-	size_t point_count = 3000;
+	size_t point_count = 50000;
 
 	Eigen::MatrixXf velocities;
 
 	PlotData* gl_data = screen->plot_data;
-	generate_randn_points(gl_data->p_vertices, point_count);
-	generate_points(gl_data->p_colors, point_count, Eigen::Vector3f (0.0f, 1.0f, 0.0f));
-	generate_rand_points(velocities, point_count);
+	generate(func3::hat, func1::uniform, gl_data->p_vertices, point_count, 5);
+	set({0.0f, 1.0f, 0.0f}, gl_data->p_colors, point_count);
+
+	// nbody code
+	// generate_points(gl_data->p_colors, point_count, Eigen::Vector3f (0.0f, 1.0f, 0.0f));
+	// generate_rand_points(velocities, point_count);
 
 	gl_data->updated();
 
 	/* work until main window is open */
 	while (screen->getVisible()) {
 
-		nbody::calculate_forces(gl_data->p_vertices, velocities);
-		gl_data->updated();
+		// nbody::calculate_forces(gl_data->p_vertices, velocities);
+		// gl_data->updated();
 		usleep(10000);
 	}
 

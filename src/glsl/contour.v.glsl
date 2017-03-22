@@ -15,7 +15,7 @@ out vec4 frag_color;
 void main() {
 
 	gl_Position = mvp * vec4 (position, 1.0 );
-	gl_PointSize = 40;
-	frag_color = vec4(color, 0.01f);
+	gl_PointSize = 4;
+	frag_color = vec4(color, 0.05f);
 
 }

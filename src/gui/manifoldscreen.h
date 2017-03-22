@@ -56,9 +56,9 @@ class GUI : public nanogui::Screen {
 
 		window->setLayout ( gridlayout );
 
-		plots.push_back(new Plot ( window, "forward", {400, 400}, 0, plot_data, true, mGLFWWindow, mNVGContext, 60.0f, {0.0f, 0.0f, 5.0f}, {0.0f, 0.0f, 0.0f}));
+		plots.push_back(new Plot ( window, "forward", {400, 400}, 0, plot_data, true, mGLFWWindow, mNVGContext, 75.0f, {0.0f, 0.0f, 8.0f}, {0.0f, 0.0f, 0.0f}));
 		plots.push_back(new Plot ( window, "top frustum", {400, 400}, 1, plot_data, false, nullptr, mNVGContext, 40.0f, {0.0f, 35.0f, 0.0f}, {0.0f, 0.0f, -M_PI / 4.0f}));
-		plots.push_back(new Plot ( window, "right frustum", {400, 400}, 2, plot_data, false, nullptr, mNVGContext, 60.0f, {30.0f, 0.0f, 0.0f}, {0.0f, M_PI / 4.0f, 0.0f}));
+		plots.push_back(new Plot ( window, "back frustum", {400, 400}, 4, plot_data, false, nullptr, mNVGContext, 60.0f, {0.0f, 0.0f, -15.0f}, { 0.0f, -M_PI / 2.0f, 0.0f}));
 		plots.push_back(new Plot ( window, "top ortho", {400, 400}, 3, plot_data, false, nullptr, mNVGContext, 60.0f, {0.0f, 11.0f, 0.0f}, {0.0f, 0.0f, -M_PI / 4.0f}, true));
 		plots.push_back(new Plot ( window, "back ortho", {400, 400}, 4, plot_data, false, nullptr, mNVGContext, 60.0f, {0.0f, 0.0f, -15.0f}, { 0.0f, -M_PI / 2.0f, 0.0f}, true));
 		plots.push_back(new Plot ( window, "left ortho", {400, 400}, 5, plot_data, false, nullptr, mNVGContext, 60.0f, { -15.0f, 0.0f, 0.0f}, {0.0f, -M_PI / 4.0f, 0.0f}, true));
