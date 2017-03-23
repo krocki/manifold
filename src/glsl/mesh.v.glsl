@@ -1,9 +1,11 @@
 #version 330
 
 uniform mat4 mvp;
-in vec3 position;
 in vec3 color;
-out vec4 frag_color;
+in vec3 position;
+out vec3 out_v_color;
+in vec3 texcoords;
+out vec2 uv;
 
 /*
 * @Author: Kamil Rocki
@@ -14,7 +16,8 @@ out vec4 frag_color;
 
 void main() {
 
-	gl_Position = mvp * vec4 (position, 1.0 );
-	gl_PointSize = 3;
-	frag_color = vec4(color, 0.2);
+	gl_Position = mvp * vec4 ( position, 1.0 );
+	out_v_color = color;
+	uv = texcoords.xy;
+
 }

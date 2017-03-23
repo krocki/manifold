@@ -2,7 +2,7 @@
 * @Author: Kamil Rocki
 * @Date:   2017-02-28 11:25:34
 * @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-03-23 14:34:47
+* @Last Modified time: 2017-03-23 14:34:53
 */
 
 #include <thread>
@@ -13,32 +13,27 @@
 
 //GUI
 #include "gui/fplotscreen.h"
-#include "compute/nbody.h"
 #include <compute/functions.h>
 GUI *screen;
 
 
 int compute() {
 
-	size_t point_count = 5000;
+	size_t point_count = 50000;
 
 	Eigen::MatrixXf velocities;
 
 	PlotData* gl_data = screen->plot_data;
-	// generate(func3::hat, func1::uniform, gl_data->p_vertices, point_count, 5);
+	generate(func3::hat, func1::uniform, gl_data->p_vertices, point_count, 5);
 	set({0.0f, 1.0f, 0.0f}, gl_data->p_colors, point_count);
-
-	// nbody code
-	generate(func3::normal, func1::normal, gl_data->p_vertices, point_count, 2);
-	generate(func3::uniform, func1::uniform, velocities, point_count, 1);
 
 	gl_data->updated();
 
 	/* work until main window is open */
 	while (screen->getVisible()) {
 
-		nbody::calculate_forces(gl_data->p_vertices, velocities);
-		gl_data->updated();
+		usleep(1000);
+		//gl_data->updated();
 
 	}
 

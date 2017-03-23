@@ -2,7 +2,7 @@
 * @Author: kmrocki@us.ibm.com
 * @Date:   2017-03-20 10:09:39
 * @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-03-22 00:11:01
+* @Last Modified time: 2017-03-23 13:50:53
 */
 
 #ifndef __GLPLOT_H__
@@ -13,6 +13,8 @@
 #include <nanogui/glcanvas.h>
 #include <nanogui/label.h>
 #include <gui/gldata.h>
+// nvgCreateImageA
+#include <gl/tex.h>
 
 #define POINT_SHADER_NAME "point_shader"
 #define POINT_FRAG_FILE "./src/glsl/surf_point.f.glsl"
@@ -30,6 +32,11 @@
 #define CAM_FRAG_FILE "./src/glsl/cam.f.glsl"
 #define CAM_GEOM_FILE "./src/glsl/cam.g.glsl"
 #define CAM_VERT_FILE "./src/glsl/cam.v.glsl"
+
+#define MESH_SHADER_NAME "mesh_shader"
+#define MESH_FRAG_FILE "./src/glsl/mesh.f.glsl"
+#define MESH_GEOM_FILE "./src/glsl/mesh.g.glsl"
+#define MESH_VERT_FILE "./src/glsl/mesh.v.glsl"
 
 #define BOX_SHADER_NAME "box_shader"
 #define BOX_FRAG_FILE "./src/glsl/surf_box.f.glsl"
@@ -70,7 +77,7 @@ class Plot : public nanogui::GLCanvas {
 
 	void init_shaders() {
 
-		if (ortho) {
+		if (index > -1) {
 
 			m_pointShader = new nanogui::GLShader();
 			m_pointShader->initFromFiles ( CONTOUR_SHADER_NAME, CONTOUR_VERT_FILE, CONTOUR_FRAG_FILE );
@@ -84,6 +91,13 @@ class Plot : public nanogui::GLCanvas {
 
 		m_cubeShader = new nanogui::GLShader();
 		m_cubeShader->initFromFiles ( BOX_SHADER_NAME, BOX_VERT_FILE, BOX_FRAG_FILE );
+
+		Eigen::Matrix<unsigned char, Eigen::Dynamic, Eigen::Dynamic> rgba_image = Eigen::Matrix<unsigned char, Eigen::Dynamic, Eigen::Dynamic>::Random(512, 512);
+		// textures.emplace_back ( std::pair<int, std::string> ( nvgCreateImageA ( vg, 512, 512, NVG_IMAGE_GENERATE_MIPMAPS, ( unsigned char * ) rgba_image.data() ), "" ) );
+		textures.emplace_back ( std::pair<int, std::string> ( nvgCreateImageA ( vg,  512, 512, NVG_IMAGE_NEAREST, ( unsigned char * ) rgba_image.data() ), "" ) );
+
+		m_meshShader = new nanogui::GLShader();
+		m_meshShader->initFromFiles ( MESH_SHADER_NAME, MESH_VERT_FILE, MESH_FRAG_FILE, MESH_GEOM_FILE );
 
 		m_camShader = new nanogui::GLShader();
 		m_camShader->initFromFiles ( CAM_SHADER_NAME, CAM_VERT_FILE, CAM_FRAG_FILE, CAM_GEOM_FILE );
@@ -180,12 +194,19 @@ class Plot : public nanogui::GLCanvas {
 				m_pointShader->bind();
 				m_pointShader->uploadAttrib("position", data->p_vertices);
 				m_pointShader->uploadAttrib("color", data->p_colors);
+
 			}
 
 			m_cubeShader->bind();
 			m_cubeShader->uploadIndices ( data->c_indices );
 			m_cubeShader->uploadAttrib("position", data->c_vertices);
 			m_cubeShader->uploadAttrib("color", data->c_colors);
+
+			m_meshShader->bind();
+			m_meshShader->uploadIndices ( data->m_indices );
+			m_meshShader->uploadAttrib("position", data->m_vertices);
+			m_meshShader->uploadAttrib("color", data->m_colors);
+			m_meshShader->uploadAttrib("texcoords", data->m_texcoords );
 
 			local_data_checksum = data->checksum;
 
@@ -269,6 +290,13 @@ class Plot : public nanogui::GLCanvas {
 
 		/* Render */
 
+		// m_meshShader->bind();
+		// glActiveTexture ( GL_TEXTURE0 );
+		// glBindTexture ( GL_TEXTURE_2D, (textures [0] ).first );
+
+		// m_meshShader->setUniform("mvp", mvp);
+		// m_meshShader->drawIndexed ( GL_TRIANGLES, 0, data->m_indices.cols() );
+
 		glDisable ( GL_DEPTH_TEST );
 		glEnable ( GL_BLEND );
 		glBlendFunc ( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
@@ -282,8 +310,13 @@ class Plot : public nanogui::GLCanvas {
 		m_camShader->drawArray(GL_LINES, 0, data->e_vertices.cols());
 
 		glEnable ( GL_PROGRAM_POINT_SIZE );
+
 		m_pointShader->bind();
 		m_pointShader->setUniform("mvp", mvp);
+		m_pointShader->setUniform("model", model);
+		m_pointShader->setUniform("view", view);
+		m_pointShader->setUniform("proj", proj);
+		m_pointShader->setUniform("tic", tic);
 
 		if (index != 0 && master_pointShader) {
 
@@ -292,6 +325,7 @@ class Plot : public nanogui::GLCanvas {
 
 		}
 
+		glBindFramebuffer(GL_FRAMEBUFFER, (textures [0] ).first);
 		m_pointShader->drawArray(GL_POINTS, 0, data->p_vertices.cols());
 
 		glDisable ( GL_PROGRAM_POINT_SIZE );
@@ -370,11 +404,14 @@ class Plot : public nanogui::GLCanvas {
 		delete m_pointShader;
 		delete m_cubeShader;
 		delete m_camShader;
+		delete m_meshShader;
 
 	}
 
 	//data
 	PlotData *data;
+
+	std::vector<std::pair<int, std::string>> textures;
 
 	size_t local_data_checksum = 0;
 
@@ -383,6 +420,7 @@ class Plot : public nanogui::GLCanvas {
 	NVGcontext *vg = nullptr;
 
 	// shaders
+	nanogui::GLShader *m_meshShader = nullptr;
 	nanogui::GLShader *m_pointShader = nullptr;
 	nanogui::GLShader *m_cubeShader = nullptr;
 	nanogui::GLShader *m_camShader = nullptr;

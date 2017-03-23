@@ -2,6 +2,8 @@
 
 in vec3 out_g_color;
 out vec4 out_color;
+uniform sampler2D image;
+in vec2 out_g_tex;
 
 /*
 * @Author: Kamil Rocki
@@ -12,6 +14,8 @@ out vec4 out_color;
 
 void main() {
 
-	out_color = vec4(out_g_color, 1.0);
+	vec4 col = texture ( image, out_g_tex );
+	// out_color = vec4(out_g_color, 0.5f);
+	out_color = col;
 
 }

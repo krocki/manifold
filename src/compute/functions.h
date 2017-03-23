@@ -42,6 +42,18 @@ float hat ( float x, float y ) {
 
 }
 
+float normal ( float x, float y ) {
+
+	return func1::normal(1);
+
+}
+
+float uniform ( float x, float y ) {
+
+	return func1::uniform(1);
+
+}
+
 }
 
 template <class Function, class Sampler>

@@ -2,7 +2,7 @@
 * @Author: Kamil Rocki
 * @Date:   2017-02-28 11:25:34
 * @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-03-22 12:25:49
+* @Last Modified time: 2017-03-23 14:33:16
 */
 
 #include <thread>
@@ -13,7 +13,6 @@
 
 //GUI
 #include "gui/manifoldscreen.h"
-// #include "compute/nbody.h"
 #include <compute/functions.h>
 GUI *screen;
 
@@ -28,18 +27,14 @@ int compute() {
 	generate(func3::hat, func1::uniform, gl_data->p_vertices, point_count, 5);
 	set({0.0f, 1.0f, 0.0f}, gl_data->p_colors, point_count);
 
-	// nbody code
-	// generate_points(gl_data->p_colors, point_count, Eigen::Vector3f (0.0f, 1.0f, 0.0f));
-	// generate_rand_points(velocities, point_count);
-
 	gl_data->updated();
 
 	/* work until main window is open */
 	while (screen->getVisible()) {
 
-		// nbody::calculate_forces(gl_data->p_vertices, velocities);
-		// gl_data->updated();
-		usleep(10000);
+		usleep(1000);
+		//gl_data->updated();
+
 	}
 
 	return 0;
