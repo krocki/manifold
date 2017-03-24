@@ -1,8 +1,8 @@
 /*
 * @Author: kmrocki@us.ibm.com
 * @Date:   2017-03-20 10:11:47
-* @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-03-23 15:56:03
+* @Last Modified by:   Kamil M Rocki
+* @Last Modified time: 2017-03-23 22:48:10
 */
 
 #ifndef __PLOTDATA_H__
@@ -13,7 +13,7 @@
 
 class PlotData {
 
-  public:
+public:
 
 	PlotData() {};
 	~PlotData() {};
@@ -33,7 +33,7 @@ class PlotData {
 
 };
 
-void generate_cube(Eigen::Matrix<uint32_t, Eigen::Dynamic, Eigen::Dynamic>& indices, Eigen::MatrixXf& positions, Eigen::MatrixXf& colors, Eigen::Vector3f t, float r = 1.0f, Eigen::Vector3f color = Eigen::Vector3f(1.0f, 1.0f, 1.0f)) {
+void generate_cube(Eigen::Matrix<uint32_t, Eigen::Dynamic, Eigen::Dynamic>& indices, Eigen::MatrixXf& positions, Eigen::MatrixXf& colors, Eigen::Vector3f t, float r = 1.0f, Eigen::Vector3f color = Eigen::Vector3f(0.2f, 0.2f, 0.2f)) {
 
 	indices.resize ( 2, 12 );
 	positions.resize ( 3, 8 );

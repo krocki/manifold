@@ -30,7 +30,7 @@
 
 class GUI : public nanogui::Screen {
 
-  public:
+public:
 
 	GUI ( ) :
 
@@ -118,7 +118,10 @@ class GUI : public nanogui::Screen {
 
 	virtual bool resizeEvent ( const Eigen::Vector2i &size ) {
 
-		UNUSED ( size );
+		for (int i = 0; i < (size_t) plots.size(); i++) {
+			plots[i]->setSize({size[0] / 3 - 10, size[0] / 3 - 10});
+		}
+
 		performLayout();
 
 		return true;

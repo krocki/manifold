@@ -12,7 +12,7 @@
 
 // app-specific GUI code
 #include <gui/gldata.h>
-#include <gui/glplot.h>
+#include <gui/glmanifold.h>
 #include <gui/glplothelper.h>
 
 #define DEF_WIDTH 900
@@ -33,7 +33,7 @@
 
 class GUI : public nanogui::Screen {
 
-  public:
+public:
 
 	GUI ( ) :
 
@@ -51,7 +51,7 @@ class GUI : public nanogui::Screen {
 
 		float box_size = 10.0f;
 
-		generate_cube(plot_data->c_indices, plot_data->c_vertices, plot_data->c_colors, {0, 0, 0}, box_size, {0.5f, 0.5f, 0.5f});
+		generate_cube(plot_data->c_indices, plot_data->c_vertices, plot_data->c_colors, {0, 0, 0}, box_size, {0.2f, 0.2f, 0.2f});
 		generate_mesh(plot_data->m_indices, plot_data->m_vertices, plot_data->m_texcoords, plot_data->m_colors, {0, 0, -box_size}, box_size * 2);
 
 		plot_data->updated();
@@ -60,9 +60,9 @@ class GUI : public nanogui::Screen {
 		root = new nanogui::Window ( this, "" );
 		root->setLayout ( new nanogui::VGroupLayout(5) );
 
-		plots.push_back(new Plot ( root, "forward", {DEF_WIDTH / 2, DEF_WIDTH / 2}, 0, plot_data, false, mGLFWWindow, mNVGContext, 75.0f, {0.0f, 0.0f, 11.0f}, {0.0f, 0.0f, 0.0f}));
-		plots.push_back(new Plot ( root, "top frustum", {DEF_WIDTH / 2, DEF_WIDTH / 2}, 1, plot_data, false, nullptr, mNVGContext, 40.0f, {0.0f, 30.0f, 0.0f}, {0.0f, 0.0f, -M_PI / 4.0f}));
-
+		plots.push_back(new Plot ( root, "forward", {DEF_WIDTH / 3, DEF_WIDTH / 3}, 0, plot_data, false, mGLFWWindow, mNVGContext, 75.0f, {0.0f, 0.0f, 11.0f}, {0.0f, 0.0f, 0.0f}));
+		plots.push_back(new Plot ( root, "top frustum", {DEF_WIDTH / 3, DEF_WIDTH / 3}, 1, plot_data, false, nullptr, mNVGContext, 40.0f, {0.0f, 30.0f, 0.0f}, {0.0f, 0.0f, -M_PI / 4.0f}));
+		plots.push_back(new Plot ( root, "front ortho", {DEF_WIDTH / 3, DEF_WIDTH / 3}, 2, plot_data, false, nullptr, mNVGContext, 40.0f, {0.0f, 0.0f, 11.0f}, {0.0f, 0.0f, 0.0f}, true));
 		plot_helper = new PlotHelper ( this, "" );
 		plot_helper->setLayout ( new nanogui::GroupLayout ( 15, 0, 0, 0 ) );
 
@@ -73,6 +73,7 @@ class GUI : public nanogui::Screen {
 
 		plot_data->e_colors.col(0) << 1, 0, 0; plot_data->e_colors.col(1) << 1, 0, 0;
 		plot_data->e_colors.col(2) << 0, 1, 0; plot_data->e_colors.col(3) << 0, 1, 0;
+		plot_data->e_colors.col(4) << 0, 0, 1; plot_data->e_colors.col(5) << 0, 0, 1;
 
 		// share shader data
 		for (int i = 0; i < number_of_cameras; i++) {
@@ -123,7 +124,7 @@ class GUI : public nanogui::Screen {
 
 		// 8 because of VGroupLayout(5) spacing
 		for (int i = 0; i < (size_t) plots.size(); i++) {
-			plots[i]->setSize({size[0] / 2 - 8, size[0] / 2 - 8});
+			plots[i]->setSize({size[0] / 3 - 8, size[0] / 3 - 8});
 		}
 
 		performLayout();

@@ -428,10 +428,10 @@ void main() {
 	gl_PointSize = 20 / (1.0 + length(view_pos));
 
 	gl_PointSize = max(1.0, gl_PointSize);
-	vec4 cmap = vec4(color, 0.1);
+	// vec4 cmap = vec4(color, 0.5);
 	// vec4 cmap = vec4(0, 0.02, 0, 0.1f);
 
-	frag_color = vec4(cmap.xyz, 0.1f);
+	// frag_color = vec4(cmap.xyz, 0.5f);
 
 	// if (position.z < t_abs + 0.05f && position.z > t_abs - 0.05f) {
 	// 	// cmap = colormap(position.z / 10 + 0.5);
@@ -443,7 +443,7 @@ void main() {
 
 	if (-view_pos.z < t_dist + 0.1f && -view_pos.z > t_dist - 0.1f) {
 		// cmap = colormap(-view_pos.z / 50);
-		frag_color = vec4(0.1 * cmap.xyz, 0.1f);
+		frag_color += 10*vec4(color, 1f);
 		// gl_Position = proj * view_pos;
 
 	}

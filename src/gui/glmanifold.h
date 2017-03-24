@@ -2,7 +2,7 @@
 * @Author: kmrocki@us.ibm.com
 * @Date:   2017-03-20 10:09:39
 * @Last Modified by:   Kamil M Rocki
-* @Last Modified time: 2017-03-23 21:23:10
+* @Last Modified time: 2017-03-23 22:31:41
 */
 
 #ifndef __GLPLOT_H__
@@ -40,6 +40,7 @@
 
 #define BOX_SHADER_NAME "box_shader"
 #define BOX_FRAG_FILE "./src/glsl/surf_box.f.glsl"
+#define BOX_GEOM_FILE "./src/glsl/surf_box.g.glsl"
 #define BOX_VERT_FILE "./src/glsl/surf_box.v.glsl"
 
 #define GRID_SHADER_NAME "grid_shader"
@@ -81,20 +82,12 @@ public:
 
 	void init_shaders() {
 
-		if (index > -1) {
+		m_pointShader = new nanogui::GLShader();
+		m_pointShader->initFromFiles ( POINT_SHADER_NAME, POINT_VERT_FILE, POINT_FRAG_FILE );
 
-			m_pointShader = new nanogui::GLShader();
-			m_pointShader->initFromFiles ( CONTOUR_SHADER_NAME, CONTOUR_VERT_FILE, CONTOUR_FRAG_FILE );
-
-		} else {
-
-			m_pointShader = new nanogui::GLShader();
-			m_pointShader->initFromFiles ( POINT_SHADER_NAME, POINT_VERT_FILE, POINT_FRAG_FILE );
-
-		}
 
 		m_cubeShader = new nanogui::GLShader();
-		m_cubeShader->initFromFiles ( BOX_SHADER_NAME, BOX_VERT_FILE, BOX_FRAG_FILE );
+		m_cubeShader->initFromFiles ( BOX_SHADER_NAME, BOX_VERT_FILE, BOX_FRAG_FILE, BOX_GEOM_FILE );
 
 		m_gridShader = new nanogui::GLShader();
 		m_gridShader->initFromFiles ( GRID_SHADER_NAME, GRID_VERT_FILE, GRID_FRAG_FILE );
@@ -324,10 +317,10 @@ public:
 
 		m_pointShader->bind();
 		m_pointShader->setUniform("mvp", mvp);
-		m_pointShader->setUniform("model", model);
-		m_pointShader->setUniform("view", view);
-		m_pointShader->setUniform("proj", proj);
-		m_pointShader->setUniform("tic", tic);
+		// m_pointShader->setUniform("model", model);
+		// m_pointShader->setUniform("view", view);
+		// m_pointShader->setUniform("proj", proj);
+		// m_pointShader->setUniform("tic", tic);
 
 		if (index != 0 && master_pointShader) {
 
