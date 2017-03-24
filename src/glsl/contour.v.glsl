@@ -443,7 +443,7 @@ void main() {
 
 	if (-view_pos.z < t_dist + 0.1f && -view_pos.z > t_dist - 0.1f) {
 		// cmap = colormap(-view_pos.z / 50);
-		frag_color += 10*vec4(color, 1f);
+		frag_color += 10*vec4(color, 1.0f);
 		// gl_Position = proj * view_pos;
 
 	}
