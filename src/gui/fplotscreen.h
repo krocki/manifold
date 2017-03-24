@@ -30,7 +30,7 @@
 
 class GUI : public nanogui::Screen {
 
-public:
+  public:
 
 	GUI ( ) :
 
@@ -46,7 +46,7 @@ public:
 		// init data
 		plot_data = new PlotData();
 		float box_size = 10.0f;
-		generate_cube(plot_data->c_indices, plot_data->c_vertices, plot_data->c_colors, {0, 0, 0}, box_size, {0.5f, 0.5f, 0.5f});
+		generate_cube(plot_data->c_indices, plot_data->c_vertices, plot_data->c_colors, {0, 0, 0}, box_size, {0.3f, 0.3f, 0.3f});
 		generate_mesh(plot_data->m_indices, plot_data->m_vertices, plot_data->m_texcoords, plot_data->m_colors, {0, 0, -box_size}, box_size * 2);
 		plot_data->updated();
 

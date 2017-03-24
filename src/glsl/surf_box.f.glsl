@@ -2,6 +2,7 @@
 
 out vec4 out_color;
 in vec4 fcolor;
+in vec4 gcolor;
 
 /*
 * @Author: Kamil Rocki
