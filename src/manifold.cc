@@ -2,7 +2,7 @@
 * @Author: Kamil Rocki
 * @Date:   2017-02-28 11:25:34
 * @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-03-23 14:33:16
+* @Last Modified time: 2017-03-23 16:32:04
 */
 
 #include <thread>
@@ -16,17 +16,9 @@
 #include <compute/functions.h>
 GUI *screen;
 
-
 int compute() {
 
-	size_t point_count = 50000;
-
-	Eigen::MatrixXf velocities;
-
 	PlotData* gl_data = screen->plot_data;
-	generate(func3::hat, func1::uniform, gl_data->p_vertices, point_count, 5);
-	set({0.0f, 1.0f, 0.0f}, gl_data->p_colors, point_count);
-
 	gl_data->updated();
 
 	/* work until main window is open */

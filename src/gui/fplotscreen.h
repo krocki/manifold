@@ -14,7 +14,7 @@
 
 #define DEF_WIDTH 1300
 #define DEF_HEIGHT 900
-#define SCREEN_NAME "Manifold"
+#define SCREEN_NAME "Fplot"
 #define RESIZABLE true
 #define FULLSCREEN false
 #define COLOR_BITS 8

@@ -419,7 +419,7 @@ void main() {
 	float t_dist = (fract(tic / 200)) * 100;
 	float t_abs = (fract(tic / 10) - 0.5f) * 10;
 	// float t_abs2 = (fract(tic / 10) - 0.5f) * 10;
-
+	mat4 m = model;
 	gl_Position = mvp * vec4 (position, 1.0 );
 	vec4 view_pos = view * vec4 (position, 1.0 );
 

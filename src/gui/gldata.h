@@ -2,7 +2,7 @@
 * @Author: kmrocki@us.ibm.com
 * @Date:   2017-03-20 10:11:47
 * @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-03-23 13:19:52
+* @Last Modified time: 2017-03-23 15:56:03
 */
 
 #ifndef __PLOTDATA_H__
@@ -102,7 +102,7 @@ void generate_mesh(Eigen::Matrix<uint32_t, Eigen::Dynamic, Eigen::Dynamic>& indi
 	for (int l = 0; l < j + 1; l++) {
 		for (int k = 0; k < i + 1; k++) {
 
-			colors.col ( k + (i + 1) * l ) << rand_float(0, 1),  float(r * l) / float(j + 1),  float(i) / float(j);
+			colors.col ( k + (i + 1) * l ) = color;
 
 		}
 	}

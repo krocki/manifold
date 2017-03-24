@@ -3,6 +3,8 @@
 
 #include <nanogui/screen.h>
 #include <nanogui/glutil.h>
+#include <nanogui/serializer/core.h>
+#include <nanogui/serializer/opengl.h>
 
 // helpers
 #include <utils.h>
@@ -11,9 +13,10 @@
 // app-specific GUI code
 #include <gui/gldata.h>
 #include <gui/glplot.h>
+#include <gui/glplothelper.h>
 
-#define DEF_WIDTH 1300
-#define DEF_HEIGHT 900
+#define DEF_WIDTH 900
+#define DEF_HEIGHT 500
 #define SCREEN_NAME "Manifold"
 #define RESIZABLE true
 #define FULLSCREEN false
@@ -45,36 +48,31 @@ class GUI : public nanogui::Screen {
 
 		// init data
 		plot_data = new PlotData();
+
 		float box_size = 10.0f;
+
 		generate_cube(plot_data->c_indices, plot_data->c_vertices, plot_data->c_colors, {0, 0, 0}, box_size, {0.5f, 0.5f, 0.5f});
 		generate_mesh(plot_data->m_indices, plot_data->m_vertices, plot_data->m_texcoords, plot_data->m_colors, {0, 0, -box_size}, box_size * 2);
+
 		plot_data->updated();
 
 		// gui elements
-		nanogui::Window *window = new nanogui::Window ( this, "" );
-		nanogui::GridLayout *gridlayout = new nanogui::GridLayout ( nanogui::Orientation::Horizontal, 3, nanogui::Alignment::Middle, 2, 2 );
-		gridlayout->setColAlignment ( { nanogui::Alignment::Maximum, nanogui::Alignment::Fill });
-		gridlayout->setSpacing ( 0, 5 );
+		root = new nanogui::Window ( this, "" );
+		root->setLayout ( new nanogui::VGroupLayout(5) );
 
-		window->setLayout ( gridlayout );
+		plots.push_back(new Plot ( root, "forward", {DEF_WIDTH / 2, DEF_WIDTH / 2}, 0, plot_data, false, mGLFWWindow, mNVGContext, 75.0f, {0.0f, 0.0f, 11.0f}, {0.0f, 0.0f, 0.0f}));
+		plots.push_back(new Plot ( root, "top frustum", {DEF_WIDTH / 2, DEF_WIDTH / 2}, 1, plot_data, false, nullptr, mNVGContext, 40.0f, {0.0f, 30.0f, 0.0f}, {0.0f, 0.0f, -M_PI / 4.0f}));
 
-		plots.push_back(new Plot ( window, "forward", {400, 400}, 0, plot_data, true, mGLFWWindow, mNVGContext, 75.0f, {0.0f, 0.0f, 8.0f}, {0.0f, 0.0f, 0.0f}));
-		plots.push_back(new Plot ( window, "top frustum", {400, 400}, 1, plot_data, false, nullptr, mNVGContext, 40.0f, {0.0f, 35.0f, 0.0f}, {0.0f, 0.0f, -M_PI / 4.0f}));
-		plots.push_back(new Plot ( window, "back frustum", {400, 400}, 2, plot_data, false, nullptr, mNVGContext, 60.0f, {0.0f, 0.0f, -15.0f}, { 0.0f, -M_PI / 2.0f, 0.0f}));
-		plots.push_back(new Plot ( window, "top ortho", {400, 400}, 3, plot_data, false, nullptr, mNVGContext, 60.0f, {0.0f, 11.0f, 0.0f}, {0.0f, 0.0f, -M_PI / 4.0f}, true));
-		plots.push_back(new Plot ( window, "back ortho", {400, 400}, 4, plot_data, false, nullptr, mNVGContext, 60.0f, {0.0f, 0.0f, -15.0f}, { 0.0f, -M_PI / 2.0f, 0.0f}, true));
-		plots.push_back(new Plot ( window, "left ortho", {400, 400}, 5, plot_data, false, nullptr, mNVGContext, 60.0f, { -15.0f, 0.0f, 0.0f}, {0.0f, -M_PI / 4.0f, 0.0f}, true));
+		plot_helper = new PlotHelper ( this, "" );
+		plot_helper->setLayout ( new nanogui::GroupLayout ( 15, 0, 0, 0 ) );
 
 		int number_of_cameras = plots.size();
+
 		plot_data->e_vertices.resize(3, 2 * number_of_cameras);
 		plot_data->e_colors.resize(3, 2 * number_of_cameras);
 
 		plot_data->e_colors.col(0) << 1, 0, 0; plot_data->e_colors.col(1) << 1, 0, 0;
 		plot_data->e_colors.col(2) << 0, 1, 0; plot_data->e_colors.col(3) << 0, 1, 0;
-		plot_data->e_colors.col(4) << 0, 0, 1; plot_data->e_colors.col(5) << 0, 0, 1;
-		plot_data->e_colors.col(6) << 0.5, 0.5, 0; plot_data->e_colors.col(7) << 0.5, 0.5, 0;
-		plot_data->e_colors.col(8) << 0.0, 0.5, 0.5; plot_data->e_colors.col(9) << 0.0, 0.5, 0.5;
-		plot_data->e_colors.col(10) << 0.5, 0.0, 0.5; plot_data->e_colors.col(11) << 0.5, 0.0, 0.5;
 
 		// share shader data
 		for (int i = 0; i < number_of_cameras; i++) {
@@ -88,6 +86,11 @@ class GUI : public nanogui::Screen {
 		setVisible ( true );
 
 		performLayout();
+
+		resizeEvent ( {DEF_WIDTH, DEF_HEIGHT} );
+
+		// nanogui::Serializer* s = new nanogui::Serializer("file.txt", true);
+		// root->save(*s);
 
 	}
 
@@ -118,7 +121,17 @@ class GUI : public nanogui::Screen {
 
 	virtual bool resizeEvent ( const Eigen::Vector2i &size ) {
 
-		UNUSED ( size );
+		// 8 because of VGroupLayout(5) spacing
+		for (int i = 0; i < (size_t) plots.size(); i++) {
+			plots[i]->setSize({size[0] / 2 - 8, size[0] / 2 - 8});
+		}
+
+		performLayout();
+
+		plot_helper->setFixedSize({root->size()[0] - 1, size[1] - root->size()[1] - 1});
+		plot_helper->setPosition({1, root->size()[1]});
+
+		// needs to be called 2nd time
 		performLayout();
 
 		return true;
@@ -129,7 +142,8 @@ class GUI : public nanogui::Screen {
 
 	std::vector<Plot*> plots;
 	PlotData *plot_data;
-
+	PlotHelper *plot_helper;
+	nanogui::Window *root;
 };
 
 #endif
