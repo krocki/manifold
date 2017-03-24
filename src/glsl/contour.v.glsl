@@ -416,7 +416,7 @@ vec4 colormap(float x) {
 
 void main() {
 
-	float t_dist = (fract(tic / 200)) * 100;
+	float t_dist = (fract(tic / 20)) * 50;
 	float t_abs = (fract(tic / 10) - 0.5f) * 10;
 	// float t_abs2 = (fract(tic / 10) - 0.5f) * 10;
 	mat4 m = model;
@@ -424,26 +424,27 @@ void main() {
 	vec4 view_pos = view * vec4 (position, 1.0 );
 
 	frag_color = vec4(color, 1);
-	gl_PointSize = 3;
 
-	// vec4 cmap = colormap(position.z / 10 + 0.5);
-	vec4 cmap = vec4(0, 1, 0, 0.1f);
+	gl_PointSize = 20 / (1.0 + length(view_pos));
 
-	frag_color = vec4(cmap.xyz, 0.2f);
+	gl_PointSize = max(1.0, gl_PointSize);
+	vec4 cmap = vec4(color, 0.1);
+	// vec4 cmap = vec4(0, 0.02, 0, 0.1f);
 
-	if (position.z < t_abs + 0.05f && position.z > t_abs - 0.05f) {
-		// cmap = colormap(position.z / 10 + 0.5);
-		frag_color += vec4(0.4, 0.4, 0.4, 0.2f);
-		vec4 v = view * vec4(position.x, position.y, 10, 1);
-		gl_Position = proj * v;
-		gl_PointSize = 3;
-	}
+	frag_color = vec4(cmap.xyz, 0.1f);
+
+	// if (position.z < t_abs + 0.05f && position.z > t_abs - 0.05f) {
+	// 	// cmap = colormap(position.z / 10 + 0.5);
+	// 	frag_color += vec4(0.4, 0.4, 0.4, 0.2f);
+	// 	vec4 v = view * vec4(position.x, position.y, 10, 1);
+	// 	gl_Position = proj * v;
+	// 	gl_PointSize = 3;
+	// }
 
 	if (-view_pos.z < t_dist + 0.1f && -view_pos.z > t_dist - 0.1f) {
 		// cmap = colormap(-view_pos.z / 50);
-		frag_color += vec4(0.7, 0.4, 0.4, 0.2f);
-		gl_Position = proj * view_pos;
-		gl_PointSize = 4;
+		frag_color = vec4(0.1 * cmap.xyz, 0.1f);
+		// gl_Position = proj * view_pos;
 
 	}
 

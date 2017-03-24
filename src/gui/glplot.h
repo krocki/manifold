@@ -2,7 +2,7 @@
 * @Author: kmrocki@us.ibm.com
 * @Date:   2017-03-20 10:09:39
 * @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-03-23 13:50:53
+* @Last Modified time: 2017-03-23 19:47:11
 */
 
 #ifndef __GLPLOT_H__
@@ -41,6 +41,10 @@
 #define BOX_SHADER_NAME "box_shader"
 #define BOX_FRAG_FILE "./src/glsl/surf_box.f.glsl"
 #define BOX_VERT_FILE "./src/glsl/surf_box.v.glsl"
+
+#define GRID_SHADER_NAME "grid_shader"
+#define GRID_FRAG_FILE "./src/glsl/surf_grid.f.glsl"
+#define GRID_VERT_FILE "./src/glsl/surf_grid.v.glsl"
 
 class Plot : public nanogui::GLCanvas {
 
@@ -92,9 +96,13 @@ class Plot : public nanogui::GLCanvas {
 		m_cubeShader = new nanogui::GLShader();
 		m_cubeShader->initFromFiles ( BOX_SHADER_NAME, BOX_VERT_FILE, BOX_FRAG_FILE );
 
-		Eigen::Matrix<unsigned char, Eigen::Dynamic, Eigen::Dynamic> rgba_image = Eigen::Matrix<unsigned char, Eigen::Dynamic, Eigen::Dynamic>::Random(512, 512);
+		m_gridShader = new nanogui::GLShader();
+		m_gridShader->initFromFiles ( GRID_SHADER_NAME, GRID_VERT_FILE, GRID_FRAG_FILE );
+
+		size_t tex_size = 64;
+		Eigen::Matrix<unsigned char, Eigen::Dynamic, Eigen::Dynamic> rgba_image = Eigen::Matrix<unsigned char, Eigen::Dynamic, Eigen::Dynamic>::Ones(tex_size, tex_size * 4) * 16;
 		// textures.emplace_back ( std::pair<int, std::string> ( nvgCreateImageA ( vg, 512, 512, NVG_IMAGE_GENERATE_MIPMAPS, ( unsigned char * ) rgba_image.data() ), "" ) );
-		textures.emplace_back ( std::pair<int, std::string> ( nvgCreateImageA ( vg,  512, 512, NVG_IMAGE_NEAREST, ( unsigned char * ) rgba_image.data() ), "" ) );
+		textures.emplace_back ( std::pair<int, std::string> ( nvgCreateImageRGBA ( vg,  tex_size, tex_size, NVG_IMAGE_NEAREST, ( unsigned char * ) rgba_image.data() ), "" ) );
 
 		m_meshShader = new nanogui::GLShader();
 		m_meshShader->initFromFiles ( MESH_SHADER_NAME, MESH_VERT_FILE, MESH_FRAG_FILE, MESH_GEOM_FILE );
@@ -290,16 +298,19 @@ class Plot : public nanogui::GLCanvas {
 
 		/* Render */
 
-		// m_meshShader->bind();
-		// glActiveTexture ( GL_TEXTURE0 );
-		// glBindTexture ( GL_TEXTURE_2D, (textures [0] ).first );
-
-		// m_meshShader->setUniform("mvp", mvp);
-		// m_meshShader->drawIndexed ( GL_TRIANGLES, 0, data->m_indices.cols() );
-
 		glDisable ( GL_DEPTH_TEST );
+		glBlendFunc ( GL_ONE, GL_ONE );
 		glEnable ( GL_BLEND );
-		glBlendFunc ( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
+
+		m_meshShader->bind();
+		glActiveTexture ( GL_TEXTURE0 );
+		glBindTexture ( GL_TEXTURE_2D, (textures [0] ).first );
+
+		m_meshShader->setUniform("mvp", mvp);
+		m_meshShader->drawIndexed ( GL_TRIANGLES, 0, data->m_indices.cols() );
+
+
+		// glBlendFunc ( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
 
 		m_cubeShader->bind();
 		m_cubeShader->setUniform("mvp", mvp);
@@ -405,6 +416,7 @@ class Plot : public nanogui::GLCanvas {
 		delete m_cubeShader;
 		delete m_camShader;
 		delete m_meshShader;
+		delete m_gridShader;
 
 	}
 
@@ -420,6 +432,7 @@ class Plot : public nanogui::GLCanvas {
 	NVGcontext *vg = nullptr;
 
 	// shaders
+	nanogui::GLShader *m_gridShader = nullptr;
 	nanogui::GLShader *m_meshShader = nullptr;
 	nanogui::GLShader *m_pointShader = nullptr;
 	nanogui::GLShader *m_cubeShader = nullptr;

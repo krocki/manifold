@@ -14,14 +14,14 @@ in vec2 tex;
 
 void main() {
 
-	vec2 uv = gl_PointCoord;
-	vec2 circ = 2.0 * uv.xy - 1.0;
-	float distance = dot ( circ, circ );
+	// vec2 uv = gl_PointCoord;
+	// vec2 circ = 2.0 * uv.xy - 1.0;
+	// float distance = dot ( circ, circ );
 
-	if ( distance > 1.0 )
-		discard;
+	// if ( distance > 1.0 )
+	// 	discard;
 
-	vec4 col = texture ( image, tex );
+	// vec4 col = texture ( image, tex );
 	// // if ( frag_color == vec3 ( 0.0 ) )
 	// // 	discard;
 
