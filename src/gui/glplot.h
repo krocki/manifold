@@ -1,8 +1,8 @@
 /*
 * @Author: kmrocki@us.ibm.com
 * @Date:   2017-03-20 10:09:39
-* @Last Modified by:   Kamil M Rocki
-* @Last Modified time: 2017-03-23 21:23:10
+* @Last Modified by:   kmrocki@us.ibm.com
+* @Last Modified time: 2017-03-24 13:29:06
 */
 
 #ifndef __GLPLOT_H__
@@ -40,6 +40,7 @@
 
 #define BOX_SHADER_NAME "box_shader"
 #define BOX_FRAG_FILE "./src/glsl/surf_box.f.glsl"
+#define BOX_GEOM_FILE "./src/glsl/surf_box.g.glsl"
 #define BOX_VERT_FILE "./src/glsl/surf_box.v.glsl"
 
 #define GRID_SHADER_NAME "grid_shader"
@@ -48,7 +49,7 @@
 
 class Plot : public nanogui::GLCanvas {
 
-public:
+  public:
 
 	Plot ( Widget *parent, std::string _caption, const Eigen::Vector2i &w_size, int i, PlotData *plot_data, bool transparent = false, GLFWwindow *w = nullptr, NVGcontext *nvg = nullptr, float _fovy = 67.0f, const Eigen::Vector3f _camera = Eigen::Vector3f(0.0f, 0.0f, 5.0f), const Eigen::Vector3f _rotation = Eigen::Vector3f(0.0f, 0.0f, 0.0f), bool _ortho = false) : nanogui::GLCanvas ( parent, transparent ) {
 
@@ -94,7 +95,7 @@ public:
 		}
 
 		m_cubeShader = new nanogui::GLShader();
-		m_cubeShader->initFromFiles ( BOX_SHADER_NAME, BOX_VERT_FILE, BOX_FRAG_FILE );
+		m_cubeShader->initFromFiles ( BOX_SHADER_NAME, BOX_VERT_FILE, BOX_FRAG_FILE, BOX_GEOM_FILE );
 
 		m_gridShader = new nanogui::GLShader();
 		m_gridShader->initFromFiles ( GRID_SHADER_NAME, GRID_VERT_FILE, GRID_FRAG_FILE );
