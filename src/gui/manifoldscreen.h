@@ -15,8 +15,8 @@
 #include <gui/glmanifold.h>
 #include <gui/glplothelper.h>
 
-#define DEF_WIDTH 900
-#define DEF_HEIGHT 500
+#define DEF_WIDTH 1300
+#define DEF_HEIGHT 800
 #define SCREEN_NAME "Manifold"
 #define RESIZABLE true
 #define FULLSCREEN false
@@ -33,7 +33,7 @@
 
 class GUI : public nanogui::Screen {
 
-public:
+  public:
 
 	GUI ( ) :
 
@@ -52,7 +52,6 @@ public:
 		float box_size = 10.0f;
 
 		generate_cube(plot_data->c_indices, plot_data->c_vertices, plot_data->c_colors, {0, 0, 0}, box_size, {0.2f, 0.2f, 0.2f});
-		generate_mesh(plot_data->m_indices, plot_data->m_vertices, plot_data->m_texcoords, plot_data->m_colors, {0, 0, -box_size}, box_size * 2);
 
 		plot_data->updated();
 
@@ -60,9 +59,9 @@ public:
 		root = new nanogui::Window ( this, "" );
 		root->setLayout ( new nanogui::VGroupLayout(5) );
 
-		plots.push_back(new Plot ( root, "forward", {DEF_WIDTH / 3, DEF_WIDTH / 3}, 0, plot_data, false, mGLFWWindow, mNVGContext, 75.0f, {0.0f, 0.0f, 11.0f}, {0.0f, 0.0f, 0.0f}));
-		plots.push_back(new Plot ( root, "top frustum", {DEF_WIDTH / 3, DEF_WIDTH / 3}, 1, plot_data, false, nullptr, mNVGContext, 40.0f, {0.0f, 30.0f, 0.0f}, {0.0f, 0.0f, -M_PI / 4.0f}));
-		plots.push_back(new Plot ( root, "front ortho", {DEF_WIDTH / 3, DEF_WIDTH / 3}, 2, plot_data, false, nullptr, mNVGContext, 40.0f, {0.0f, 0.0f, 11.0f}, {0.0f, 0.0f, 0.0f}, true));
+		plots.push_back(new Plot ( root, "forward", {DEF_WIDTH / 3, DEF_WIDTH / 3}, 0, plot_data, true, mGLFWWindow, mNVGContext, 50.0f, { -22.2f, -21.8f, -22.0f}, { 0.63, 1.895f, 0.0f}, {box_size * 2, box_size * 2, box_size * 2}));
+		plots.push_back(new Plot ( root, "top frustum", {DEF_WIDTH / 3, DEF_WIDTH / 3}, 1, plot_data, true, nullptr, mNVGContext, 40.0f, {0.0f, 30.0f, 0.0f}, {0.0f, 0.0f, -M_PI / 4.0f}, {box_size * 2, box_size * 2, box_size * 2}));
+		plots.push_back(new Plot ( root, "front ortho", {DEF_WIDTH / 3, DEF_WIDTH / 3}, 2, plot_data, true, nullptr, mNVGContext, 40.0f, {0.0f, 0.0f, 11.0f}, {0.0f, 0.0f, 0.0f}, {box_size * 2, box_size * 2, box_size * 2}, true));
 		plot_helper = new PlotHelper ( this, "" );
 		plot_helper->setLayout ( new nanogui::GroupLayout ( 15, 0, 0, 0 ) );
 
@@ -123,7 +122,7 @@ public:
 	virtual bool resizeEvent ( const Eigen::Vector2i &size ) {
 
 		// 8 because of VGroupLayout(5) spacing
-		for (int i = 0; i < (size_t) plots.size(); i++) {
+		for (int i = 0; i < (int) plots.size(); i++) {
 			plots[i]->setSize({size[0] / 3 - 8, size[0] / 3 - 8});
 		}
 

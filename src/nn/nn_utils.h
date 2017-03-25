@@ -2,7 +2,7 @@
 * @Author: kmrocki
 * @Date:   2016-02-24 10:47:03
 * @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-03-24 13:45:16
+* @Last Modified time: 2017-03-24 20:39:01
 */
 
 #ifndef __NN_UTILS_H__
@@ -177,7 +177,7 @@ void linspace ( Eigen::VectorXi &m, int range_min, int range_max ) {
 
 }
 
-void make_batch ( Matrix &batch, std::deque<datapoint> &data, Eigen::VectorXi &random_numbers ) {
+void make_batch ( Matrix &batch, const std::deque<datapoint> &data, const Eigen::VectorXi &random_numbers ) {
 
 	size_t batch_size = random_numbers.rows();
 
@@ -188,7 +188,7 @@ void make_batch ( Matrix &batch, std::deque<datapoint> &data, Eigen::VectorXi &r
 
 }
 
-void make_targets ( Matrix &targets, Matrix &encoding, std::deque<datapoint> &data, Eigen::VectorXi &random_numbers ) {
+void make_targets ( Matrix &targets, const Matrix &encoding, const std::deque<datapoint> &data, Eigen::VectorXi &random_numbers ) {
 
 	size_t batch_size = random_numbers.rows();
 

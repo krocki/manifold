@@ -2,7 +2,7 @@
 * @Author: Kamil Rocki
 * @Date:   2017-02-28 11:25:34
 * @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-03-23 19:04:19
+* @Last Modified time: 2017-03-24 14:48:37
 */
 
 #include <thread>
@@ -20,7 +20,7 @@ GUI *screen;
 
 int compute() {
 
-	size_t point_count = 5000;
+	size_t point_count = 2000;
 
 	Eigen::MatrixXf velocities;
 
