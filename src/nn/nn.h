@@ -2,7 +2,7 @@
 * @Author: kmrocki
 * @Date:   2016-02-24 15:28:10
 * @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-03-24 13:46:35
+* @Last Modified time: 2017-03-24 20:03:52
 */
 
 #ifndef __NN_H__
@@ -11,6 +11,8 @@
 #include <io/import.h>
 #include <nn/layers.h>
 #include <unistd.h>
+#include <colors.h>
+
 #include "perf.h"
 
 // TODO:
@@ -31,6 +33,7 @@ class NN {
 
 	std::deque<Layer *> layers;
 	float current_loss = -0.01f;
+	Eigen::VectorXf *loss_data;
 
 	bool clock = false;
 	bool quit = false;
@@ -51,10 +54,7 @@ class NN {
 
 	size_t code_layer_no = 1;
 
-	std::deque<datapoint> train_data;
-	std::deque<datapoint> test_data;
-
-	void forward ( Matrix &input_data, int max_layer = -1 ) {
+	void forward ( const Matrix &input_data, int max_layer = -1 ) {
 
 		//copy inputs to the lowest point in the network
 		layers[0]->x = input_data;
@@ -75,7 +75,7 @@ class NN {
 
 	}
 
-	void backward ( Matrix t ) {
+	void backward ( const Matrix& t ) {
 
 		//set targets at the top
 		layers[layers.size() - 1]->dy = t;
@@ -104,7 +104,7 @@ class NN {
 
 	}
 
-	void train ( std::deque<datapoint> data, double alpha, size_t iterations ) {
+	void train ( const std::deque<datapoint>& data, double alpha, size_t iterations ) {
 
 		size_t classes = 10;
 		Eigen::VectorXi random_numbers ( batch_size );
@@ -178,7 +178,17 @@ class NN {
 
 			current_loss = current_loss < 0 ? err : 0.99 * current_loss + 0.01 * err;
 
-			if ( ii % 25 == 0 ) clock = true;
+			if ( ii % 50 == 0 ) {
+
+				clock = true;
+				//update graph data
+				if (loss_data) {
+
+					loss_data->head ( loss_data->size() - 1 ) = loss_data->tail ( loss_data->size() - 1 );
+					loss_data->tail ( 1 ) ( 0 ) = current_loss;
+
+				}
+			}
 
 			//apply changes
 			update ( alpha, decay );
@@ -197,7 +207,7 @@ class NN {
 	}
 
 
-	double test ( std::deque<datapoint> data ) {
+	double test ( const std::deque<datapoint>& data ) {
 
 		if ( ntype == AE || ntype == DAE )
 
@@ -232,7 +242,7 @@ class NN {
 
 	}
 
-	void testcode ( std::deque<datapoint> data ) {
+	void testcode ( const std::deque<datapoint>& data ) {
 
 		size_t dims = layers[code_layer_no]->y.rows();
 
@@ -277,8 +287,36 @@ class NN {
 
 	bool isready() { return _ready; }
 
-	NN ( size_t minibatch_size, float decay = 0.0f, network_type type = MLP ) :
-		batch_size ( minibatch_size ), decay ( decay ), ntype ( type ) {}
+	NN ( size_t minibatch_size, float decay = 0.0f, network_type type = MLP, std::vector<int> layer_sizes = {}) : batch_size ( minibatch_size ), decay ( decay ), ntype ( type ) {
+
+		code_layer_no = 2 * ( layer_sizes.size() - 1 ) / 2 - 1;
+
+		for ( size_t l = 0; l < layer_sizes.size() - 1; l++ ) {
+
+			layers.push_back ( new Linear ( layer_sizes[l], layer_sizes[l + 1], batch_size ) );
+
+			if ( ( l + 1 ) == layer_sizes.size() - 1 )
+				layers.push_back ( new Sigmoid ( layer_sizes[l + 1], layer_sizes[l + 1], batch_size ) );
+			else
+				layers.push_back ( new ReLU ( layer_sizes[l + 1], layer_sizes[l + 1], batch_size ) );
+
+		}
+
+	}
+
+	// template<class Archive>
+	// void serialize ( Archive &archive ) {
+
+	// 	archive ( M, N, B, S, D );
+
+	// 	for ( size_t d = 0; d <= D; d++ )
+	// 		archive ( *layers[d] );
+
+
+	// 	// archive(dx);
+	// 	// archive(surprisals);
+
+	// }
 
 	~NN() {
 

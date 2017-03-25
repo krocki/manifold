@@ -1,8 +1,8 @@
 /*
 * @Author: kmrocki@us.ibm.com
 * @Date:   2017-03-20 10:09:39
-* @Last Modified by:   Kamil M Rocki
-* @Last Modified time: 2017-03-23 22:31:41
+* @Last Modified by:   kmrocki@us.ibm.com
+* @Last Modified time: 2017-03-24 18:43:09
 */
 
 #ifndef __GLPLOT_H__
@@ -16,42 +16,25 @@
 // nvgCreateImageA
 #include <gl/tex.h>
 
-#define POINT_SHADER_NAME "point_shader"
-#define POINT_FRAG_FILE "./src/glsl/surf_point.f.glsl"
-#define POINT_VERT_FILE "./src/glsl/surf_point.v.glsl"
-
-#define ORTHO_SHADER_NAME "ortho_shader"
-#define ORTHO_FRAG_FILE "./src/glsl/ortho.f.glsl"
-#define ORTHO_VERT_FILE "./src/glsl/ortho.v.glsl"
-
-#define CONTOUR_SHADER_NAME "contour_shader"
-#define CONTOUR_FRAG_FILE "./src/glsl/contour.f.glsl"
-#define CONTOUR_VERT_FILE "./src/glsl/contour.v.glsl"
+#define POINT_SHADER_NAME "datapoint_shader"
+#define POINT_FRAG_FILE "./src/glsl/datapoint.f.glsl"
+#define POINT_VERT_FILE "./src/glsl/datapoint.v.glsl"
 
 #define CAM_SHADER_NAME "cam_shader"
 #define CAM_FRAG_FILE "./src/glsl/cam.f.glsl"
 #define CAM_GEOM_FILE "./src/glsl/cam.g.glsl"
 #define CAM_VERT_FILE "./src/glsl/cam.v.glsl"
 
-#define MESH_SHADER_NAME "mesh_shader"
-#define MESH_FRAG_FILE "./src/glsl/mesh.f.glsl"
-#define MESH_GEOM_FILE "./src/glsl/mesh.g.glsl"
-#define MESH_VERT_FILE "./src/glsl/mesh.v.glsl"
-
 #define BOX_SHADER_NAME "box_shader"
 #define BOX_FRAG_FILE "./src/glsl/surf_box.f.glsl"
 #define BOX_GEOM_FILE "./src/glsl/surf_box.g.glsl"
 #define BOX_VERT_FILE "./src/glsl/surf_box.v.glsl"
 
-#define GRID_SHADER_NAME "grid_shader"
-#define GRID_FRAG_FILE "./src/glsl/surf_grid.f.glsl"
-#define GRID_VERT_FILE "./src/glsl/surf_grid.v.glsl"
-
 class Plot : public nanogui::GLCanvas {
 
-public:
+  public:
 
-	Plot ( Widget *parent, std::string _caption, const Eigen::Vector2i &w_size, int i, PlotData *plot_data, bool transparent = false, GLFWwindow *w = nullptr, NVGcontext *nvg = nullptr, float _fovy = 67.0f, const Eigen::Vector3f _camera = Eigen::Vector3f(0.0f, 0.0f, 5.0f), const Eigen::Vector3f _rotation = Eigen::Vector3f(0.0f, 0.0f, 0.0f), bool _ortho = false) : nanogui::GLCanvas ( parent, transparent ) {
+	Plot ( Widget *parent, std::string _caption, const Eigen::Vector2i &w_size, int i, PlotData *plot_data, bool transparent = false, GLFWwindow *w = nullptr, NVGcontext *nvg = nullptr, float _fovy = 67.0f, const Eigen::Vector3f _camera = Eigen::Vector3f(0.0f, 0.0f, 5.0f), const Eigen::Vector3f _rotation = Eigen::Vector3f(0.0f, 0.0f, 0.0f), const Eigen::Vector3f _box_size = Eigen::Vector3f(1.0f, 1.0f, 1.0f) , bool _ortho = false) : nanogui::GLCanvas ( parent, transparent ) {
 
 		GLCanvas::setSize (w_size);
 		glfw_window = w;
@@ -72,8 +55,11 @@ public:
 		bind_data(plot_data);
 
 		translation.setZero();
+		total_translation.setZero();
+		total_rotation.setZero();
 
 		init_camera(_fovy, _camera, _rotation, _ortho);
+		box_size = _box_size;
 		init_shaders();
 
 		tic = glfwGetTime();
@@ -85,20 +71,13 @@ public:
 		m_pointShader = new nanogui::GLShader();
 		m_pointShader->initFromFiles ( POINT_SHADER_NAME, POINT_VERT_FILE, POINT_FRAG_FILE );
 
-
 		m_cubeShader = new nanogui::GLShader();
 		m_cubeShader->initFromFiles ( BOX_SHADER_NAME, BOX_VERT_FILE, BOX_FRAG_FILE, BOX_GEOM_FILE );
-
-		m_gridShader = new nanogui::GLShader();
-		m_gridShader->initFromFiles ( GRID_SHADER_NAME, GRID_VERT_FILE, GRID_FRAG_FILE );
 
 		size_t tex_size = 64;
 		Eigen::Matrix<unsigned char, Eigen::Dynamic, Eigen::Dynamic> rgba_image = Eigen::Matrix<unsigned char, Eigen::Dynamic, Eigen::Dynamic>::Ones(tex_size, tex_size * 4) * 16;
 		// textures.emplace_back ( std::pair<int, std::string> ( nvgCreateImageA ( vg, 512, 512, NVG_IMAGE_GENERATE_MIPMAPS, ( unsigned char * ) rgba_image.data() ), "" ) );
 		textures.emplace_back ( std::pair<int, std::string> ( nvgCreateImageRGBA ( vg,  tex_size, tex_size, NVG_IMAGE_NEAREST, ( unsigned char * ) rgba_image.data() ), "" ) );
-
-		m_meshShader = new nanogui::GLShader();
-		m_meshShader->initFromFiles ( MESH_SHADER_NAME, MESH_VERT_FILE, MESH_FRAG_FILE, MESH_GEOM_FILE );
 
 		m_camShader = new nanogui::GLShader();
 		m_camShader->initFromFiles ( CAM_SHADER_NAME, CAM_VERT_FILE, CAM_FRAG_FILE, CAM_GEOM_FILE );
@@ -158,6 +137,9 @@ public:
 		camera += up * translation[1];
 		camera += right * translation[0];
 
+		total_rotation += rotation;
+		total_translation += translation;
+
 		rotation.setZero();
 		translation.setZero();
 
@@ -169,6 +151,7 @@ public:
 	void update_model() {
 
 		model.setIdentity();
+		data_model = translate({ -box_size[0] / 2, -box_size[1] / 2, -box_size[2] / 2});
 
 	}
 
@@ -190,24 +173,18 @@ public:
 
 		if (data) {
 
-			if (index == 0) {
+			// if (index == 0) {
 
-				m_pointShader->bind();
-				m_pointShader->uploadAttrib("position", data->p_vertices);
-				m_pointShader->uploadAttrib("color", data->p_colors);
+			m_pointShader->bind();
+			m_pointShader->uploadAttrib("position", data->p_vertices);
+			m_pointShader->uploadAttrib("color", data->p_colors);
 
-			}
+			// }
 
 			m_cubeShader->bind();
 			m_cubeShader->uploadIndices ( data->c_indices );
 			m_cubeShader->uploadAttrib("position", data->c_vertices);
 			m_cubeShader->uploadAttrib("color", data->c_colors);
-
-			m_meshShader->bind();
-			m_meshShader->uploadIndices ( data->m_indices );
-			m_meshShader->uploadAttrib("position", data->m_vertices);
-			m_meshShader->uploadAttrib("color", data->m_colors);
-			m_meshShader->uploadAttrib("texcoords", data->m_texcoords );
 
 			local_data_checksum = data->checksum;
 
@@ -263,6 +240,7 @@ public:
 		update_projection();
 
 		mvp = proj * view * model;
+		data_mvp = proj * view * data_model;
 
 	}
 
@@ -292,18 +270,9 @@ public:
 		/* Render */
 
 		glDisable ( GL_DEPTH_TEST );
-		glBlendFunc ( GL_ONE, GL_ONE );
+		//glBlendFunc ( GL_ONE, GL_ONE );
+		glBlendFunc ( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
 		glEnable ( GL_BLEND );
-
-		// m_meshShader->bind();
-		// glActiveTexture ( GL_TEXTURE0 );
-		// glBindTexture ( GL_TEXTURE_2D, (textures [0] ).first );
-
-		// m_meshShader->setUniform("mvp", mvp);
-		// m_meshShader->drawIndexed ( GL_TRIANGLES, 0, data->m_indices.cols() );
-
-
-		//glBlendFunc ( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
 
 		m_cubeShader->bind();
 		m_cubeShader->setUniform("mvp", mvp);
@@ -316,18 +285,19 @@ public:
 		glEnable ( GL_PROGRAM_POINT_SIZE );
 
 		m_pointShader->bind();
-		m_pointShader->setUniform("mvp", mvp);
+		m_pointShader->setUniform("mvp", data_mvp);
+
 		// m_pointShader->setUniform("model", model);
 		// m_pointShader->setUniform("view", view);
 		// m_pointShader->setUniform("proj", proj);
 		// m_pointShader->setUniform("tic", tic);
 
-		if (index != 0 && master_pointShader) {
+		// if (index != 0 && master_pointShader) {
 
-			m_pointShader->shareAttrib (*master_pointShader, "position");
-			m_pointShader->shareAttrib (*master_pointShader, "color");
+		// 	m_pointShader->shareAttrib (*master_pointShader, "position");
+		// 	m_pointShader->shareAttrib (*master_pointShader, "color");
 
-		}
+		// }
 
 		m_pointShader->drawArray(GL_POINTS, 0, data->p_vertices.cols());
 
@@ -355,6 +325,7 @@ public:
 				nvgFontSize(vg, 9);
 				nvgFontBlur(vg, 0.3f);
 				nvgFillColor(vg, nanogui::Color(1.0f, 1.0f, 1.0f, 0.5f));
+				// nvgText(vg, mPos.x() + 3, mPos.y() + size().y() - 3, string_format ( "T [%.1f, %.1f, %.1f], R [%.1f, %.1f, %.1f], C [%.1f, %.1f, %.1f], F [%.1f, %.1f, %.1f], U [%.1f, %.1f, %.1f]", total_translation[0], total_translation[1], total_translation[2], total_rotation[0], total_rotation[1], total_rotation[2], camera[0], camera[1], camera[2], forward[0], forward[1], forward[2], up[0], up[1], up[2] ).c_str(), nullptr);
 				nvgText(vg, mPos.x() + 3, mPos.y() + size().y() - 3, caption.c_str(), nullptr);
 
 			}
@@ -364,6 +335,24 @@ public:
 			nvgFontBlur(vg, 0.3f);
 			nvgFillColor(vg, nanogui::Color(1.0f, 1.0f, 1.0f, 0.5f));
 			nvgText(vg, mPos.x() + size().x() - 28, mPos.y() + size().y() - 3, string_format ( "%.1f fps", 1.0f / frame_time ).c_str(), nullptr);
+
+			// top-right label
+			nvgFontFace(vg, "sans");
+			nvgFontSize(vg, 9);
+			nvgFontBlur(vg, 0.3f);
+			nvgFillColor(vg, nanogui::Color(1.0f, 1.0f, 1.0f, 0.5f));
+
+			if (!ortho)
+				nvgText(vg, mPos.x() + size().x() - 32, mPos.y() + 7, string_format ( "FOV: %.1f  %8d", fovy).c_str(), nullptr);
+			else
+				nvgText(vg, mPos.x() + size().x() - 32, mPos.y() + 7, string_format ( "  ORTHO" ).c_str(), nullptr);
+
+			// top-left label
+			nvgFontFace(vg, "sans");
+			nvgFontSize(vg, 9);
+			nvgFontBlur(vg, 0.3f);
+			nvgFillColor(vg, nanogui::Color(1.0f, 1.0f, 1.0f, 0.5f));
+			nvgText(vg, mPos.x() + 2, mPos.y() + 7, string_format ( "%d", num_frames ).c_str(), nullptr);
 
 			// draw cameras' coords
 			for (int i = 0; i < data->e_vertices.cols(); i += 2) {
@@ -407,8 +396,6 @@ public:
 		delete m_pointShader;
 		delete m_cubeShader;
 		delete m_camShader;
-		delete m_meshShader;
-		delete m_gridShader;
 
 	}
 
@@ -424,8 +411,6 @@ public:
 	NVGcontext *vg = nullptr;
 
 	// shaders
-	nanogui::GLShader *m_gridShader = nullptr;
-	nanogui::GLShader *m_meshShader = nullptr;
 	nanogui::GLShader *m_pointShader = nullptr;
 	nanogui::GLShader *m_cubeShader = nullptr;
 	nanogui::GLShader *m_camShader = nullptr;
@@ -434,9 +419,10 @@ public:
 	nanogui::GLShader *master_cubeShader = nullptr;
 	nanogui::GLShader *master_camShader = nullptr;
 
+
 	//model, view, projection...
-	Eigen::Vector3f translation, rotation, camera, forward, right, up;
-	Eigen::Matrix4f view, proj, model, mvp;
+	Eigen::Vector3f translation, rotation, camera, forward, right, up, data_translation, box_size, total_translation, total_rotation;
+	Eigen::Matrix4f view, proj, model, data_model, mvp, data_mvp;
 	Eigen::Matrix4f T, R;
 	Eigen::Quaternionf q;
 

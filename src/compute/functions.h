@@ -44,12 +44,14 @@ float hat ( float x, float y ) {
 
 float normal ( float x, float y ) {
 
+	UNUSED(x, y);
 	return func1::normal(1);
 
 }
 
 float uniform ( float x, float y ) {
 
+	UNUSED(x, y);
 	return func1::uniform(1);
 
 }

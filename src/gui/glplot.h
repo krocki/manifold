@@ -2,7 +2,7 @@
 * @Author: kmrocki@us.ibm.com
 * @Date:   2017-03-20 10:09:39
 * @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-03-24 13:29:06
+* @Last Modified time: 2017-03-24 14:16:47
 */
 
 #ifndef __GLPLOT_H__
@@ -366,12 +366,23 @@ class Plot : public nanogui::GLCanvas {
 				nvgText(vg, mPos.x() + 3, mPos.y() + size().y() - 3, caption.c_str(), nullptr);
 
 			}
+
 			// bottom-right label
 			nvgFontFace(vg, "sans");
 			nvgFontSize(vg, 9);
 			nvgFontBlur(vg, 0.3f);
 			nvgFillColor(vg, nanogui::Color(1.0f, 1.0f, 1.0f, 0.5f));
 			nvgText(vg, mPos.x() + size().x() - 28, mPos.y() + size().y() - 3, string_format ( "%.1f fps", 1.0f / frame_time ).c_str(), nullptr);
+
+			// top-right label
+			nvgFontFace(vg, "sans");
+			nvgFontSize(vg, 9);
+			nvgFontBlur(vg, 0.3f);
+			nvgFillColor(vg, nanogui::Color(1.0f, 1.0f, 1.0f, 0.5f));
+			if (!ortho)
+				nvgText(vg, mPos.x() + 2, mPos.y() + 7, string_format ( "FOV: %.1f", fovy).c_str(), nullptr);
+			else
+				nvgText(vg, mPos.x() + 2, mPos.y() + 7, string_format ( "ORTHO" ).c_str(), nullptr);
 
 			// draw cameras' coords
 			for (int i = 0; i < data->e_vertices.cols(); i += 2) {
