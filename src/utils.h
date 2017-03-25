@@ -1,8 +1,8 @@
 /*
 * @Author: kmrocki@us.ibm.com
 * @Date:   2017-03-03 15:22:47
-* @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-03-21 15:16:00
+* @Last Modified by:   Kamil M Rocki
+* @Last Modified time: 2017-03-25 12:29:34
 */
 
 #ifndef __UTIL_MAIN_H__
@@ -18,6 +18,17 @@
 #include <memory>    // For std::unique_ptr
 
 #include <Eigen/Dense>
+
+
+std::string return_current_time_and_date(const char* format = "%x %X") {
+
+	auto now = std::chrono::system_clock::now();
+	auto in_time_t = std::chrono::system_clock::to_time_t(now);
+
+	std::stringstream ss;
+	ss << std::put_time(std::localtime(&in_time_t), format);
+	return ss.str();
+}
 
 template <typename T>
 std::string to_string_with_precision(const T a_value, const int m = 12, const int n = 5) {

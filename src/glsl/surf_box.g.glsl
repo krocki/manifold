@@ -28,11 +28,11 @@ void main() {
 		b.y += 1;
 		if (a.y < 11 && b.y < 11) {
 			gl_Position = mvp * (a);
-			fcolor = gcolor[0] / 8;
+			fcolor.a = gcolor[0].a / 8;
 			EmitVertex();
 
 			gl_Position = mvp * ( b );
-			fcolor = gcolor[1] / 8;
+			fcolor.a = gcolor[1].a / 8;
 			EmitVertex();
 			EndPrimitive();
 		}
@@ -46,11 +46,11 @@ void main() {
 		b.x += 1;
 		if (a.x < 11 && b.x < 11) {
 			gl_Position = mvp * (a);
-			fcolor = gcolor[0] / 12;
+			fcolor.a = gcolor[0].a / 12;
 			EmitVertex();
 
 			gl_Position = mvp * ( b );
-			fcolor = gcolor[1] / 12;
+			fcolor.a = gcolor[1].a / 12;
 			EmitVertex();
 			EndPrimitive();
 		}

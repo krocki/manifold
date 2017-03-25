@@ -1,8 +1,8 @@
 /*
 * @Author: kmrocki
 * @Date:   2016-02-24 15:28:10
-* @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-03-24 20:03:52
+* @Last Modified by:   Kamil M Rocki
+* @Last Modified time: 2017-03-25 13:26:08
 */
 
 #ifndef __NN_H__
@@ -14,6 +14,8 @@
 #include <colors.h>
 
 #include "perf.h"
+
+#include <nanogui/serializer/core.h>
 
 // TODO:
 // Sparse
@@ -29,8 +31,9 @@ typedef enum network_type { MLP = 0, AE = 1, DAE = 2 } network_type;
 
 class NN {
 
-  public:
+public:
 
+	std::vector<int> layer_sizes;
 	std::deque<Layer *> layers;
 	float current_loss = -0.01f;
 	Eigen::VectorXf *loss_data;
@@ -40,7 +43,7 @@ class NN {
 	bool pause = false;
 	bool step = false;
 
-	const size_t batch_size;
+	size_t batch_size;
 	float decay;
 	network_type ntype;
 
@@ -49,8 +52,6 @@ class NN {
 	Matrix encoding;
 	Matrix codes, codes_colors;
 	Eigen::MatrixXi codes_idxs;
-
-	bool _ready = false;
 
 	size_t code_layer_no = 1;
 
@@ -276,18 +277,9 @@ class NN {
 
 	}
 
-	void setready() {
+	NN ( size_t minibatch_size, float decay = 0.0f, network_type type = MLP, std::vector<int> _layer_sizes = {}) : batch_size ( minibatch_size ), decay ( decay ), ntype ( type ) {
 
-		for ( size_t i = 0; i < layers.size(); i++ )
-			layers[i]->_ready = true;
-
-		_ready = true;
-
-	}
-
-	bool isready() { return _ready; }
-
-	NN ( size_t minibatch_size, float decay = 0.0f, network_type type = MLP, std::vector<int> layer_sizes = {}) : batch_size ( minibatch_size ), decay ( decay ), ntype ( type ) {
+		layer_sizes = _layer_sizes;
 
 		code_layer_no = 2 * ( layer_sizes.size() - 1 ) / 2 - 1;
 
@@ -304,19 +296,74 @@ class NN {
 
 	}
 
-	// template<class Archive>
-	// void serialize ( Archive &archive ) {
+	void save(nanogui::Serializer &s) const {
 
-	// 	archive ( M, N, B, S, D );
+		s.set("current_loss", current_loss);
+		s.set("loss_data", *loss_data);
+		s.set("batch_size", batch_size);
+		s.set("decay", decay);
+		s.set("ntype", ntype);
 
-	// 	for ( size_t d = 0; d <= D; d++ )
-	// 		archive ( *layers[d] );
+		s.set("batch", batch);
+		s.set("targets", targets);
+		s.set("encoding", encoding);
+		s.set("codes", codes);
+		s.set("codes_colors", codes_colors);
+		s.set("codes_idxs", codes_idxs);
+		s.set("code_layer_no", code_layer_no);
 
+		s.set("layer_sizes", layer_sizes);
 
-	// 	// archive(dx);
-	// 	// archive(surprisals);
+		for ( size_t i = 0; i < layers.size(); i++ ) {
 
-	// }
+			s.push(string_format ( "layer%d", i));
+			layers[i]->save(s);
+			s.pop();
+		}
+
+	}
+
+	bool load(nanogui::Serializer &s) {
+
+		if (!s.get("current_loss", current_loss)) return false;
+		if (!s.get("loss_data", *loss_data)) return false;
+		if (!s.get("batch_size", batch_size)) return false;
+		if (!s.get("decay", decay)) return false;
+		if (!s.get("ntype", ntype)) return false;
+
+		if (!s.get("batch", batch)) return false;
+		if (!s.get("targets", targets)) return false;
+		if (!s.get("encoding", encoding)) return false;
+		if (!s.get("codes", codes)) return false;
+		if (!s.get("codes_colors", codes_colors)) return false;
+		if (!s.get("codes_idxs", codes_idxs)) return false;
+		if (!s.get("code_layer_no", code_layer_no)) return false;
+
+		if (!s.get("layer_sizes", layer_sizes)) return false;
+
+		layers.clear();
+
+		//TODO: switch to something supporting polymorphic types
+		for ( size_t l = 0; l < layer_sizes.size() - 1; l++ ) {
+
+			layers.push_back ( new Linear ( layer_sizes[l], layer_sizes[l + 1], batch_size ) );
+
+			if ( ( l + 1 ) == layer_sizes.size() - 1 )
+				layers.push_back ( new Sigmoid ( layer_sizes[l + 1], layer_sizes[l + 1], batch_size ) );
+			else
+				layers.push_back ( new ReLU ( layer_sizes[l + 1], layer_sizes[l + 1], batch_size ) );
+
+		}
+
+		for ( size_t i = 0; i < layers.size(); i++ ) {
+			s.push(string_format ( "layer%d", i));
+			layers[i]->load(s);
+			s.pop();
+		}
+
+		return true;
+	}
+
 
 	~NN() {
 

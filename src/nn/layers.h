@@ -1,8 +1,8 @@
 /*
 * @Author: kmrocki@us.ibm.com
 * @Date:   2017-03-03 15:06:37
-* @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-03-24 13:46:02
+* @Last Modified by:   Kamil M Rocki
+* @Last Modified time: 2017-03-25 13:28:19
 */
 
 #ifndef __LAYERS_H__
@@ -13,7 +13,7 @@
 //abstract
 class Layer {
 
-  public:
+public:
 
 	//used in forward pass
 	Matrix x; //inputs
@@ -40,17 +40,33 @@ class Layer {
 
 	virtual ~Layer() {};
 
-	bool isready() { return _ready; }
+	virtual void save(nanogui::Serializer &s) const {
+
+		s.set("x", x);
+		s.set("y", y);
+		s.set("dx", dx);
+		s.set("dy", dy);
+
+	};
+
+	virtual bool load(nanogui::Serializer &s) {
+
+		if (!s.get("x", x)) return false;
+		if (!s.get("y", y)) return false;
+		if (!s.get("dx", dx)) return false;
+		if (!s.get("dy", dy)) return false;
+
+		return true;
+	}
 
 	// count number of operations for perf counters
 	long ops;
-	bool _ready = false;
 
 };
 
 class Linear : public Layer {
 
-  public:
+public:
 
 	Matrix W;
 	Matrix b;
@@ -111,13 +127,38 @@ class Linear : public Layer {
 		bytes_read += W.size() * sizeof ( dtype ) * 3;
 	}
 
+	virtual void save(nanogui::Serializer &s) const {
+
+		Layer::save(s);
+		s.set("W", W);
+		s.set("b", b);
+		s.set("dW", dW);
+		s.set("db", db);
+		s.set("add_gaussian_noise", add_gaussian_noise);
+		s.set("gaussian_noise", gaussian_noise);
+
+	};
+
+	virtual bool load(nanogui::Serializer &s) {
+
+		Layer::load(s);
+		if (!s.get("W", W)) return false;
+		if (!s.get("b", b)) return false;
+		if (!s.get("dW", dW)) return false;
+		if (!s.get("db", db)) return false;
+		if (!s.get("add_gaussian_noise", add_gaussian_noise)) return false;
+		if (!s.get("gaussian_noise", gaussian_noise)) return false;
+
+		return true;
+	}
+
 	~Linear() {};
 
 };
 
 class Sigmoid : public Layer {
 
-  public:
+public:
 
 	void forward() {
 
@@ -140,7 +181,7 @@ class Sigmoid : public Layer {
 
 class ReLU : public Layer {
 
-  public:
+public:
 
 	void forward() {
 
@@ -164,7 +205,7 @@ class ReLU : public Layer {
 
 class Softmax : public Layer {
 
-  public:
+public:
 
 	void forward() {
 
