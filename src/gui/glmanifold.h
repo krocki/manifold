@@ -2,7 +2,7 @@
 * @Author: kmrocki@us.ibm.com
 * @Date:   2017-03-20 10:09:39
 * @Last Modified by:   Kamil M Rocki
-* @Last Modified time: 2017-03-26 00:17:08
+* @Last Modified time: 2017-03-26 00:43:49
 */
 
 #ifndef __GLPLOT_H__
@@ -90,7 +90,7 @@ public:
 		slider->setFixedWidth(80);
 		slider->setCallback([&](float value) {
 
-			fovy = (value * 100.0f);
+			fovy = (value * 170.0f);
 			std::cout << "fovy: " << fovy << std::endl;
 
 		});
