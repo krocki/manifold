@@ -1,8 +1,8 @@
 /*
 * @Author: kmrocki@us.ibm.com
 * @Date:   2017-03-20 10:09:39
-* @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-03-25 20:19:05
+* @Last Modified by:   Kamil M Rocki
+* @Last Modified time: 2017-03-26 00:17:08
 */
 
 #ifndef __GLPLOT_H__
@@ -12,6 +12,10 @@
 #include <nanogui/layout.h>
 #include <nanogui/glcanvas.h>
 #include <nanogui/label.h>
+#include <nanogui/entypo.h>
+#include <nanogui/toolbutton.h>
+#include <nanogui/slider.h>
+
 #include <gui/gldata.h>
 // nvgCreateImageA
 #include <gl/tex.h>
@@ -32,12 +36,14 @@
 
 class Plot : public nanogui::GLCanvas {
 
-  public:
+public:
 
-	Plot ( Widget *parent, std::string _caption, const Eigen::Vector2i &w_size, int i, PlotData *plot_data, bool transparent = false, GLFWwindow *w = nullptr, NVGcontext *nvg = nullptr, float _fovy = 67.0f, const Eigen::Vector3f _camera = Eigen::Vector3f(0.0f, 0.0f, 5.0f), const Eigen::Vector3f _rotation = Eigen::Vector3f(0.0f, 0.0f, 0.0f), const Eigen::Vector3f _box_size = Eigen::Vector3f(1.0f, 1.0f, 1.0f) , bool _ortho = false, int record_intvl = 0, const std::string r_prefix = "") : nanogui::GLCanvas ( parent, transparent ) {
+	Plot ( Widget *parent, std::string _caption, const Eigen::Vector2i &w_size, int i, PlotData *plot_data, bool transparent = false, bool _keyboard_enabled = false, GLFWwindow *w = nullptr, NVGcontext *nvg = nullptr, float _fovy = 67.0f, const Eigen::Vector3f _camera = Eigen::Vector3f(0.0f, 0.0f, 5.0f), const Eigen::Vector3f _rotation = Eigen::Vector3f(0.0f, 0.0f, 0.0f), const Eigen::Vector3f _box_size = Eigen::Vector3f(1.0f, 1.0f, 1.0f) , bool _ortho = false, int record_intvl = 0, const std::string r_prefix = "") : nanogui::GLCanvas ( parent, transparent ) {
 
 		GLCanvas::setSize (w_size);
 		glfw_window = w;
+		keyboard_enabled = _keyboard_enabled;
+
 		vg = nvg;
 
 		data = nullptr;
@@ -65,6 +71,39 @@ class Plot : public nanogui::GLCanvas {
 		record_interval = record_intvl;
 		record_prefix = r_prefix;
 		tic = glfwGetTime();
+
+		tools = new nanogui::Widget(this);
+		tools->setLayout(new nanogui::GroupLayout(0, 0, 0, 0));
+
+		nanogui::Widget *arrows = new nanogui::Widget(tools);
+		arrows->setLayout(new nanogui::GridLayout(nanogui::Orientation::Horizontal, 4, nanogui::Alignment::Middle, 2, 2));
+
+		nanogui::Button *b;
+
+		b = new nanogui::ToolButton(arrows, ENTYPO_ICON_TRIANGLE_LEFT); b->setCallback([&] { std::cout << "left" << std::endl; translation[0] -= cam_speed; }); b->setTooltip("left");
+		b = new nanogui::ToolButton(arrows, ENTYPO_ICON_TRIANGLE_DOWN); b->setCallback([&] { std::cout << "down" << std::endl; translation[1] -= cam_speed; }); b->setTooltip("down");
+		b = new nanogui::ToolButton(arrows, ENTYPO_ICON_TRIANGLE_UP); b->setCallback([&] { std::cout << "up" << std::endl; translation[1] += cam_speed; }); b->setTooltip("up");
+		b = new nanogui::ToolButton(arrows, ENTYPO_ICON_TRIANGLE_RIGHT); b->setCallback([&] { std::cout << "right" << std::endl; translation[0] += cam_speed; }); b->setTooltip("right");
+
+		nanogui::Slider *slider = new nanogui::Slider(tools);
+		slider->setValue(0.5f);
+		slider->setFixedWidth(80);
+		slider->setCallback([&](float value) {
+
+			fovy = (value * 100.0f);
+			std::cout << "fovy: " << fovy << std::endl;
+
+		});
+
+		slider = new nanogui::Slider(tools);
+		slider->setValue(cam_speed);
+		slider->setFixedWidth(80);
+		slider->setCallback([&](float value) {
+			cam_speed = value; std::cout << "cam speed: " << cam_speed << std::endl;
+
+		});
+
+		tools->setPosition({w_size[0] - 110, 0});
 
 	}
 
@@ -100,8 +139,8 @@ class Plot : public nanogui::GLCanvas {
 		near = 0.1f;
 		far = 100.0f;
 
-		cam_speed = 0.15f;
-		cam_angular_speed = 0.0002f * 360.0f / M_PI;
+		cam_speed = 0.5f;
+		cam_angular_speed = 0.0003f * 360.0f / M_PI;
 
 	}
 
@@ -213,7 +252,7 @@ class Plot : public nanogui::GLCanvas {
 
 	void process_keyboard() {
 
-		if (glfw_window) {
+		if (glfw_window && keyboard_enabled) {
 
 			if ( glfwGetKey ( glfw_window, 'A' ) == GLFW_PRESS ) translation[0] -= cam_speed;
 			if ( glfwGetKey ( glfw_window, 'D' ) == GLFW_PRESS ) translation[0] += cam_speed;
@@ -332,9 +371,16 @@ class Plot : public nanogui::GLCanvas {
 				nvgFontBlur(vg, 0.3f);
 				nvgFillColor(vg, nanogui::Color(1.0f, 1.0f, 1.0f, 0.5f));
 				// nvgText(vg, mPos.x() + 3, mPos.y() + size().y() - 3, string_format ( "T [%.1f, %.1f, %.1f], R [%.1f, %.1f, %.1f], C [%.1f, %.1f, %.1f], F [%.1f, %.1f, %.1f], U [%.1f, %.1f, %.1f]", total_translation[0], total_translation[1], total_translation[2], total_rotation[0], total_rotation[1], total_rotation[2], camera[0], camera[1], camera[2], forward[0], forward[1], forward[2], up[0], up[1], up[2] ).c_str(), nullptr);
-				nvgText(vg, mPos.x() + 3, mPos.y() + size().y() - 3, caption.c_str(), nullptr);
+				nvgText(vg, mPos.x() + 37, mPos.y() + size().y() - 3, string_format ( "[%s]", caption.c_str()).c_str(), nullptr);
 
 			}
+
+			// cam info, bottom-left
+			if (!ortho)
+				nvgText(vg, mPos.x() + 3, mPos.y() + size().y() - 3, string_format ( "FOV: %.1f", fovy).c_str(), nullptr);
+			else
+				nvgText(vg, mPos.x() + 3, mPos.y() + size().y() - 3, string_format ( "ORTHO" ).c_str(), nullptr);
+
 			// bottom-right label
 			nvgFontFace(vg, "sans");
 			nvgFontSize(vg, 9);
@@ -343,15 +389,11 @@ class Plot : public nanogui::GLCanvas {
 			nvgText(vg, mPos.x() + size().x() - 28, mPos.y() + size().y() - 3, string_format ( "%.1f fps", 1.0f / frame_time ).c_str(), nullptr);
 
 			// top-right label
-			nvgFontFace(vg, "sans");
-			nvgFontSize(vg, 9);
-			nvgFontBlur(vg, 0.3f);
-			nvgFillColor(vg, nanogui::Color(1.0f, 1.0f, 1.0f, 0.5f));
-
-			if (!ortho)
-				nvgText(vg, mPos.x() + size().x() - 32, mPos.y() + 7, string_format ( "FOV: %.1f  %8d", fovy).c_str(), nullptr);
-			else
-				nvgText(vg, mPos.x() + size().x() - 32, mPos.y() + 7, string_format ( "  ORTHO" ).c_str(), nullptr);
+			// tools
+			// nvgFontFace(vg, "sans");
+			// nvgFontSize(vg, 9);
+			// nvgFontBlur(vg, 0.3f);
+			// nvgFillColor(vg, nanogui::Color(1.0f, 1.0f, 1.0f, 0.5f));
 
 			// top-left label
 			nvgFontFace(vg, "sans");
@@ -427,6 +469,7 @@ class Plot : public nanogui::GLCanvas {
 		}
 	}
 
+	virtual bool resizeEvent ( const Eigen::Vector2i &size ) {  tools->setPosition({size[0] - 110, 0}); return true; }
 
 	~Plot() { /* free resources */
 
@@ -438,12 +481,15 @@ class Plot : public nanogui::GLCanvas {
 
 	//data
 	PlotData *data;
+	nanogui::Widget *tools;
 
 	std::vector<std::pair<int, std::string>> textures;
 
 	size_t local_data_checksum = 0;
 	size_t record_interval = 0;
 	std::string record_prefix = "";
+
+	bool keyboard_enabled = false;
 
 	// for intercepting keyboard events
 	GLFWwindow *glfw_window = nullptr;

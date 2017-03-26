@@ -2,13 +2,15 @@
 * @Author: kmrocki@us.ibm.com
 * @Date:   2017-03-06 13:20:16
 * @Last Modified by:   Kamil M Rocki
-* @Last Modified time: 2017-03-25 17:50:38
+* @Last Modified time: 2017-03-25 23:53:54
 */
 #ifndef _GL_TEX_
 #define _GL_TEX_
 
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "stb_image_write.h"
+#include <stb_image.h>
+
 
 static int mini(int a, int b) { return a < b ? a : b; }
 
