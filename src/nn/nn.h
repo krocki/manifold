@@ -1,8 +1,8 @@
 /*
 * @Author: kmrocki
 * @Date:   2016-02-24 15:28:10
-* @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-03-26 01:18:20
+* @Last Modified by:   Kamil M Rocki
+* @Last Modified time: 2017-03-26 13:37:36
 */
 
 #ifndef __NN_H__
@@ -12,6 +12,7 @@
 #include <nn/layers.h>
 #include <unistd.h>
 #include <colors.h>
+#include <mutex>
 
 #include "perf.h"
 
@@ -31,7 +32,7 @@ typedef enum network_type { MLP = 0, AE = 1, DAE = 2 } network_type;
 
 class NN {
 
-  public:
+public:
 
 	std::vector<int> layer_sizes;
 	std::deque<Layer *> layers;
@@ -40,7 +41,7 @@ class NN {
 
 	bool clock = false;
 	bool quit = false;
-	bool pause = false;
+	bool pause = true;
 	bool step = false;
 
 	int batch_size;
@@ -54,6 +55,8 @@ class NN {
 	Eigen::MatrixXi codes_idxs;
 
 	int code_layer_no = 1;
+
+	std::mutex params;
 
 	void forward ( const Matrix &input_data, int max_layer = -1 ) {
 
@@ -97,11 +100,13 @@ class NN {
 
 	void update ( double alpha, float decay = 0.0f ) {
 
+		params.lock();
 		//update all layers according to gradients
 		for ( size_t i = 0; i < layers.size(); i++ )
 
 			layers[i]->applyGrads ( alpha, decay );
 
+		params.unlock();
 
 	}
 
@@ -210,6 +215,11 @@ class NN {
 
 	double test ( const std::deque<datapoint>& data ) {
 
+		while ( pause ) {
+			usleep ( 10000 );
+			if ( step || quit ) { step = false; break; }
+		}
+
 		if ( ntype == AE || ntype == DAE )
 
 			return current_loss;
@@ -296,7 +306,7 @@ class NN {
 
 	}
 
-	void save(nanogui::Serializer &s) const {
+	void save(nanogui::Serializer &s) {
 
 		s.set("current_loss", current_loss);
 		// s.set("loss_data", *loss_data);
@@ -314,6 +324,8 @@ class NN {
 
 		s.set("layer_sizes", layer_sizes);
 
+		params.lock();
+
 		for ( size_t i = 0; i < layers.size(); i++ ) {
 
 			s.push(string_format ( "layer%d", i));
@@ -321,12 +333,14 @@ class NN {
 			s.pop();
 		}
 
+		params.unlock();
+
 	}
 
 	bool load(nanogui::Serializer &s) {
 
 		if (!s.get("current_loss", current_loss)) return false;
-		if (!s.get("loss_data", *loss_data)) return false;
+		//if (!s.get("loss_data", *loss_data)) return false;
 		if (!s.get("batch_size", batch_size)) return false;
 		if (!s.get("decay", decay)) return false;
 		if (!s.get("ntype", ntype)) return false;

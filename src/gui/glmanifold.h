@@ -2,7 +2,7 @@
 * @Author: kmrocki@us.ibm.com
 * @Date:   2017-03-20 10:09:39
 * @Last Modified by:   Kamil M Rocki
-* @Last Modified time: 2017-03-26 00:43:49
+* @Last Modified time: 2017-03-26 12:35:44
 */
 
 #ifndef __GLPLOT_H__
@@ -80,10 +80,28 @@ public:
 
 		nanogui::Button *b;
 
-		b = new nanogui::ToolButton(arrows, ENTYPO_ICON_TRIANGLE_LEFT); b->setCallback([&] { std::cout << "left" << std::endl; translation[0] -= cam_speed; }); b->setTooltip("left");
-		b = new nanogui::ToolButton(arrows, ENTYPO_ICON_TRIANGLE_DOWN); b->setCallback([&] { std::cout << "down" << std::endl; translation[1] -= cam_speed; }); b->setTooltip("down");
-		b = new nanogui::ToolButton(arrows, ENTYPO_ICON_TRIANGLE_UP); b->setCallback([&] { std::cout << "up" << std::endl; translation[1] += cam_speed; }); b->setTooltip("up");
-		b = new nanogui::ToolButton(arrows, ENTYPO_ICON_TRIANGLE_RIGHT); b->setCallback([&] { std::cout << "right" << std::endl; translation[0] += cam_speed; }); b->setTooltip("right");
+		Eigen::Vector2i bsize = Eigen::Vector2i(20, 20);
+		nanogui::Color bcolor = nanogui::Color(192, 128, 0, 25);
+
+		b = arrows->add<nanogui::Button>("", ENTYPO_ICON_TRIANGLE_LEFT);
+		b->setFixedSize(bsize);
+		b->setBackgroundColor(bcolor);
+		b->setCallback([&] { translation[0] -= cam_speed; }); b->setTooltip("left");
+
+		b = arrows->add<nanogui::Button>("", ENTYPO_ICON_TRIANGLE_DOWN);
+		b->setFixedSize(bsize);
+		b->setBackgroundColor(bcolor);
+		b->setCallback([&] { translation[1] -= cam_speed; }); b->setTooltip("down");
+
+		b = arrows->add<nanogui::Button>("", ENTYPO_ICON_TRIANGLE_UP);
+		b->setFixedSize(bsize);
+		b->setBackgroundColor(bcolor);
+		b->setCallback([&] { translation[1] += cam_speed;  }); b->setTooltip("up");
+
+		b = arrows->add<nanogui::Button>("", ENTYPO_ICON_TRIANGLE_RIGHT);
+		b->setFixedSize(bsize);
+		b->setBackgroundColor(bcolor);
+		b->setCallback([&] { translation[0] += cam_speed; }); b->setTooltip("right");
 
 		nanogui::Slider *slider = new nanogui::Slider(tools);
 		slider->setValue(0.5f);
@@ -103,7 +121,7 @@ public:
 
 		});
 
-		tools->setPosition({w_size[0] - 110, 0});
+		tools->setPosition({w_size[0] - 91, 0});
 
 	}
 
@@ -469,7 +487,7 @@ public:
 		}
 	}
 
-	virtual bool resizeEvent ( const Eigen::Vector2i &size ) {  tools->setPosition({size[0] - 110, 0}); return true; }
+	virtual bool resizeEvent ( const Eigen::Vector2i &size ) {  tools->setPosition({size[0] - 91, 0}); return true; }
 
 	~Plot() { /* free resources */
 

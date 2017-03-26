@@ -1,8 +1,8 @@
 /*
 * @Author: Kamil Rocki
 * @Date:   2017-02-28 11:25:34
-* @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-03-26 10:12:09
+* @Last Modified by:   Kamil M Rocki
+* @Last Modified time: 2017-03-26 13:45:08
 */
 
 #include <thread>
@@ -13,17 +13,20 @@
 #include <nanogui/screen.h>
 #include <serializer.h>
 
+//for NN
+#include <io/import.h>
+#include <nn/nn.h>
+
+NN *nn;
+std::deque<datapoint> train_data;
+std::deque<datapoint> test_data;
+
 //GUI
 #include "gui/manifoldscreen.h"
 #include <compute/functions.h>
 
 GUI *screen;
 
-//for NN
-#include <io/import.h>
-#include <nn/nn.h>
-
-NN *nn;
 
 int compute() {
 
@@ -33,20 +36,22 @@ int compute() {
 	PlotData* gl_data = screen->plot_data;
 
 	// NN stuff
-	double learning_rate = 1e-5;
+	double learning_rate = 1e-4;
 	float decay = 0;
 	const size_t image_size = 28;
 	const size_t batch_size = 100;
 	size_t e = 0;
 
 	// DATA
-	std::deque<datapoint> train_data = MNISTImporter::importFromFile ( "data/mnist/train-images-idx3-ubyte", "data/mnist/train-labels-idx1-ubyte" );
-	std::deque<datapoint> test_data = MNISTImporter::importFromFile ( "data/mnist/t10k-images-idx3-ubyte", "data/mnist/t10k-labels-idx1-ubyte" );
+	train_data = MNISTImporter::importFromFile ( "data/mnist/train-images-idx3-ubyte", "data/mnist/train-labels-idx1-ubyte" );
+	test_data = MNISTImporter::importFromFile ( "data/mnist/t10k-images-idx3-ubyte", "data/mnist/t10k-labels-idx1-ubyte" );
 
-	nn = new NN ( batch_size, decay, DAE, {image_size * image_size, 256, 128, 64, 3, 64, 128, 256, image_size * image_size});
+	nn = new NN ( batch_size, decay, DAE, {image_size * image_size, 64, 64, 32, 32, 3, 32, 32, 64, 64, image_size * image_size});
 
 	//bind graph data
-	//nn->loss_data = screen->plot_helper->graph_loss->values_ptr();
+	if (screen)
+		if (screen->graph_loss)
+			nn->loss_data = screen->graph_loss->values_ptr();
 
 	// nanogui::Serializer s_read(string_format ( "snapshots/170325_132952_61.bin" ), false);
 	// nn->load(s_read);
@@ -78,23 +83,23 @@ int compute() {
 	}
 
 	// save last state
-	end = std::chrono::system_clock::now();
-	std::chrono::duration<double> elapsed_seconds = end - start;
-	std::string t = return_current_time_and_date("%y%m%d_%H%M%S");
-	std::cout << "End time: " << t << ", " << "elapsed time: " << elapsed_seconds.count() << std::endl;
-	std::string fprefix = string_format ( "snapshots/%s_%d_%d", t.c_str(), (int)elapsed_seconds.count(), (int)nn->current_loss);
-	nanogui::Serializer s(string_format ( "%s.nn.bin", fprefix.c_str()), true);
-	nn->save(s);
-	std::cout << "Done " << std::endl;
+	// end = std::chrono::system_clock::now();
+	// std::chrono::duration<double> elapsed_seconds = end - start;
+	// std::string t = return_current_time_and_date("%y%m%d_%H%M%S");
+	// std::cout << "End time: " << t << ", " << "elapsed time: " << elapsed_seconds.count() << std::endl;
+	// std::string fprefix = string_format ( "snapshots/%s_%d_%d", t.c_str(), (int)elapsed_seconds.count(), (int)nn->current_loss);
+	// nanogui::Serializer s(string_format ( "%s.nn.bin", fprefix.c_str()), true);
+	// nn->save(s);
+	// std::cout << "Done " << std::endl;
 
-	std::fstream fin("dump.png", ios::in | ios::binary);
-	std::fstream fout(string_format ( "%s.png", fprefix.c_str()), ios::out | ios::binary);
+	// std::fstream fin("dump.png", ios::in | ios::binary);
+	// std::fstream fout(string_format ( "%s.png", fprefix.c_str()), ios::out | ios::binary);
 
-	char c;
-	while (!fin.eof()) {
-		fin.get(c);
-		fout.put(c);
-	}
+	// char c;
+	// while (!fin.eof()) {
+	// 	fin.get(c);
+	// 	fout.put(c);
+	// }
 
 	delete nn; return 0;
 
