@@ -16,8 +16,8 @@
 #include <gui/glmanifold.h>
 #include <gui/glplothelper.h>
 
-#define DEF_WIDTH 1300
-#define DEF_HEIGHT 800
+#define DEF_WIDTH 1100
+#define DEF_HEIGHT 420
 #define SCREEN_NAME "Manifold"
 #define RESIZABLE true
 #define FULLSCREEN false
@@ -34,7 +34,7 @@
 
 class GUI : public nanogui::Screen {
 
-public:
+  public:
 
 	GUI ( ) :
 
@@ -62,9 +62,9 @@ public:
 
 		std::string t = return_current_time_and_date("%y%m%d_%H%M%S");
 
-		plots.push_back(new Plot ( root, "forward", {DEF_WIDTH / 3, DEF_WIDTH / 3}, 0, plot_data, false, mGLFWWindow, mNVGContext, 50.0f, { -22.2f, -21.8f, -22.0f}, { 0.63, 1.895f, 0.0f}, {box_size * 2, box_size * 2, box_size * 2}, false, 200, string_format ( "%s_plot0", t.c_str())));
-		plots.push_back(new Plot ( root, "top frustum", {DEF_WIDTH / 3, DEF_WIDTH / 3}, 1, plot_data, false, mGLFWWindow, mNVGContext, 66.0f, {0.0f, 35.0f, 0.0f}, {0.0f, 0.0f, -M_PI / 4.0f}, {box_size * 2, box_size * 2, box_size * 2}, false, 200, string_format ( "%s_plot_top", t.c_str())));
-		plots.push_back(new Plot ( root, "front ortho", {DEF_WIDTH / 3, DEF_WIDTH / 3}, 2, plot_data, false, mGLFWWindow, mNVGContext, 40.0f, {0.0f, 0.0f, 11.0f}, {0.0f, 0.0f, 0.0f}, {box_size * 2, box_size * 2, box_size * 2}, true, 200, string_format ( "%s_plot_ortho", t.c_str())));
+		plots.push_back(new Plot ( root, "forward", {DEF_WIDTH / 3, DEF_WIDTH / 3}, 0, plot_data, false, mGLFWWindow, mNVGContext, 50.0f, { -22.2f, -21.8f, -22.0f}, { 0.63, 1.895f, 0.0f}, {box_size * 2, box_size * 2, box_size * 2}, false, 0, string_format ( "%s_plot0", t.c_str())));
+		plots.push_back(new Plot ( root, "top frustum", {DEF_WIDTH / 3, DEF_WIDTH / 3}, 1, plot_data, false, mGLFWWindow, mNVGContext, 66.0f, {0.0f, 35.0f, 0.0f}, {0.0f, 0.0f, -M_PI / 4.0f}, {box_size * 2, box_size * 2, box_size * 2}, false, 0, string_format ( "%s_plot_top", t.c_str())));
+		plots.push_back(new Plot ( root, "front ortho", {DEF_WIDTH / 3, DEF_WIDTH / 3}, 2, plot_data, false, mGLFWWindow, mNVGContext, 40.0f, {0.0f, 0.0f, 11.0f}, {0.0f, 0.0f, 0.0f}, {box_size * 2, box_size * 2, box_size * 2}, true, 0, string_format ( "%s_plot_ortho", t.c_str())));
 		plot_helper = new PlotHelper ( this, "" );
 		plot_helper->setLayout ( new nanogui::GroupLayout ( 15, 0, 0, 0 ) );
 
@@ -95,6 +95,7 @@ public:
 	}
 
 	void save(nanogui::Serializer &s) const {
+
 		s.set("position", mPos);
 		s.set("size", mSize);
 		s.set("fixedSize", mFixedSize);
@@ -134,11 +135,31 @@ public:
 				setVisible ( false );
 				return true;
 
+			case GLFW_KEY_S:
+
+				std::string t = return_current_time_and_date("%y%m%d_%H%M%S");
+				saveScreenShot(false, string_format ("./snapshots/screens/screen_%s_%08d.png", t.c_str(), completed_frames).c_str());
+				return true;
+
 			}
+
 		}
 
 		return Screen::keyboardEvent ( key, scancode, action, modifiers );
 	}
+
+	virtual void frame_completed_event() {
+
+		int interval = 250;
+
+		if (completed_frames % interval == 0) {
+			std::string t = return_current_time_and_date("%y%m%d_%H%M%S");
+			saveScreenShot(false, string_format ("./snapshots/screens/screen_%s_%08d.png", t.c_str(), completed_frames).c_str());
+		}
+
+		completed_frames++;
+
+	};
 
 	virtual bool resizeEvent ( const Eigen::Vector2i &size ) {
 
@@ -165,6 +186,10 @@ public:
 	PlotData *plot_data;
 	PlotHelper *plot_helper;
 	nanogui::Window *root;
+
+	int completed_frames = 0;
+
+	size_t local_data_checksum = 0;
 
 };
 

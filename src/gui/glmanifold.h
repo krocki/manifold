@@ -1,8 +1,8 @@
 /*
 * @Author: kmrocki@us.ibm.com
 * @Date:   2017-03-20 10:09:39
-* @Last Modified by:   Kamil M Rocki
-* @Last Modified time: 2017-03-25 18:47:07
+* @Last Modified by:   kmrocki@us.ibm.com
+* @Last Modified time: 2017-03-25 20:19:05
 */
 
 #ifndef __GLPLOT_H__
@@ -32,7 +32,7 @@
 
 class Plot : public nanogui::GLCanvas {
 
-public:
+  public:
 
 	Plot ( Widget *parent, std::string _caption, const Eigen::Vector2i &w_size, int i, PlotData *plot_data, bool transparent = false, GLFWwindow *w = nullptr, NVGcontext *nvg = nullptr, float _fovy = 67.0f, const Eigen::Vector3f _camera = Eigen::Vector3f(0.0f, 0.0f, 5.0f), const Eigen::Vector3f _rotation = Eigen::Vector3f(0.0f, 0.0f, 0.0f), const Eigen::Vector3f _box_size = Eigen::Vector3f(1.0f, 1.0f, 1.0f) , bool _ortho = false, int record_intvl = 0, const std::string r_prefix = "") : nanogui::GLCanvas ( parent, transparent ) {
 
@@ -263,8 +263,11 @@ public:
 
 		/* Upload points to GPU */
 
-		if (data->checksum != local_data_checksum)
+		bool record = false;
+		if (data->checksum != local_data_checksum) {
 			refresh_data();
+			record = true;
+		}
 
 		refresh_camera_positions();
 
@@ -394,8 +397,9 @@ public:
 		// save sreen
 		if (record_interval > 0) {
 
-			if (num_frames % record_interval == 0) {
-				std::string fname = string_format ( "snapshots/screens/%s_%08d", record_prefix.c_str(), num_frames);
+			// if (num_frames % record_interval == 0) {
+			if (record) {
+				std::string fname = string_format ( "snapshots/screens/%s_%08d.png", record_prefix.c_str(), num_frames);
 				saveScreenShot(false, fname.c_str());
 			}
 		}
@@ -405,14 +409,19 @@ public:
 	void saveScreenShot(int premult, const char* name) {
 
 		Eigen::Vector2i fbSize;
+		Eigen::Vector2i wsize;
 
 		if (glfw_window) {
-			glfwGetFramebufferSize ( glfw_window, &fbSize[0], &fbSize[1] );
 
-			int x = mPos.x();
-			int y = fbSize[1] - size().y();
-			int w = size().x();
-			int h = size().y();
+			glfwGetFramebufferSize ( glfw_window, &fbSize[0], &fbSize[1] );
+			glfwGetWindowSize ( glfw_window, &wsize[0], &wsize[1] );
+
+			float pixel_ratio = (float)fbSize[0] / wsize[0];
+
+			int x = mPos.x() * pixel_ratio;
+			int y = fbSize[1] - size().y() * pixel_ratio - 5;
+			int w = size().x() * pixel_ratio;
+			int h = size().y() * pixel_ratio - 5;
 
 			screenshot(x, y, w, h, premult, name);
 		}

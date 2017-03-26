@@ -1,8 +1,8 @@
 /*
 * @Author: kmrocki
 * @Date:   2016-02-24 15:28:10
-* @Last Modified by:   Kamil M Rocki
-* @Last Modified time: 2017-03-25 13:26:08
+* @Last Modified by:   kmrocki@us.ibm.com
+* @Last Modified time: 2017-03-25 19:03:47
 */
 
 #ifndef __NN_H__
@@ -31,7 +31,7 @@ typedef enum network_type { MLP = 0, AE = 1, DAE = 2 } network_type;
 
 class NN {
 
-public:
+  public:
 
 	std::vector<int> layer_sizes;
 	std::deque<Layer *> layers;
@@ -43,7 +43,7 @@ public:
 	bool pause = false;
 	bool step = false;
 
-	size_t batch_size;
+	int batch_size;
 	float decay;
 	network_type ntype;
 
@@ -53,7 +53,7 @@ public:
 	Matrix codes, codes_colors;
 	Eigen::MatrixXi codes_idxs;
 
-	size_t code_layer_no = 1;
+	int code_layer_no = 1;
 
 	void forward ( const Matrix &input_data, int max_layer = -1 ) {
 
