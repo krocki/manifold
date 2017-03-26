@@ -304,6 +304,19 @@ public:
 
 	}
 
+	void saveScreenShotCropped(int premult, const char* name) {
+
+		int w = mFBSize[0];
+		int h = mFBSize[1];
+		int x = 0;
+		int y = h - w / 3;
+		h = w / 3;
+		w = w / 3;
+
+		screenshot(x, y, w, h, premult, name);
+
+	}
+
 	virtual void drawContents() { }
 
 	/* event handlers */
@@ -319,7 +332,7 @@ public:
 
 			case GLFW_KEY_ESCAPE:
 
-				saveScreenShot(false, "dump.png");
+				saveScreenShotCropped(false, "dump.png");
 				setVisible ( false );
 				return true;
 
