@@ -2,7 +2,7 @@
 * @Author: kmrocki
 * @Date:   2016-02-24 15:28:10
 * @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-03-25 19:03:47
+* @Last Modified time: 2017-03-26 01:18:20
 */
 
 #ifndef __NN_H__
@@ -299,7 +299,7 @@ class NN {
 	void save(nanogui::Serializer &s) const {
 
 		s.set("current_loss", current_loss);
-		s.set("loss_data", *loss_data);
+		// s.set("loss_data", *loss_data);
 		s.set("batch_size", batch_size);
 		s.set("decay", decay);
 		s.set("ntype", ntype);

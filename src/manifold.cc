@@ -1,8 +1,8 @@
 /*
 * @Author: Kamil Rocki
 * @Date:   2017-02-28 11:25:34
-* @Last Modified by:   Kamil M Rocki
-* @Last Modified time: 2017-03-26 00:44:17
+* @Last Modified by:   kmrocki@us.ibm.com
+* @Last Modified time: 2017-03-26 10:12:09
 */
 
 #include <thread>
@@ -33,7 +33,7 @@ int compute() {
 	PlotData* gl_data = screen->plot_data;
 
 	// NN stuff
-	double learning_rate = 1e-4;
+	double learning_rate = 1e-5;
 	float decay = 0;
 	const size_t image_size = 28;
 	const size_t batch_size = 100;
@@ -43,7 +43,7 @@ int compute() {
 	std::deque<datapoint> train_data = MNISTImporter::importFromFile ( "data/mnist/train-images-idx3-ubyte", "data/mnist/train-labels-idx1-ubyte" );
 	std::deque<datapoint> test_data = MNISTImporter::importFromFile ( "data/mnist/t10k-images-idx3-ubyte", "data/mnist/t10k-labels-idx1-ubyte" );
 
-	nn = new NN ( batch_size, decay, AE, {image_size * image_size, 900, 3, 900, image_size * image_size});
+	nn = new NN ( batch_size, decay, DAE, {image_size * image_size, 256, 128, 64, 3, 64, 128, 256, image_size * image_size});
 
 	//bind graph data
 	//nn->loss_data = screen->plot_helper->graph_loss->values_ptr();
@@ -85,6 +85,7 @@ int compute() {
 	std::string fprefix = string_format ( "snapshots/%s_%d_%d", t.c_str(), (int)elapsed_seconds.count(), (int)nn->current_loss);
 	nanogui::Serializer s(string_format ( "%s.nn.bin", fprefix.c_str()), true);
 	nn->save(s);
+	std::cout << "Done " << std::endl;
 
 	std::fstream fin("dump.png", ios::in | ios::binary);
 	std::fstream fout(string_format ( "%s.png", fprefix.c_str()), ios::out | ios::binary);
