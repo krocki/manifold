@@ -5,7 +5,7 @@ CC=g++
 CFLAGS = -Ofast -Wall -Wextra -Wfatal-errors -std=c++14
 LFLAGS = -L$(NANOGUI_GIT_PATH)/build/ -lnanogui
 INCLUDES = -I./src/ -I$(NANOGUI_GIT_PATH)/include/ -I$(NANOGUI_GIT_PATH)/ext/eigen/ -I$(NANOGUI_GIT_PATH)/ext/glfw/include/ -I$(NANOGUI_GIT_PATH)/ext/nanovg/src/
-NANOGUI_GIT_PATH=$(HOME)/git/nanogui
+NANOGUI_GIT_PATH=$(HOME)/git/nanogui_forked
 
 # BLAS
 CFLAGS := -DUSE_BLAS $(CFLAGS)
