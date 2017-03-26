@@ -1,8 +1,8 @@
 /*
 * @Author: kmrocki@us.ibm.com
 * @Date:   2017-03-20 10:09:39
-* @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-03-24 18:43:09
+* @Last Modified by:   Kamil M Rocki
+* @Last Modified time: 2017-03-25 18:47:07
 */
 
 #ifndef __GLPLOT_H__
@@ -34,7 +34,7 @@ class Plot : public nanogui::GLCanvas {
 
 public:
 
-	Plot ( Widget *parent, std::string _caption, const Eigen::Vector2i &w_size, int i, PlotData *plot_data, bool transparent = false, GLFWwindow *w = nullptr, NVGcontext *nvg = nullptr, float _fovy = 67.0f, const Eigen::Vector3f _camera = Eigen::Vector3f(0.0f, 0.0f, 5.0f), const Eigen::Vector3f _rotation = Eigen::Vector3f(0.0f, 0.0f, 0.0f), const Eigen::Vector3f _box_size = Eigen::Vector3f(1.0f, 1.0f, 1.0f) , bool _ortho = false) : nanogui::GLCanvas ( parent, transparent ) {
+	Plot ( Widget *parent, std::string _caption, const Eigen::Vector2i &w_size, int i, PlotData *plot_data, bool transparent = false, GLFWwindow *w = nullptr, NVGcontext *nvg = nullptr, float _fovy = 67.0f, const Eigen::Vector3f _camera = Eigen::Vector3f(0.0f, 0.0f, 5.0f), const Eigen::Vector3f _rotation = Eigen::Vector3f(0.0f, 0.0f, 0.0f), const Eigen::Vector3f _box_size = Eigen::Vector3f(1.0f, 1.0f, 1.0f) , bool _ortho = false, int record_intvl = 0, const std::string r_prefix = "") : nanogui::GLCanvas ( parent, transparent ) {
 
 		GLCanvas::setSize (w_size);
 		glfw_window = w;
@@ -62,6 +62,8 @@ public:
 		box_size = _box_size;
 		init_shaders();
 
+		record_interval = record_intvl;
+		record_prefix = r_prefix;
 		tic = glfwGetTime();
 
 	}
@@ -248,6 +250,7 @@ public:
 
 		frame_time = glfwGetTime() - tic;
 		num_frames++;
+
 		tic = glfwGetTime();
 
 	}
@@ -388,8 +391,33 @@ public:
 
 		}
 
+		// save sreen
+		if (record_interval > 0) {
+
+			if (num_frames % record_interval == 0) {
+				std::string fname = string_format ( "snapshots/screens/%s_%08d", record_prefix.c_str(), num_frames);
+				saveScreenShot(false, fname.c_str());
+			}
+		}
 
 	}
+
+	void saveScreenShot(int premult, const char* name) {
+
+		Eigen::Vector2i fbSize;
+
+		if (glfw_window) {
+			glfwGetFramebufferSize ( glfw_window, &fbSize[0], &fbSize[1] );
+
+			int x = mPos.x();
+			int y = fbSize[1] - size().y();
+			int w = size().x();
+			int h = size().y();
+
+			screenshot(x, y, w, h, premult, name);
+		}
+	}
+
 
 	~Plot() { /* free resources */
 
@@ -405,6 +433,8 @@ public:
 	std::vector<std::pair<int, std::string>> textures;
 
 	size_t local_data_checksum = 0;
+	size_t record_interval = 0;
+	std::string record_prefix = "";
 
 	// for intercepting keyboard events
 	GLFWwindow *glfw_window = nullptr;

@@ -2,7 +2,7 @@
 * @Author: kmrocki@us.ibm.com
 * @Date:   2017-03-03 15:06:37
 * @Last Modified by:   Kamil M Rocki
-* @Last Modified time: 2017-03-25 13:28:19
+* @Last Modified time: 2017-03-25 17:32:24
 */
 
 #ifndef __LAYERS_H__
@@ -108,7 +108,7 @@ public:
 
 		W = Matrix ( outputs, inputs );
 		b = Vector::Zero ( outputs );
-		matrix_randn ( W, 0, 0.1 );
+		matrix_randn ( W, 0, ( 1.0f ) / sqrtf ( W.rows() + W.cols() ) );
 
 	};
 

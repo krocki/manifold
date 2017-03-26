@@ -2,7 +2,7 @@
 * @Author: Kamil Rocki
 * @Date:   2017-02-28 11:25:34
 * @Last Modified by:   Kamil M Rocki
-* @Last Modified time: 2017-03-25 14:40:25
+* @Last Modified time: 2017-03-25 18:34:56
 */
 
 #include <thread>
@@ -33,7 +33,7 @@ int compute() {
 	PlotData* gl_data = screen->plot_data;
 
 	// NN stuff
-	double learning_rate = 1e-3;
+	double learning_rate = 1e-4;
 	float decay = 0;
 	const size_t image_size = 28;
 	const size_t batch_size = 100;
@@ -43,7 +43,7 @@ int compute() {
 	std::deque<datapoint> train_data = MNISTImporter::importFromFile ( "data/mnist/train-images-idx3-ubyte", "data/mnist/train-labels-idx1-ubyte" );
 	std::deque<datapoint> test_data = MNISTImporter::importFromFile ( "data/mnist/t10k-images-idx3-ubyte", "data/mnist/t10k-labels-idx1-ubyte" );
 
-	nn = new NN ( batch_size, decay, AE, {image_size * image_size, 256, 256, 3, 256, 256, image_size * image_size});
+	nn = new NN ( batch_size, decay, AE, {image_size * image_size, 256, 100, 64, 3, 64, 100, 256, image_size * image_size});
 
 	//bind graph data
 	nn->loss_data = screen->plot_helper->graph_loss->values_ptr();
