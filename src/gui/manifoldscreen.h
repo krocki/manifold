@@ -43,7 +43,7 @@
 
 class GUI : public nanogui::Screen {
 
-  public:
+public:
 
 	GUI ( ) :
 
@@ -193,13 +193,14 @@ class GUI : public nanogui::Screen {
 
 		completed_frames++;
 
-		if ( nn->clock ) {
-			nn->clock = false;
-			update_graph ( graph_loss, nn->current_loss );
-			update_graph ( graph_cpu, cpu_util, 1000.0f, "ms" );
-			update_graph ( graph_flops, cpu_flops, 1.0f, "GF/s" );
-			update_graph ( graph_bytes, cpu_reads, 1.0f, "MB/s" );
-		}
+		if (nn)
+			if ( nn->clock ) {
+				nn->clock = false;
+				update_graph ( graph_loss, nn->current_loss );
+				update_graph ( graph_cpu, cpu_util, 1000.0f, "ms" );
+				update_graph ( graph_flops, cpu_flops, 1.0f, "GF/s" );
+				update_graph ( graph_bytes, cpu_reads, 1.0f, "MB/s" );
+			}
 
 	};
 

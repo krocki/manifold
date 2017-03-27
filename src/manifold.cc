@@ -1,8 +1,8 @@
 /*
 * @Author: Kamil Rocki
 * @Date:   2017-02-28 11:25:34
-* @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-03-27 00:11:09
+* @Last Modified by:   Kamil M Rocki
+* @Last Modified time: 2017-03-27 00:22:14
 */
 
 #include <thread>
@@ -41,15 +41,14 @@ int compute() {
 	const size_t batch_size = 100;
 	size_t e = 0;
 
-	nn = new NN ( batch_size, decay, DAE, {image_size * image_size, 256, 3, 256, image_size * image_size});
+	nn = new NN ( batch_size, decay, AE, {image_size * image_size, 64, 16, 8, 3, 8, 16, 64, image_size * image_size});
 	nn->pause = true;
 
 	//bind graph data
 	if (screen) {
 		if (screen->graph_loss)
 			nn->loss_data = screen->graph_loss->values_ptr();
-		if (screen->graph_loss)
-			nn->loss_data = screen->graph_loss->values_ptr();
+
 	}
 
 	size_t iters = train_data.size() / batch_size;
