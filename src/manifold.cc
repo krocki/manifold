@@ -2,7 +2,7 @@
 * @Author: Kamil Rocki
 * @Date:   2017-02-28 11:25:34
 * @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-03-26 17:29:55
+* @Last Modified time: 2017-03-26 21:10:09
 */
 
 #include <thread>
@@ -41,7 +41,7 @@ int compute() {
 	const size_t batch_size = 100;
 	size_t e = 0;
 
-	nn = new NN ( batch_size, decay, AE, {image_size * image_size, 256, 64, 3, 64, 256, image_size * image_size});
+	nn = new NN ( batch_size, decay, DAE, {image_size * image_size, 32, 32, 16, 3, 16, 32, 32, image_size * image_size});
 
 	// start paused
 	nn->pause = true;
