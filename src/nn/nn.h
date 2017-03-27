@@ -2,7 +2,7 @@
 * @Author: kmrocki
 * @Date:   2016-02-24 15:28:10
 * @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-03-26 01:18:20
+* @Last Modified time: 2017-03-26 15:08:38
 */
 
 #ifndef __NN_H__
@@ -12,6 +12,7 @@
 #include <nn/layers.h>
 #include <unistd.h>
 #include <colors.h>
+#include <mutex>
 
 #include "perf.h"
 
@@ -55,6 +56,8 @@ class NN {
 
 	int code_layer_no = 1;
 
+	std::mutex params;
+
 	void forward ( const Matrix &input_data, int max_layer = -1 ) {
 
 		//copy inputs to the lowest point in the network
@@ -97,11 +100,13 @@ class NN {
 
 	void update ( double alpha, float decay = 0.0f ) {
 
+		params.lock();
 		//update all layers according to gradients
 		for ( size_t i = 0; i < layers.size(); i++ )
 
 			layers[i]->applyGrads ( alpha, decay );
 
+		params.unlock();
 
 	}
 
@@ -210,6 +215,11 @@ class NN {
 
 	double test ( const std::deque<datapoint>& data ) {
 
+		while ( pause ) {
+			usleep ( 10000 );
+			if ( step || quit ) { step = false; break; }
+		}
+
 		if ( ntype == AE || ntype == DAE )
 
 			return current_loss;
@@ -296,7 +306,7 @@ class NN {
 
 	}
 
-	void save(nanogui::Serializer &s) const {
+	void save(nanogui::Serializer &s) {
 
 		s.set("current_loss", current_loss);
 		// s.set("loss_data", *loss_data);
@@ -314,6 +324,8 @@ class NN {
 
 		s.set("layer_sizes", layer_sizes);
 
+		params.lock();
+
 		for ( size_t i = 0; i < layers.size(); i++ ) {
 
 			s.push(string_format ( "layer%d", i));
@@ -321,12 +333,14 @@ class NN {
 			s.pop();
 		}
 
+		params.unlock();
+
 	}
 
 	bool load(nanogui::Serializer &s) {
 
 		if (!s.get("current_loss", current_loss)) return false;
-		if (!s.get("loss_data", *loss_data)) return false;
+		//if (!s.get("loss_data", *loss_data)) return false;
 		if (!s.get("batch_size", batch_size)) return false;
 		if (!s.get("decay", decay)) return false;
 		if (!s.get("ntype", ntype)) return false;

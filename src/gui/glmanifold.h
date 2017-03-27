@@ -1,8 +1,8 @@
 /*
 * @Author: kmrocki@us.ibm.com
 * @Date:   2017-03-20 10:09:39
-* @Last Modified by:   Kamil M Rocki
-* @Last Modified time: 2017-03-26 00:43:49
+* @Last Modified by:   kmrocki@us.ibm.com
+* @Last Modified time: 2017-03-26 17:51:35
 */
 
 #ifndef __GLPLOT_H__
@@ -24,6 +24,11 @@
 #define POINT_FRAG_FILE "./src/glsl/datapoint.f.glsl"
 #define POINT_VERT_FILE "./src/glsl/datapoint.v.glsl"
 
+#define POINT_TEX_SHADER_NAME "datapoint_tex_shader"
+#define POINT_TEX_FRAG_FILE "./src/glsl/tex_point.f.glsl"
+#define POINT_TEX_GEOM_FILE "./src/glsl/tex_point.g.glsl"
+#define POINT_TEX_VERT_FILE "./src/glsl/tex_point.v.glsl"
+
 #define CAM_SHADER_NAME "cam_shader"
 #define CAM_FRAG_FILE "./src/glsl/cam.f.glsl"
 #define CAM_GEOM_FILE "./src/glsl/cam.g.glsl"
@@ -36,7 +41,7 @@
 
 class Plot : public nanogui::GLCanvas {
 
-public:
+  public:
 
 	Plot ( Widget *parent, std::string _caption, const Eigen::Vector2i &w_size, int i, PlotData *plot_data, bool transparent = false, bool _keyboard_enabled = false, GLFWwindow *w = nullptr, NVGcontext *nvg = nullptr, float _fovy = 67.0f, const Eigen::Vector3f _camera = Eigen::Vector3f(0.0f, 0.0f, 5.0f), const Eigen::Vector3f _rotation = Eigen::Vector3f(0.0f, 0.0f, 0.0f), const Eigen::Vector3f _box_size = Eigen::Vector3f(1.0f, 1.0f, 1.0f) , bool _ortho = false, int record_intvl = 0, const std::string r_prefix = "") : nanogui::GLCanvas ( parent, transparent ) {
 
@@ -80,10 +85,28 @@ public:
 
 		nanogui::Button *b;
 
-		b = new nanogui::ToolButton(arrows, ENTYPO_ICON_TRIANGLE_LEFT); b->setCallback([&] { std::cout << "left" << std::endl; translation[0] -= cam_speed; }); b->setTooltip("left");
-		b = new nanogui::ToolButton(arrows, ENTYPO_ICON_TRIANGLE_DOWN); b->setCallback([&] { std::cout << "down" << std::endl; translation[1] -= cam_speed; }); b->setTooltip("down");
-		b = new nanogui::ToolButton(arrows, ENTYPO_ICON_TRIANGLE_UP); b->setCallback([&] { std::cout << "up" << std::endl; translation[1] += cam_speed; }); b->setTooltip("up");
-		b = new nanogui::ToolButton(arrows, ENTYPO_ICON_TRIANGLE_RIGHT); b->setCallback([&] { std::cout << "right" << std::endl; translation[0] += cam_speed; }); b->setTooltip("right");
+		Eigen::Vector2i bsize = Eigen::Vector2i(20, 20);
+		nanogui::Color bcolor = nanogui::Color(192, 128, 0, 25);
+
+		b = arrows->add<nanogui::Button>("", ENTYPO_ICON_TRIANGLE_LEFT);
+		b->setFixedSize(bsize);
+		b->setBackgroundColor(bcolor);
+		b->setCallback([&] { translation[0] -= cam_speed; }); b->setTooltip("left");
+
+		b = arrows->add<nanogui::Button>("", ENTYPO_ICON_TRIANGLE_DOWN);
+		b->setFixedSize(bsize);
+		b->setBackgroundColor(bcolor);
+		b->setCallback([&] { translation[1] -= cam_speed; }); b->setTooltip("down");
+
+		b = arrows->add<nanogui::Button>("", ENTYPO_ICON_TRIANGLE_UP);
+		b->setFixedSize(bsize);
+		b->setBackgroundColor(bcolor);
+		b->setCallback([&] { translation[1] += cam_speed;  }); b->setTooltip("up");
+
+		b = arrows->add<nanogui::Button>("", ENTYPO_ICON_TRIANGLE_RIGHT);
+		b->setFixedSize(bsize);
+		b->setBackgroundColor(bcolor);
+		b->setCallback([&] { translation[0] += cam_speed; }); b->setTooltip("right");
 
 		nanogui::Slider *slider = new nanogui::Slider(tools);
 		slider->setValue(0.5f);
@@ -103,7 +126,12 @@ public:
 
 		});
 
-		tools->setPosition({w_size[0] - 110, 0});
+
+		b = new nanogui::Button(tools, "TEX");
+		b->setFlags(nanogui::Button::ToggleButton);
+		b->setChangeCallback([&](bool state) { std::cout << "Textures: " << state << std::endl; use_textures = state;});
+
+		tools->setPosition({w_size[0] - 91, 0});
 
 	}
 
@@ -111,6 +139,9 @@ public:
 
 		m_pointShader = new nanogui::GLShader();
 		m_pointShader->initFromFiles ( POINT_SHADER_NAME, POINT_VERT_FILE, POINT_FRAG_FILE );
+
+		m_pointTexShader = new nanogui::GLShader();
+		m_pointTexShader->initFromFiles ( POINT_TEX_SHADER_NAME, POINT_TEX_VERT_FILE, POINT_TEX_FRAG_FILE, POINT_TEX_GEOM_FILE );
 
 		m_cubeShader = new nanogui::GLShader();
 		m_cubeShader->initFromFiles ( BOX_SHADER_NAME, BOX_VERT_FILE, BOX_FRAG_FILE, BOX_GEOM_FILE );
@@ -220,6 +251,12 @@ public:
 			m_pointShader->uploadAttrib("position", data->p_vertices);
 			m_pointShader->uploadAttrib("color", data->p_colors);
 
+			m_pointTexShader->bind();
+			m_pointTexShader->uploadAttrib("position", data->p_vertices);
+			m_pointTexShader->uploadAttrib("color", data->p_colors);
+			m_pointTexShader->uploadAttrib("texcoords", data->p_texcoords);
+
+
 			// }
 
 			m_cubeShader->bind();
@@ -327,29 +364,54 @@ public:
 		m_camShader->setUniform("mvp", mvp);
 		m_camShader->drawArray(GL_LINES, 0, data->e_vertices.cols());
 
-		glEnable ( GL_PROGRAM_POINT_SIZE );
+		if (!use_textures) {
 
-		m_pointShader->bind();
-		m_pointShader->setUniform("mvp", data_mvp);
+			glEnable ( GL_PROGRAM_POINT_SIZE );
+			m_pointShader->bind();
+			m_pointShader->setUniform("mvp", data_mvp);
+			m_pointShader->drawArray(GL_POINTS, 0, data->p_vertices.cols());
 
-		// m_pointShader->setUniform("model", model);
-		// m_pointShader->setUniform("view", view);
-		// m_pointShader->setUniform("proj", proj);
-		// m_pointShader->setUniform("tic", tic);
+			glDisable ( GL_PROGRAM_POINT_SIZE );
+			glDisable ( GL_BLEND );
+			glEnable ( GL_DEPTH_TEST );
 
-		// if (index != 0 && master_pointShader) {
+		} else {
 
-		// 	m_pointShader->shareAttrib (*master_pointShader, "position");
-		// 	m_pointShader->shareAttrib (*master_pointShader, "color");
+			m_pointTexShader->bind();
 
-		// }
+			glActiveTexture ( GL_TEXTURE0 );
+			glBindTexture ( GL_TEXTURE_2D, ( std::vector<std::pair<int, std::string>> ( data->textures ) [0] ).first );
 
-		m_pointShader->drawArray(GL_POINTS, 0, data->p_vertices.cols());
+			//star
+			// glBindTexture ( GL_TEXTURE_2D, ( std::vector<std::pair<int, std::string>> ( data->textures ) [1] ).first );
+			// float textures_per_dim = 1;
 
-		glDisable ( GL_PROGRAM_POINT_SIZE );
-		glDisable ( GL_BLEND );
-		glEnable ( GL_DEPTH_TEST );
+			m_pointTexShader->setUniform ( "image", 0 );
+			m_pointTexShader->setUniform ( "view", view );
+			m_pointTexShader->setUniform ( "proj", proj );
+			m_pointTexShader->setUniform ( "mvp", data_mvp );
+			m_pointTexShader->setUniform ( "model", data_model );
 
+			float textures_per_dim = ceil ( sqrtf ( train_data.size() ) );
+			float quad_size = 0.03f;
+			float radius = sqrtf ( 2 * quad_size );
+			float tex_w = 1.0f / (float)textures_per_dim;
+
+			m_pointTexShader->setUniform ( "radius", radius );
+			m_pointTexShader->setUniform ( "tex_w", tex_w );
+
+			glPointSize ( 1 );
+			glEnable ( GL_DEPTH_TEST );
+
+			glEnable ( GL_BLEND );
+			glBlendFunc ( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
+
+			m_pointTexShader->drawArray ( GL_POINTS, 0, data->p_vertices.cols() );
+
+			glDisable ( GL_BLEND );
+			glDisable ( GL_DEPTH_TEST );
+
+		}
 		// additional stuff, directly in nanovg
 
 		if (vg) {
@@ -469,11 +531,12 @@ public:
 		}
 	}
 
-	virtual bool resizeEvent ( const Eigen::Vector2i &size ) {  tools->setPosition({size[0] - 110, 0}); return true; }
+	virtual bool resizeEvent ( const Eigen::Vector2i &size ) {  tools->setPosition({size[0] - 91, 0}); return true; }
 
 	~Plot() { /* free resources */
 
 		delete m_pointShader;
+		delete m_pointTexShader;
 		delete m_cubeShader;
 		delete m_camShader;
 
@@ -497,10 +560,12 @@ public:
 
 	// shaders
 	nanogui::GLShader *m_pointShader = nullptr;
+	nanogui::GLShader *m_pointTexShader = nullptr;
 	nanogui::GLShader *m_cubeShader = nullptr;
 	nanogui::GLShader *m_camShader = nullptr;
 
 	nanogui::GLShader *master_pointShader = nullptr;
+	nanogui::GLShader *master_pointTexShader = nullptr;
 	nanogui::GLShader *master_cubeShader = nullptr;
 	nanogui::GLShader *master_camShader = nullptr;
 
@@ -512,6 +577,7 @@ public:
 	Eigen::Quaternionf q;
 
 	bool ortho = false;
+	bool use_textures = false;
 
 	float near, far, fovy;
 	float cam_speed, cam_angular_speed;
