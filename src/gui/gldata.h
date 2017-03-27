@@ -2,7 +2,7 @@
 * @Author: kmrocki@us.ibm.com
 * @Date:   2017-03-20 10:11:47
 * @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-03-26 17:42:50
+* @Last Modified time: 2017-03-26 18:00:02
 */
 
 #ifndef __PLOTDATA_H__
@@ -72,15 +72,15 @@ class PlotData {
 
 		}
 
-		textures.resize ( 2 );
+		textures.resize ( 1 );
 
 		textures[0] = ( std::pair<int, std::string> ( nvgCreateImageA ( nvg,
 		                sqr_dim * image_size, sqr_dim * image_size, NVG_IMAGE_NEAREST, ( unsigned char * ) rgba_image.data() ), "" ) );
 
 
-		GLTexture texture("star");
-		auto tdata = texture.load("./images/star.png");
-		textures[1] = ( std::pair<int, std::string> ( texture.texture(), "" )) ;
+		// GLTexture texture("star");
+		// auto tdata = texture.load("./images/star.png");
+		// textures[1] = ( std::pair<int, std::string> ( texture.texture(), "" )) ;
 
 	}
 

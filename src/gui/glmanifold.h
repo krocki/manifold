@@ -2,7 +2,7 @@
 * @Author: kmrocki@us.ibm.com
 * @Date:   2017-03-20 10:09:39
 * @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-03-26 17:51:35
+* @Last Modified time: 2017-03-26 17:58:35
 */
 
 #ifndef __GLPLOT_H__
@@ -393,7 +393,7 @@ class Plot : public nanogui::GLCanvas {
 			m_pointTexShader->setUniform ( "model", data_model );
 
 			float textures_per_dim = ceil ( sqrtf ( train_data.size() ) );
-			float quad_size = 0.03f;
+			float quad_size = 0.0005f;
 			float radius = sqrtf ( 2 * quad_size );
 			float tex_w = 1.0f / (float)textures_per_dim;
 
