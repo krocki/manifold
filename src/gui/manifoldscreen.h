@@ -243,6 +243,14 @@ public:
 		layout->setSpacing(0, 10);
 		window->setLayout(layout);
 
+		nanogui::GridLayout *layout_2cols =
+		    new nanogui::GridLayout(nanogui::Orientation::Horizontal, 2,
+		                            nanogui::Alignment::Middle, 15, 5);
+		layout_2cols->setColAlignment(
+		{ nanogui::Alignment::Maximum, nanogui::Alignment::Fill });
+		layout_2cols->setSpacing(0, 10);
+
+
 		// nanogui::Label* message = new nanogui::Label(window, "", "sans-bold");
 
 		// /* FP widget */ {
@@ -339,7 +347,7 @@ public:
 		popup = imagePanelBtn->popup();
 
 		nanogui::Widget *panel = new nanogui::Widget(popup);
-		panel->setLayout(layout);
+		panel->setLayout(layout_2cols);
 
 		nanogui::TextBox* textBox = new nanogui::TextBox(panel);
 		textBox->setEditable(true);
