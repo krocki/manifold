@@ -2,7 +2,7 @@
 * @Author: kmrocki
 * @Date:   2016-02-24 15:28:10
 * @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-03-27 00:11:18
+* @Last Modified time: 2017-03-27 14:16:40
 */
 
 #ifndef __NN_H__
@@ -117,100 +117,100 @@ class NN {
 		batch.resize ( data[0].x.rows(), batch_size );
 		// size_t dims = layers[code_layer_no]->y.rows();
 
-		if ( ntype == AE || ntype == DAE ) {
-
-			// codes.resize ( dims, iterations * batch_size );
-			// codes_colors.resize ( 1, iterations * batch_size );
-
-			// targets.resize ( 1, batch_size );
-			// encoding.resize ( 1, 10 );
-			// encoding << 0, 1, 2, 3, 4, 5, 6, 7, 8, 9;
-
-		} else {
-
-			targets.resize ( classes, batch_size );
-			encoding = Matrix::Identity ( classes, classes );
-
-		}
-
-		for ( size_t ii = 0; ii < iterations; ii++ ) {
-
-			tic();
-
-			matrix_randi ( random_numbers, 0, data.size() - 1 );
-
-			// [784 x batch_size]
-			make_batch ( batch, data, random_numbers );
-
-			if ( ntype == MLP ) make_targets ( targets, encoding, data, random_numbers );
-
-			ticf();
-
-			//forward activations
-			if ( ntype == DAE ) {
-
-				/* Denoising */
-				Matrix mask ( batch.rows(), batch.cols() );
-				random_binary_mask ( mask );
-				Matrix corrupted_batch ( batch.rows(), batch.cols() );
-				corrupted_batch.array() = batch.array() * mask.array();
-				forward ( corrupted_batch );
-
-			} else
-
-				forward ( batch );
-
-			double err;
-
-			//backprogagation
+		if (!quit) {
 			if ( ntype == AE || ntype == DAE ) {
 
-				// codes.block ( 0, ii * batch_size, dims, batch_size ) = layers[code_layer_no]->y;
-				// codes_colors.block ( 0, ii * batch_size, 1, batch_size ) = targets;
+				// codes.resize ( dims, iterations * batch_size );
+				// codes_colors.resize ( 1, iterations * batch_size );
 
-				err = mse ( layers[layers.size() - 1]->y, batch ) / ( float ) batch_size;
-
-				// reconstruct
-				backward ( batch - layers[layers.size() - 1]->y );
-
+				// targets.resize ( 1, batch_size );
+				// encoding.resize ( 1, 10 );
+				// encoding << 0, 1, 2, 3, 4, 5, 6, 7, 8, 9;
 
 			} else {
 
-				err = cross_entropy ( layers[layers.size() - 1]->y, targets );
-
-				backward ( targets );
+				targets.resize ( classes, batch_size );
+				encoding = Matrix::Identity ( classes, classes );
 
 			}
 
-			current_loss = current_loss < 0 ? err : 0.99 * current_loss + 0.01 * err;
+			for ( size_t ii = 0; ii < iterations; ii++ ) {
 
-			if ( ii % 50 == 0 ) {
+				tic();
 
-				clock = true;
-				//update graph data
-				if (loss_data) {
+				matrix_randi ( random_numbers, 0, data.size() - 1 );
 
-					loss_data->head ( loss_data->size() - 1 ) = loss_data->tail ( loss_data->size() - 1 );
-					loss_data->tail ( 1 ) ( 0 ) = current_loss;
+				// [784 x batch_size]
+				make_batch ( batch, data, random_numbers );
+
+				if ( ntype == MLP ) make_targets ( targets, encoding, data, random_numbers );
+
+				ticf();
+
+				//forward activations
+				if ( ntype == DAE ) {
+
+					/* Denoising */
+					Matrix mask ( batch.rows(), batch.cols() );
+					random_binary_mask ( mask );
+					Matrix corrupted_batch ( batch.rows(), batch.cols() );
+					corrupted_batch.array() = batch.array() * mask.array();
+					forward ( corrupted_batch );
+
+				} else
+
+					forward ( batch );
+
+				double err;
+
+				//backprogagation
+				if ( ntype == AE || ntype == DAE ) {
+
+					// codes.block ( 0, ii * batch_size, dims, batch_size ) = layers[code_layer_no]->y;
+					// codes_colors.block ( 0, ii * batch_size, 1, batch_size ) = targets;
+
+					err = mse ( layers[layers.size() - 1]->y, batch ) / ( float ) batch_size;
+
+					// reconstruct
+					backward ( batch - layers[layers.size() - 1]->y );
+
+
+				} else {
+
+					err = cross_entropy ( layers[layers.size() - 1]->y, targets );
+
+					backward ( targets );
 
 				}
 
+				current_loss = current_loss < 0 ? err : 0.99 * current_loss + 0.01 * err;
+
+				if ( ii % 50 == 0 ) {
+
+					clock = true;
+					//update graph data
+					if (loss_data) {
+
+						loss_data->head ( loss_data->size() - 1 ) = loss_data->tail ( loss_data->size() - 1 );
+						loss_data->tail ( 1 ) ( 0 ) = current_loss;
+
+					}
+
+
+				}
+
+				//apply changes
+				update ( alpha, decay );
+
+				tocf();
+				toc();
+
+				while ( pause ) {
+					usleep ( 10000 );
+					if ( step || quit ) { step = false; break; }
+				}
 
 			}
-
-			//apply changes
-			update ( alpha, decay );
-
-			tocf();
-			toc();
-
-			if ( quit ) break;
-
-			while ( pause ) {
-				usleep ( 10000 );
-				if ( step || quit ) { step = false; break; }
-			}
-
 		}
 	}
 
@@ -222,71 +222,75 @@ class NN {
 			if ( step || quit ) { step = false; break; }
 		}
 
-		if ( ntype == AE || ntype == DAE )
+		if (!quit) {
 
-			return current_loss;
+			if ( ntype == AE || ntype == DAE )
 
-		else {
+				return current_loss;
 
-			Eigen::VectorXi numbers ( batch_size );
-			size_t classes = 10;
-			size_t correct = 0;
+			else {
 
-			batch.resize ( data[0].x.rows(), batch_size );
-			targets.resize ( classes, batch_size );
-			encoding = Matrix::Identity ( classes, classes );
+				Eigen::VectorXi numbers ( batch_size );
+				size_t classes = 10;
+				size_t correct = 0;
 
-			for ( size_t ii = 0; ii < data.size(); ii += batch_size ) {
+				batch.resize ( data[0].x.rows(), batch_size );
+				targets.resize ( classes, batch_size );
+				encoding = Matrix::Identity ( classes, classes );
 
-				linspace ( numbers, ii, ii + batch_size );
+				for ( size_t ii = 0; ii < data.size(); ii += batch_size ) {
 
-				make_batch ( batch, data, numbers );
-				make_targets ( targets, encoding, data, numbers );
+					linspace ( numbers, ii, ii + batch_size );
 
-				forward ( batch );
+					make_batch ( batch, data, numbers );
+					make_targets ( targets, encoding, data, numbers );
 
-				correct += count_correct_predictions ( layers[layers.size() - 1]->y, targets );
+					forward ( batch );
+
+					correct += count_correct_predictions ( layers[layers.size() - 1]->y, targets );
 
 
+				}
+
+				return ( double ) correct / ( double ) ( data.size() );
 			}
-
-			return ( double ) correct / ( double ) ( data.size() );
 		}
-
 	}
 
 	void testcode ( const std::deque<datapoint>& data ) {
 
-		size_t dims = layers[code_layer_no]->y.rows();
+		if (!quit) {
+			size_t dims = layers[code_layer_no]->y.rows();
 
-		codes.resize ( dims, data.size() );
-		codes_colors.resize ( 1, data.size() );
-		codes_idxs.resize ( 1, data.size() );
+			codes.resize ( dims, data.size() );
+			codes_colors.resize ( 1, data.size() );
+			codes_idxs.resize ( 1, data.size() );
 
-		Eigen::VectorXi numbers ( batch_size );
+			Eigen::VectorXi numbers ( batch_size );
 
-		batch.resize ( data[0].x.rows(), batch_size );
-		targets.resize ( 1, batch_size );
-		encoding.resize ( 1, 10 );
-		encoding << 0, 1, 2, 3, 4, 5, 6, 7, 8, 9;
+			batch.resize ( data[0].x.rows(), batch_size );
+			targets.resize ( 1, batch_size );
+			encoding.resize ( 1, 10 );
+			encoding << 0, 1, 2, 3, 4, 5, 6, 7, 8, 9;
 
-		for ( size_t ii = 0; ii < data.size(); ii += batch_size ) {
+			for ( size_t ii = 0; ii < data.size(); ii += batch_size ) {
 
-			linspace ( numbers, ii, ii + batch_size );
-			make_batch ( batch, data, numbers );
+				linspace ( numbers, ii, ii + batch_size );
+				make_batch ( batch, data, numbers );
 
-			if ( ntype == DAE ) batch /= 2.0f;
+				if ( ntype == DAE ) batch /= 2.0f;
 
-			make_targets ( targets, encoding, data, numbers );
+				make_targets ( targets, encoding, data, numbers );
 
-			forward ( batch, code_layer_no );
+				forward ( batch, code_layer_no );
 
-			codes.block ( 0, ii, dims, batch_size ) = layers[code_layer_no]->y;
-			codes_colors.block ( 0, ii, 1, batch_size ) = targets;
-			codes_idxs.block ( 0, ii, 1, batch_size ) = numbers.transpose();
+				codes.block ( 0, ii, dims, batch_size ) = layers[code_layer_no]->y;
+				codes_colors.block ( 0, ii, 1, batch_size ) = targets;
+				codes_idxs.block ( 0, ii, 1, batch_size ) = numbers.transpose();
+
+			}
 
 		}
-
 	}
 
 	NN ( size_t minibatch_size, float decay = 0.0f, network_type type = MLP, std::vector<int> _layer_sizes = {}) : batch_size ( minibatch_size ), decay ( decay ), ntype ( type ) {
@@ -308,7 +312,7 @@ class NN {
 
 	}
 
-	void save(nanogui::Serializer &s) {
+	void save(nanogui::Serializer & s) {
 
 		s.set("current_loss", current_loss);
 		// s.set("loss_data", *loss_data);
@@ -339,7 +343,7 @@ class NN {
 
 	}
 
-	bool load(nanogui::Serializer &s) {
+	bool load(nanogui::Serializer & s) {
 
 		if (!s.get("current_loss", current_loss)) return false;
 		//if (!s.get("loss_data", *loss_data)) return false;

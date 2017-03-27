@@ -1,8 +1,8 @@
 /*
 * @Author: kmrocki@us.ibm.com
 * @Date:   2017-03-03 15:06:37
-* @Last Modified by:   Kamil M Rocki
-* @Last Modified time: 2017-03-26 21:37:53
+* @Last Modified by:   kmrocki@us.ibm.com
+* @Last Modified time: 2017-03-27 09:27:10
 */
 
 #ifndef __LAYERS_H__
@@ -13,7 +13,7 @@
 //abstract
 class Layer {
 
-public:
+  public:
 
 	//used in forward pass
 	Matrix x; //inputs
@@ -66,7 +66,7 @@ public:
 
 class Linear : public Layer {
 
-public:
+  public:
 
 	Matrix W;
 	Matrix b;
@@ -87,7 +87,7 @@ public:
 		if ( add_gaussian_noise ) {
 
 			gaussian_noise.resize ( x.rows(), x.cols() );
-			matrix_randn ( gaussian_noise, 0, 0.25 );
+			matrix_randn ( gaussian_noise, 0, 0.1 );
 			x += gaussian_noise;
 		}
 
@@ -125,21 +125,21 @@ public:
 	}
 
 	// pseudo adadelta
-	// void applyGrads ( float alpha, float decay = 0.0f ) {
+	void applyGrads ( float alpha, float decay = 0.0f ) {
 
-	// 	float rho = 0.95f;
+		float rho = 0.9f;
 
-	// 	mW.array() = rho * mW.array() + (1 - rho) * dW.array() * dW.array();
-	// 	mb.array() = rho * mb.array() + (1 - rho) * db.array() * db.array();
+		mW.array() = rho * mW.array() + (1 - rho) * dW.array() * dW.array();
+		mb.array() = rho * mb.array() + (1 - rho) * db.array() * db.array();
 
-	// 	W *= ( 1.0f - decay );
+		W *= ( 1.0f - decay );
 
-	// 	b.array() += alpha * db.array() / (( mb.array() + 1e-6 )).sqrt().array();
-	// 	W.array() += alpha * dW.array() / (( mW.array() + 1e-6 )).sqrt().array();
+		b.array() += alpha * db.array() / (( mb.array() + 1e-6 )).sqrt().array();
+		W.array() += alpha * dW.array() / (( mW.array() + 1e-6 )).sqrt().array();
 
-	// 	flops_performed += W.size() * 4 + 2 * b.size();
-	// 	bytes_read += W.size() * sizeof ( dtype ) * 3;
-	// }
+		flops_performed += W.size() * 4 + 2 * b.size();
+		bytes_read += W.size() * sizeof ( dtype ) * 3;
+	}
 
 
 	// adagrad
@@ -158,14 +158,14 @@ public:
 	// }
 
 	// sgd
-	void applyGrads ( float alpha, float decay = 0.0f ) {
+	// void applyGrads ( float alpha, float decay = 0.0f ) {
 
-		W *= ( 1.0f - decay );
-		b += alpha * db;
-		W += alpha * dW;
-		flops_performed += W.size() * 4 + 2 * b.size();
-		bytes_read += W.size() * sizeof ( dtype ) * 3;
-	}
+	// 	W *= ( 1.0f - decay );
+	// 	b += alpha * db;
+	// 	W += alpha * dW;
+	// 	flops_performed += W.size() * 4 + 2 * b.size();
+	// 	bytes_read += W.size() * sizeof ( dtype ) * 3;
+	// }
 
 
 	virtual void save(nanogui::Serializer &s) const {
@@ -199,7 +199,7 @@ public:
 
 class Sigmoid : public Layer {
 
-public:
+  public:
 
 	void forward() {
 
@@ -222,7 +222,7 @@ public:
 
 class ReLU : public Layer {
 
-public:
+  public:
 
 	void forward() {
 
@@ -246,7 +246,7 @@ public:
 
 class Softmax : public Layer {
 
-public:
+  public:
 
 	void forward() {
 

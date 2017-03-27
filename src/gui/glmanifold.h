@@ -2,7 +2,7 @@
 * @Author: kmrocki@us.ibm.com
 * @Date:   2017-03-20 10:09:39
 * @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-03-27 00:10:06
+* @Last Modified time: 2017-03-27 14:12:42
 */
 
 #ifndef __GLPLOT_H__
@@ -85,6 +85,13 @@ class Plot : public nanogui::GLCanvas {
 		record_prefix = r_prefix;
 		tic = glfwGetTime();
 
+		m_arcball.setSize ( w_size );
+		Eigen::Matrix3f mat = Eigen::Matrix3f::Identity();
+		Eigen::Quaternionf qarc ( mat );
+		m_arcball.setState ( qarc );
+
+		model_scale = Eigen::Vector3f(1, 1, 1);
+
 		tools = new nanogui::Widget(this);
 		tools->setLayout(new nanogui::GroupLayout(0, 0, 0, 0));
 
@@ -143,7 +150,13 @@ class Plot : public nanogui::GLCanvas {
 		b->setPushed(mousemotion_enabled);
 		b->setChangeCallback([&](bool state) { std::cout << "Mouse: " << state << std::endl; mousemotion_enabled = state;});
 
-		nanogui::Slider *slider = new nanogui::Slider(tools);
+
+		nanogui::Widget *sliders = new nanogui::Widget(tools);
+		sliders->setLayout(new nanogui::GridLayout(nanogui::Orientation::Horizontal, 2, nanogui::Alignment::Middle, 0, 0));
+
+		new nanogui::Label(sliders, "FOV", "sans-bold", 7);
+
+		nanogui::Slider *slider = new nanogui::Slider(sliders);
 		slider->setValue(0.5f);
 		slider->setFixedWidth(80);
 		slider->setCallback([&](float value) {
@@ -153,11 +166,23 @@ class Plot : public nanogui::GLCanvas {
 
 		});
 
-		slider = new nanogui::Slider(tools);
+		new nanogui::Label(sliders, "CAM", "sans-bold", 7);
+		slider = new nanogui::Slider(sliders);
 		slider->setValue(cam_speed);
 		slider->setFixedWidth(80);
 		slider->setCallback([&](float value) {
 			cam_speed = value; std::cout << "cam speed: " << cam_speed << std::endl;
+			cam_angular_speed = (cam_speed / 1000.0f ) * 360.0f / M_PI;
+
+		});
+
+		new nanogui::Label(sliders, "MAG", "sans-bold", 7);
+		slider = new nanogui::Slider(sliders);
+		slider->setValue(0.5f);
+		slider->setFixedWidth(80);
+		slider->setCallback([&](float value) {
+			float s = powf(10, ((value - 0.5f) * 4.0f));
+			model_scale = Eigen::Vector3f(s, s, s); std::cout << "scale: " << model_scale << std::endl;
 
 		});
 
@@ -202,10 +227,10 @@ class Plot : public nanogui::GLCanvas {
 		q = rotate(rotation, forward, up, right) * q;
 
 		near = 0.1f;
-		far = 100.0f;
+		far = 200.0f;
 
-		cam_speed = 0.1f;
-		cam_angular_speed = 0.00005f * 360.0f / M_PI;
+		cam_speed = 0.07f;
+		cam_angular_speed = (cam_speed / 1000.0f) * 360.0f / M_PI;
 
 	}
 
@@ -257,7 +282,8 @@ class Plot : public nanogui::GLCanvas {
 	void update_model() {
 
 		model.setIdentity();
-		data_model = translate({ -box_size[0] / 2, -box_size[1] / 2, -box_size[2] / 2});
+		data_model = nanogui::scale(model_scale);
+		data_model = translate({ -box_size[0] / 2, -box_size[1] / 2, -box_size[2] / 2}) * data_model;
 
 	}
 
@@ -339,6 +365,8 @@ class Plot : public nanogui::GLCanvas {
 			mouse_last_y = relative_pos[1];
 
 			update_mouse_overlay();
+
+			// m_arcball.motion ( p );
 
 			return true;
 
@@ -485,7 +513,7 @@ class Plot : public nanogui::GLCanvas {
 			m_pointTexShader->setUniform ( "model", data_model );
 
 			float textures_per_dim = ceil ( sqrtf ( train_data.size() ) );
-			float quad_size = 0.0005f;
+			float quad_size = 0.005f;
 			float radius = sqrtf ( 2 * quad_size );
 			float tex_w = 1.0f / (float)textures_per_dim;
 
@@ -626,7 +654,20 @@ class Plot : public nanogui::GLCanvas {
 		}
 	}
 
-	virtual bool resizeEvent ( const Eigen::Vector2i &size ) {  tools->setPosition({size[0] - 91, 0}); return true; }
+	virtual bool resizeEvent ( const Eigen::Vector2i &size ) {
+		m_arcball.setSize ( size ); tools->setPosition({size[0] - 91, 0});
+		return true;
+	}
+
+	// virtual bool mouseButtonEvent ( const Eigen::Vector2i &p, int button, bool down, int modifiers ) {
+
+	// 	// if ( !SurfPlot::mouseButtonEvent ( p, button, down, modifiers ) ) {
+	// 	if ( button == GLFW_MOUSE_BUTTON_1 )
+	// 		m_arcball.button ( p, down );
+	// 	// }
+
+	// 	return false;
+	// }
 
 	/* check if a ray and a sphere intersect. if not hit, returns false. it rejects
 	intersections behind the ray caster's origin, and sets intersection_distance to
@@ -754,11 +795,13 @@ class Plot : public nanogui::GLCanvas {
 	nanogui::GLShader *master_rayShader = nullptr;
 
 	//model, view, projection...
-	Eigen::Vector3f translation, rotation, camera, forward, right, up, data_translation, box_size, total_translation, total_rotation;
+	Eigen::Vector3f translation, rotation, camera, forward, right, up, data_translation, box_size, total_translation, total_rotation, model_scale;
 	Eigen::Matrix4f view, proj, model, data_model, mvp, data_mvp;
 	Eigen::Matrix4f T, R;
 	Eigen::Quaternionf q;
 	Eigen::Vector3f raydir;
+
+	nanogui::Arcball m_arcball;
 
 	bool ortho = false;
 	bool use_textures = false;

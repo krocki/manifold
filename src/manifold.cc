@@ -1,8 +1,8 @@
 /*
 * @Author: Kamil Rocki
 * @Date:   2017-02-28 11:25:34
-* @Last Modified by:   Kamil M Rocki
-* @Last Modified time: 2017-03-27 00:22:14
+* @Last Modified by:   kmrocki@us.ibm.com
+* @Last Modified time: 2017-03-27 09:33:15
 */
 
 #include <thread>
@@ -36,12 +36,12 @@ int compute() {
 
 	// NN stuff
 	double learning_rate = 1e-4;
-	float decay = 0;
+	float decay = 1e-7;
 	const size_t image_size = 28;
-	const size_t batch_size = 100;
+	const size_t batch_size = 50;
 	size_t e = 0;
 
-	nn = new NN ( batch_size, decay, AE, {image_size * image_size, 64, 16, 8, 3, 8, 16, 64, image_size * image_size});
+	nn = new NN ( batch_size, decay, AE, {image_size * image_size, 64, 32, 3, 32, 64, image_size * image_size});
 	nn->pause = true;
 
 	//bind graph data
@@ -51,7 +51,8 @@ int compute() {
 
 	}
 
-	size_t iters = train_data.size() / batch_size;
+	// size_t iters = train_data.size() / batch_size;
+	size_t iters = 50;
 
 	/* work until main window is open */
 	while (screen->getVisible()) {
