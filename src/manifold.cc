@@ -2,7 +2,7 @@
 * @Author: Kamil Rocki
 * @Date:   2017-02-28 11:25:34
 * @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-03-27 00:07:04
+* @Last Modified time: 2017-03-27 00:11:09
 */
 
 #include <thread>
@@ -42,8 +42,6 @@ int compute() {
 	size_t e = 0;
 
 	nn = new NN ( batch_size, decay, DAE, {image_size * image_size, 256, 3, 256, image_size * image_size});
-
-	// start paused
 	nn->pause = true;
 
 	//bind graph data
