@@ -2,7 +2,7 @@
 * @Author: Kamil Rocki
 * @Date:   2017-02-28 11:25:34
 * @Last Modified by:   Kamil M Rocki
-* @Last Modified time: 2017-03-26 21:38:08
+* @Last Modified time: 2017-03-26 21:39:45
 */
 
 #include <thread>
@@ -27,7 +27,6 @@ std::deque<datapoint> test_data;
 
 GUI *screen;
 
-
 int compute() {
 
 	std::chrono::time_point<std::chrono::system_clock> start, end;
@@ -42,19 +41,14 @@ int compute() {
 	const size_t batch_size = 100;
 	size_t e = 0;
 
-	// DATA
-	train_data = MNISTImporter::importFromFile ( "data/mnist/train-images-idx3-ubyte", "data/mnist/train-labels-idx1-ubyte" );
-	test_data = MNISTImporter::importFromFile ( "data/mnist/t10k-images-idx3-ubyte", "data/mnist/t10k-labels-idx1-ubyte" );
 
 	nn = new NN ( batch_size, decay, DAE, {image_size * image_size, 64, 3, 64, image_size * image_size});
+	nn->pause = true;
 
 	//bind graph data
 	if (screen)
 		if (screen->graph_loss)
 			nn->loss_data = screen->graph_loss->values_ptr();
-
-	// nanogui::Serializer s_read(string_format ( "snapshots/170325_132952_61.bin" ), false);
-	// nn->load(s_read);
 
 	size_t iters = train_data.size() / batch_size;
 

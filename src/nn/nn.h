@@ -2,7 +2,7 @@
 * @Author: kmrocki
 * @Date:   2016-02-24 15:28:10
 * @Last Modified by:   Kamil M Rocki
-* @Last Modified time: 2017-03-26 18:14:29
+* @Last Modified time: 2017-03-26 21:40:26
 */
 
 #ifndef __NN_H__
@@ -41,7 +41,7 @@ public:
 
 	bool clock = false;
 	bool quit = false;
-	bool pause = true;
+	bool pause = false;
 	bool step = false;
 
 	int batch_size;

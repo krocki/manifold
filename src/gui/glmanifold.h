@@ -1,8 +1,8 @@
 /*
 * @Author: kmrocki@us.ibm.com
 * @Date:   2017-03-20 10:09:39
-* @Last Modified by:   Kamil M Rocki
-* @Last Modified time: 2017-03-26 12:35:44
+* @Last Modified by:   kmrocki@us.ibm.com
+* @Last Modified time: 2017-03-26 21:17:19
 */
 
 #ifndef __GLPLOT_H__
@@ -24,6 +24,11 @@
 #define POINT_FRAG_FILE "./src/glsl/datapoint.f.glsl"
 #define POINT_VERT_FILE "./src/glsl/datapoint.v.glsl"
 
+#define POINT_TEX_SHADER_NAME "datapoint_tex_shader"
+#define POINT_TEX_FRAG_FILE "./src/glsl/tex_point.f.glsl"
+#define POINT_TEX_GEOM_FILE "./src/glsl/tex_point.g.glsl"
+#define POINT_TEX_VERT_FILE "./src/glsl/tex_point.v.glsl"
+
 #define CAM_SHADER_NAME "cam_shader"
 #define CAM_FRAG_FILE "./src/glsl/cam.f.glsl"
 #define CAM_GEOM_FILE "./src/glsl/cam.g.glsl"
@@ -36,7 +41,7 @@
 
 class Plot : public nanogui::GLCanvas {
 
-public:
+  public:
 
 	Plot ( Widget *parent, std::string _caption, const Eigen::Vector2i &w_size, int i, PlotData *plot_data, bool transparent = false, bool _keyboard_enabled = false, GLFWwindow *w = nullptr, NVGcontext *nvg = nullptr, float _fovy = 67.0f, const Eigen::Vector3f _camera = Eigen::Vector3f(0.0f, 0.0f, 5.0f), const Eigen::Vector3f _rotation = Eigen::Vector3f(0.0f, 0.0f, 0.0f), const Eigen::Vector3f _box_size = Eigen::Vector3f(1.0f, 1.0f, 1.0f) , bool _ortho = false, int record_intvl = 0, const std::string r_prefix = "") : nanogui::GLCanvas ( parent, transparent ) {
 
@@ -121,6 +126,11 @@ public:
 
 		});
 
+
+		b = new nanogui::Button(tools, "TEX");
+		b->setFlags(nanogui::Button::ToggleButton);
+		b->setChangeCallback([&](bool state) { std::cout << "Textures: " << state << std::endl; use_textures = state;});
+
 		tools->setPosition({w_size[0] - 91, 0});
 
 	}
@@ -129,6 +139,9 @@ public:
 
 		m_pointShader = new nanogui::GLShader();
 		m_pointShader->initFromFiles ( POINT_SHADER_NAME, POINT_VERT_FILE, POINT_FRAG_FILE );
+
+		m_pointTexShader = new nanogui::GLShader();
+		m_pointTexShader->initFromFiles ( POINT_TEX_SHADER_NAME, POINT_TEX_VERT_FILE, POINT_TEX_FRAG_FILE, POINT_TEX_GEOM_FILE );
 
 		m_cubeShader = new nanogui::GLShader();
 		m_cubeShader->initFromFiles ( BOX_SHADER_NAME, BOX_VERT_FILE, BOX_FRAG_FILE, BOX_GEOM_FILE );
@@ -157,8 +170,8 @@ public:
 		near = 0.1f;
 		far = 100.0f;
 
-		cam_speed = 0.5f;
-		cam_angular_speed = 0.0003f * 360.0f / M_PI;
+		cam_speed = 0.1f;
+		cam_angular_speed = 0.00005f * 360.0f / M_PI;
 
 	}
 
@@ -238,6 +251,12 @@ public:
 			m_pointShader->uploadAttrib("position", data->p_vertices);
 			m_pointShader->uploadAttrib("color", data->p_colors);
 
+			m_pointTexShader->bind();
+			m_pointTexShader->uploadAttrib("position", data->p_vertices);
+			m_pointTexShader->uploadAttrib("color", data->p_colors);
+			m_pointTexShader->uploadAttrib("texcoords", data->p_texcoords);
+
+
 			// }
 
 			m_cubeShader->bind();
@@ -272,19 +291,21 @@ public:
 
 		if (glfw_window && keyboard_enabled) {
 
-			if ( glfwGetKey ( glfw_window, 'A' ) == GLFW_PRESS ) translation[0] -= cam_speed;
-			if ( glfwGetKey ( glfw_window, 'D' ) == GLFW_PRESS ) translation[0] += cam_speed;
-			if ( glfwGetKey ( glfw_window, 'E' ) == GLFW_PRESS ) translation[1] -= cam_speed;
-			if ( glfwGetKey ( glfw_window, 'Q' ) == GLFW_PRESS ) translation[1] += cam_speed;
-			if ( glfwGetKey ( glfw_window, 'W' ) == GLFW_PRESS ) translation[2] -= cam_speed;
-			if ( glfwGetKey ( glfw_window, 'S' ) == GLFW_PRESS ) translation[2] += cam_speed;
+			float rate = (( glfwGetKey ( glfw_window, GLFW_KEY_LEFT_SHIFT ) ) == GLFW_PRESS) ? 5.0 : 1.0f;
 
-			if ( glfwGetKey ( glfw_window, 'Z' ) == GLFW_PRESS ) rotation[0] -= cam_angular_speed;
-			if ( glfwGetKey ( glfw_window, 'C' ) == GLFW_PRESS ) rotation[0] += cam_angular_speed;
-			if ( glfwGetKey ( glfw_window, GLFW_KEY_RIGHT ) == GLFW_PRESS ) rotation[1] -= cam_angular_speed;
-			if ( glfwGetKey ( glfw_window, GLFW_KEY_LEFT ) == GLFW_PRESS ) rotation[1] += cam_angular_speed;
-			if ( glfwGetKey ( glfw_window, GLFW_KEY_DOWN ) == GLFW_PRESS ) rotation[2] -= cam_angular_speed;
-			if ( glfwGetKey ( glfw_window, GLFW_KEY_UP ) == GLFW_PRESS ) rotation[2] += cam_angular_speed;
+			if ( glfwGetKey ( glfw_window, 'A' ) == GLFW_PRESS ) translation[0] -= cam_speed * rate;
+			if ( glfwGetKey ( glfw_window, 'D' ) == GLFW_PRESS ) translation[0] += cam_speed * rate;
+			if ( glfwGetKey ( glfw_window, 'E' ) == GLFW_PRESS ) translation[1] -= cam_speed * rate;
+			if ( glfwGetKey ( glfw_window, 'Q' ) == GLFW_PRESS ) translation[1] += cam_speed * rate;
+			if ( glfwGetKey ( glfw_window, 'W' ) == GLFW_PRESS ) translation[2] -= cam_speed * rate;
+			if ( glfwGetKey ( glfw_window, 'S' ) == GLFW_PRESS ) translation[2] += cam_speed * rate;
+
+			if ( glfwGetKey ( glfw_window, 'Z' ) == GLFW_PRESS ) rotation[0] -= cam_angular_speed * rate;
+			if ( glfwGetKey ( glfw_window, 'C' ) == GLFW_PRESS ) rotation[0] += cam_angular_speed * rate;
+			if ( glfwGetKey ( glfw_window, GLFW_KEY_RIGHT ) == GLFW_PRESS ) rotation[1] -= cam_angular_speed * rate;
+			if ( glfwGetKey ( glfw_window, GLFW_KEY_LEFT ) == GLFW_PRESS ) rotation[1] += cam_angular_speed * rate;
+			if ( glfwGetKey ( glfw_window, GLFW_KEY_DOWN ) == GLFW_PRESS ) rotation[2] -= cam_angular_speed * rate;
+			if ( glfwGetKey ( glfw_window, GLFW_KEY_UP ) == GLFW_PRESS ) rotation[2] += cam_angular_speed * rate;
 
 		}
 
@@ -345,29 +366,54 @@ public:
 		m_camShader->setUniform("mvp", mvp);
 		m_camShader->drawArray(GL_LINES, 0, data->e_vertices.cols());
 
-		glEnable ( GL_PROGRAM_POINT_SIZE );
+		if (!use_textures) {
 
-		m_pointShader->bind();
-		m_pointShader->setUniform("mvp", data_mvp);
+			glEnable ( GL_PROGRAM_POINT_SIZE );
+			m_pointShader->bind();
+			m_pointShader->setUniform("mvp", data_mvp);
+			m_pointShader->drawArray(GL_POINTS, 0, data->p_vertices.cols());
 
-		// m_pointShader->setUniform("model", model);
-		// m_pointShader->setUniform("view", view);
-		// m_pointShader->setUniform("proj", proj);
-		// m_pointShader->setUniform("tic", tic);
+			glDisable ( GL_PROGRAM_POINT_SIZE );
+			glDisable ( GL_BLEND );
+			glEnable ( GL_DEPTH_TEST );
 
-		// if (index != 0 && master_pointShader) {
+		} else {
 
-		// 	m_pointShader->shareAttrib (*master_pointShader, "position");
-		// 	m_pointShader->shareAttrib (*master_pointShader, "color");
+			m_pointTexShader->bind();
 
-		// }
+			glActiveTexture ( GL_TEXTURE0 );
+			glBindTexture ( GL_TEXTURE_2D, ( std::vector<std::pair<int, std::string>> ( data->textures ) [0] ).first );
 
-		m_pointShader->drawArray(GL_POINTS, 0, data->p_vertices.cols());
+			//star
+			// glBindTexture ( GL_TEXTURE_2D, ( std::vector<std::pair<int, std::string>> ( data->textures ) [1] ).first );
+			// float textures_per_dim = 1;
 
-		glDisable ( GL_PROGRAM_POINT_SIZE );
-		glDisable ( GL_BLEND );
-		glEnable ( GL_DEPTH_TEST );
+			m_pointTexShader->setUniform ( "image", 0 );
+			m_pointTexShader->setUniform ( "view", view );
+			m_pointTexShader->setUniform ( "proj", proj );
+			m_pointTexShader->setUniform ( "mvp", data_mvp );
+			m_pointTexShader->setUniform ( "model", data_model );
 
+			float textures_per_dim = ceil ( sqrtf ( train_data.size() ) );
+			float quad_size = 0.0005f;
+			float radius = sqrtf ( 2 * quad_size );
+			float tex_w = 1.0f / (float)textures_per_dim;
+
+			m_pointTexShader->setUniform ( "radius", radius );
+			m_pointTexShader->setUniform ( "tex_w", tex_w );
+
+			glPointSize ( 1 );
+			glEnable ( GL_DEPTH_TEST );
+
+			glEnable ( GL_BLEND );
+			glBlendFunc ( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
+
+			m_pointTexShader->drawArray ( GL_POINTS, 0, data->p_vertices.cols() );
+
+			glDisable ( GL_BLEND );
+			glDisable ( GL_DEPTH_TEST );
+
+		}
 		// additional stuff, directly in nanovg
 
 		if (vg) {
@@ -492,6 +538,7 @@ public:
 	~Plot() { /* free resources */
 
 		delete m_pointShader;
+		delete m_pointTexShader;
 		delete m_cubeShader;
 		delete m_camShader;
 
@@ -515,10 +562,12 @@ public:
 
 	// shaders
 	nanogui::GLShader *m_pointShader = nullptr;
+	nanogui::GLShader *m_pointTexShader = nullptr;
 	nanogui::GLShader *m_cubeShader = nullptr;
 	nanogui::GLShader *m_camShader = nullptr;
 
 	nanogui::GLShader *master_pointShader = nullptr;
+	nanogui::GLShader *master_pointTexShader = nullptr;
 	nanogui::GLShader *master_cubeShader = nullptr;
 	nanogui::GLShader *master_camShader = nullptr;
 
@@ -530,6 +579,7 @@ public:
 	Eigen::Quaternionf q;
 
 	bool ortho = false;
+	bool use_textures = false;
 
 	float near, far, fovy;
 	float cam_speed, cam_angular_speed;

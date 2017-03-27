@@ -40,7 +40,7 @@
 
 class GUI : public nanogui::Screen {
 
-public:
+  public:
 
 	GUI ( ) :
 
@@ -69,6 +69,8 @@ public:
 		std::string t = return_current_time_and_date("%y%m%d_%H%M%S");
 
 		plots.push_back(new Plot ( root, "forward", {DEF_WIDTH / 3, DEF_WIDTH / 3}, 0, plot_data, true, true, mGLFWWindow, mNVGContext, 50.0f, { -22.2f, -21.8f, -22.0f}, { 0.63, 1.895f, 0.0f}, {box_size * 2, box_size * 2, box_size * 2}, false, 0, string_format ( "%s_plot0", t.c_str())));
+		// plots.push_back(new Plot ( root, "front", {DEF_WIDTH / 3, DEF_WIDTH / 3}, 2, plot_data, true, true, mGLFWWindow, mNVGContext, 40.0f, {0.0f, 0.0f, 11.0f}, {0.0f, 0.0f, 0.0f}, {box_size * 2, box_size * 2, box_size * 2}, false, 0, string_format ( "%s_plot_ortho", t.c_str())));
+
 		plots.push_back(new Plot ( root, "top frustum", {DEF_WIDTH / 3, DEF_WIDTH / 3}, 1, plot_data, false, false, mGLFWWindow, mNVGContext, 66.0f, {0.0f, 35.0f, 0.0f}, {0.0f, 0.0f, -M_PI / 4.0f}, {box_size * 2, box_size * 2, box_size * 2}, false, 0, string_format ( "%s_plot_top", t.c_str())));
 		plots.push_back(new Plot ( root, "front ortho", {DEF_WIDTH / 3, DEF_WIDTH / 3}, 2, plot_data, false, false, mGLFWWindow, mNVGContext, 40.0f, {0.0f, 0.0f, 11.0f}, {0.0f, 0.0f, 0.0f}, {box_size * 2, box_size * 2, box_size * 2}, true, 0, string_format ( "%s_plot_ortho", t.c_str())));
 
@@ -98,6 +100,12 @@ public:
 		performLayout();
 
 		resizeEvent ( {DEF_WIDTH, DEF_HEIGHT} );
+
+		// DATA
+		train_data = MNISTImporter::importFromFile ( "data/mnist/train-images-idx3-ubyte", "data/mnist/train-labels-idx1-ubyte" );
+		test_data = MNISTImporter::importFromFile ( "data/mnist/t10k-images-idx3-ubyte", "data/mnist/t10k-labels-idx1-ubyte" );
+
+		update_data_textures();
 
 	}
 
@@ -176,12 +184,18 @@ public:
 
 		if (completed_frames % interval == 0) {
 			std::string t = return_current_time_and_date("%y%m%d_%H%M%S");
-			saveScreenShot(false, string_format ("./snapshots/screens/screen_%s_%08d.png", t.c_str(), completed_frames).c_str());
+			// saveScreenShot(false, string_format ("./snapshots/screens/screen_%s_%08d.png", t.c_str(), completed_frames).c_str());
 		}
 
 		completed_frames++;
 
 	};
+
+	void update_data_textures() {
+
+		plot_data->load_data_textures(train_data, mNVGContext);
+
+	}
 
 	virtual bool resizeEvent ( const Eigen::Vector2i & size ) {
 
@@ -195,7 +209,7 @@ public:
 
 		window->setPosition(Eigen::Vector2i(3, size[0] / 3 + 3));
 		graphs->setPosition(Eigen::Vector2i(window->size()[0] + 5, size[0] / 3 + 3));
-		controls->setPosition(Eigen::Vector2i(window->size()[0] + graphs->size()[0] + 8, size[0] / 3 + 5));
+		// controls->setPosition(Eigen::Vector2i(window->size()[0] + graphs->size()[0] + 8, size[0] / 3 + 5));
 		// needs to be called 2nd time
 		performLayout();
 
@@ -209,73 +223,76 @@ public:
 		window->setPosition(Eigen::Vector2i(3, DEF_WIDTH / 3 + 3));
 
 		nanogui::GridLayout *layout =
-		    new nanogui::GridLayout(nanogui::Orientation::Horizontal, 2,
+		    new nanogui::GridLayout(nanogui::Orientation::Horizontal, 1,
 		                            nanogui::Alignment::Middle, 15, 5);
 		layout->setColAlignment(
 		{ nanogui::Alignment::Maximum, nanogui::Alignment::Fill });
 		layout->setSpacing(0, 10);
 		window->setLayout(layout);
 
-		/* FP widget */ {
-			new nanogui::Label(window, "Floating point :", "sans-bold");
-			nanogui::TextBox *textBox = new nanogui::TextBox(window);
-			textBox->setEditable(true);
-			textBox->setFixedSize(Eigen::Vector2i(100, 20));
-			textBox->setValue("50");
-			textBox->setUnits("GiB");
-			textBox->setDefaultValue("0.0");
-			textBox->setFontSize(16);
-			textBox->setFormat("[-]?[0-9]*\\.?[0-9]+");
-		}
+		// nanogui::Label* message = new nanogui::Label(window, "", "sans-bold");
 
-		/* Positive integer widget */ {
-			new nanogui::Label(window, "Positive integer :", "sans-bold");
-			auto intBox = new nanogui::IntBox<int>(window);
-			intBox->setEditable(true);
-			intBox->setFixedSize(Eigen::Vector2i(100, 20));
-			intBox->setValue(50);
-			intBox->setUnits("Mhz");
-			intBox->setDefaultValue("0");
-			intBox->setFontSize(16);
-			intBox->setFormat("[1-9][0-9]*");
-			intBox->setSpinnable(true);
-			intBox->setMinValue(1);
-			intBox->setValueIncrement(2);
-		}
+		// /* FP widget */ {
+		// 	new nanogui::Label(window, "Floating point :", "sans-bold");
+		// 	nanogui::TextBox *textBox = new nanogui::TextBox(window);
+		// 	textBox->setEditable(true);
+		// 	textBox->setFixedSize(Eigen::Vector2i(100, 20));
+		// 	textBox->setValue("50");
+		// 	textBox->setUnits("GiB");
+		// 	textBox->setDefaultValue("0.0");
+		// 	textBox->setFontSize(16);
+		// 	textBox->setFormat("[-]?[0-9]*\\.?[0-9]+");
+		// }
 
-		/* Checkbox widget */ {
-			new nanogui::Label(window, "Checkbox :", "sans-bold");
+		// /* Positive integer widget */ {
+		// 	new nanogui::Label(window, "Positive integer :", "sans-bold");
+		// 	auto intBox = new nanogui::IntBox<int>(window);
+		// 	intBox->setEditable(true);
+		// 	intBox->setFixedSize(Eigen::Vector2i(100, 20));
+		// 	intBox->setValue(50);
+		// 	intBox->setUnits("Mhz");
+		// 	intBox->setDefaultValue("0");
+		// 	intBox->setFontSize(16);
+		// 	intBox->setFormat("[1-9][0-9]*");
+		// 	intBox->setSpinnable(true);
+		// 	intBox->setMinValue(1);
+		// 	intBox->setValueIncrement(2);
+		// }
 
-			nanogui::CheckBox* cb = new nanogui::CheckBox(window, "Check me");
-			cb->setFontSize(16);
-			cb->setChecked(true);
-		}
+		// /* Checkbox widget */ {
+		// 	new nanogui::Label(window, "Checkbox :", "sans-bold");
 
-		new nanogui::Label(window, "Combo box :", "sans-bold");
-		nanogui::ComboBox *cobo =
-		    new nanogui::ComboBox(window, { "Item 1", "Item 2", "Item 3" });
-		cobo->setFontSize(16);
-		cobo->setFixedSize(Eigen::Vector2i(100, 20));
+		// 	nanogui::CheckBox* cb = new nanogui::CheckBox(window, "Check me");
+		// 	cb->setFontSize(16);
+		// 	cb->setChecked(true);
 
-		new nanogui::Label(window, "Color button :", "sans-bold");
-		nanogui::PopupButton* popupBtn = new nanogui::PopupButton(window, "", 0);
-		popupBtn->setBackgroundColor(nanogui::Color(255, 120, 0, 255));
-		popupBtn->setFontSize(16);
-		popupBtn->setFixedSize(Eigen::Vector2i(100, 20));
-		nanogui::Popup *popup = popupBtn->popup();
-		popup->setLayout(new nanogui::GroupLayout());
+		// }
+
+		// new nanogui::Label(window, "Combo box :", "sans-bold");
+		// nanogui::ComboBox *cobo =
+		//     new nanogui::ComboBox(window, { "Item 1", "Item 2", "Item 3" });
+		// cobo->setFontSize(16);
+		// cobo->setFixedSize(Eigen::Vector2i(100, 20));
+
+		// new nanogui::Label(window, "Color button :", "sans-bold");
+		// nanogui::PopupButton* popupBtn = new nanogui::PopupButton(window, "", 0);
+		// popupBtn->setBackgroundColor(nanogui::Color(255, 120, 0, 255));
+		// popupBtn->setFontSize(16);
+		// popupBtn->setFixedSize(Eigen::Vector2i(100, 20));
+		// nanogui::Popup *popup = popupBtn->popup();
+		// popup->setLayout(new nanogui::GroupLayout());
 
 		std::vector<pair<int, std::string>> icons = nanogui::loadImageDirectory(mNVGContext, "saved");
 		string resourcesFolderPath("./");
 
-		//new nanogui::Label(window, "I/O", "sans-bold");
+
 		nanogui::PopupButton *imagePanelBtn = new nanogui::PopupButton(window, "Load");
 		imagePanelBtn->setIcon(ENTYPO_ICON_FOLDER);
-		popup = imagePanelBtn->popup();
+		nanogui::Popup *popup = imagePanelBtn->popup();
 		nanogui::VScrollPanel *vscroll = new nanogui::VScrollPanel(popup);
 		nanogui::ImagePanel *imgPanel = new nanogui::ImagePanel(vscroll);
 		imgPanel->setImages(icons);
-		popup->setFixedSize(Eigen::Vector2i(245, 180));
+		popup->setFixedSize(Eigen::Vector2i(265, 160));
 
 		mCurrentImage = 0;
 
@@ -329,7 +346,18 @@ public:
 
 		}); b->setTooltip("save");
 
-		popup->setFixedSize(Eigen::Vector2i(345, 50));
+		popup->setFixedSize(Eigen::Vector2i(345, 60));
+
+		// controls = new nanogui::Window(window, "");
+		// controls->setPosition(Eigen::Vector2i(window->size()[0] + graphs->size()[0] + 8, DEF_WIDTH / 3 + 5));
+		// controls->setLayout(layout);
+
+		b = new nanogui::ToolButton(window, ENTYPO_ICON_PLAY); //25B6
+		b->setChangeCallback([this](bool pushed) {
+
+			nn->pause = !pushed;
+
+		}); b->setTooltip("pause/unpause");
 
 		// auto imageWindow = new nanogui::Window(this, "Selected image");
 		// imageWindow->setPosition(Eigen::Vector2i(410, 400));
@@ -406,17 +434,6 @@ public:
 		graph_fps->setBackgroundColor ( nanogui::Color ( 0, 0, 0, 32 ) );
 		graph_fps->values().resize(500);
 		graph_fps->values().setZero();
-
-		controls = new nanogui::Window(this, "");
-		controls->setPosition(Eigen::Vector2i(window->size()[0] + graphs->size()[0] + 8, DEF_WIDTH / 3 + 5));
-		controls->setLayout(layout);
-
-		b = new nanogui::ToolButton(controls, ENTYPO_ICON_PLAY); //25B6
-		b->setChangeCallback([this](bool pushed) {
-
-			nn->pause = !pushed;
-
-		}); b->setTooltip("pause/unpause");
 
 		/* widgets end */
 

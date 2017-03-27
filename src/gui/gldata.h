@@ -1,8 +1,8 @@
 /*
 * @Author: kmrocki@us.ibm.com
 * @Date:   2017-03-20 10:11:47
-* @Last Modified by:   Kamil M Rocki
-* @Last Modified time: 2017-03-23 22:48:10
+* @Last Modified by:   kmrocki@us.ibm.com
+* @Last Modified time: 2017-03-26 18:00:02
 */
 
 #ifndef __PLOTDATA_H__
@@ -11,15 +11,19 @@
 #include <utils.h>
 #include <random>
 
+#include <gl/tex.h>
+
 class PlotData {
 
-public:
+  public:
 
 	PlotData() {};
 	~PlotData() {};
 
 	Eigen::MatrixXf e_vertices, e_colors;
 	Eigen::MatrixXf p_vertices, p_colors;
+	Eigen::VectorXf p_labels;
+	Eigen::MatrixXf p_texcoords;
 
 	Eigen::Matrix<uint32_t, Eigen::Dynamic, Eigen::Dynamic> c_indices;
 	Eigen::MatrixXf c_vertices, c_colors;
@@ -27,9 +31,58 @@ public:
 	Eigen::Matrix<uint32_t, Eigen::Dynamic, Eigen::Dynamic> m_indices;
 	Eigen::MatrixXf m_vertices, m_colors, m_texcoords;
 
+	using imagesDataType = std::vector<std::pair<int, std::string>>;
+	imagesDataType textures;
+
 	void updated() { checksum++; }
 
 	size_t checksum = 0; // or write update time
+
+	void load_data_textures(std::deque<datapoint>& data, NVGcontext *nvg) {
+
+		Eigen::Matrix<unsigned char, Eigen::Dynamic, Eigen::Dynamic> rgba_image;
+
+		size_t image_size = 28;
+		size_t sqr_dim = ceil ( sqrtf ( data.size() ) );
+		std::cout << sqr_dim * sqr_dim << " " << ceil ( sqr_dim ) << std::endl;
+
+		rgba_image.resize ( sqr_dim * image_size, sqr_dim * image_size );
+		float textures_per_dim = ceil ( sqrtf ( data.size() ) );
+		Eigen::MatrixXf float_image = Eigen::MatrixXf ( image_size, image_size );
+
+		p_labels.resize(data.size());
+		p_texcoords.resize(3, data.size());
+
+		for ( size_t i = 0; i < data.size(); i++ ) {
+
+			// std::cout << i << std::endl;
+			float_image =  data[i].x;
+			float_image.resize ( image_size, image_size );
+			float_image *= 255.0f;
+
+			rgba_image.block ( ( i / sqr_dim ) * image_size, ( i % sqr_dim ) * image_size, image_size,
+			                   image_size ) = float_image.cast<unsigned char>();
+
+			p_labels[i] = data[i].y;
+
+			p_texcoords.col(i) = Eigen::Vector3f ( ( i / ( int ) textures_per_dim ) / textures_per_dim,
+			                                       ( i % ( int ) textures_per_dim ) / textures_per_dim, 0 );
+
+
+
+		}
+
+		textures.resize ( 1 );
+
+		textures[0] = ( std::pair<int, std::string> ( nvgCreateImageA ( nvg,
+		                sqr_dim * image_size, sqr_dim * image_size, NVG_IMAGE_NEAREST, ( unsigned char * ) rgba_image.data() ), "" ) );
+
+
+		// GLTexture texture("star");
+		// auto tdata = texture.load("./images/star.png");
+		// textures[1] = ( std::pair<int, std::string> ( texture.texture(), "" )) ;
+
+	}
 
 };
 
