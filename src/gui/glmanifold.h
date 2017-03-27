@@ -2,7 +2,7 @@
 * @Author: kmrocki@us.ibm.com
 * @Date:   2017-03-20 10:09:39
 * @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-03-26 21:17:19
+* @Last Modified time: 2017-03-27 00:10:06
 */
 
 #ifndef __GLPLOT_H__
@@ -34,6 +34,11 @@
 #define CAM_GEOM_FILE "./src/glsl/cam.g.glsl"
 #define CAM_VERT_FILE "./src/glsl/cam.v.glsl"
 
+#define RAY_SHADER_NAME "ray_shader"
+#define RAY_FRAG_FILE "./src/glsl/ray.f.glsl"
+#define RAY_GEOM_FILE "./src/glsl/ray.g.glsl"
+#define RAY_VERT_FILE "./src/glsl/ray.v.glsl"
+
 #define BOX_SHADER_NAME "box_shader"
 #define BOX_FRAG_FILE "./src/glsl/surf_box.f.glsl"
 #define BOX_GEOM_FILE "./src/glsl/surf_box.g.glsl"
@@ -43,11 +48,13 @@ class Plot : public nanogui::GLCanvas {
 
   public:
 
-	Plot ( Widget *parent, std::string _caption, const Eigen::Vector2i &w_size, int i, PlotData *plot_data, bool transparent = false, bool _keyboard_enabled = false, GLFWwindow *w = nullptr, NVGcontext *nvg = nullptr, float _fovy = 67.0f, const Eigen::Vector3f _camera = Eigen::Vector3f(0.0f, 0.0f, 5.0f), const Eigen::Vector3f _rotation = Eigen::Vector3f(0.0f, 0.0f, 0.0f), const Eigen::Vector3f _box_size = Eigen::Vector3f(1.0f, 1.0f, 1.0f) , bool _ortho = false, int record_intvl = 0, const std::string r_prefix = "") : nanogui::GLCanvas ( parent, transparent ) {
+	Plot ( Widget *parent, std::string _caption, const Eigen::Vector2i &w_size, int i, PlotData *plot_data, bool transparent = false, bool _keyboard_enabled = false, bool _mouse_enabled = false, bool _show_rays = false, GLFWwindow *w = nullptr, NVGcontext *nvg = nullptr, float _fovy = 67.0f, const Eigen::Vector3f _camera = Eigen::Vector3f(0.0f, 0.0f, 5.0f), const Eigen::Vector3f _rotation = Eigen::Vector3f(0.0f, 0.0f, 0.0f), const Eigen::Vector3f _box_size = Eigen::Vector3f(1.0f, 1.0f, 1.0f) , bool _ortho = false, int record_intvl = 0, const std::string r_prefix = "") : nanogui::GLCanvas ( parent, transparent ) {
 
 		GLCanvas::setSize (w_size);
 		glfw_window = w;
 		keyboard_enabled = _keyboard_enabled;
+		mousemotion_enabled = _mouse_enabled;
+		show_rays = _show_rays;
 
 		vg = nvg;
 
@@ -58,6 +65,7 @@ class Plot : public nanogui::GLCanvas {
 		setVisible ( true );
 
 		forward = Eigen::Vector3f (0.0f, 0.0f, -1.0f);
+		raydir = forward;
 		right = Eigen::Vector3f ( 1.0f, 0.0f, 0.0f);
 		up = Eigen::Vector3f (0.0f, 1.0f, 0.0f);
 
@@ -108,6 +116,33 @@ class Plot : public nanogui::GLCanvas {
 		b->setBackgroundColor(bcolor);
 		b->setCallback([&] { translation[0] += cam_speed; }); b->setTooltip("right");
 
+		nanogui::Widget *shader_tools = new nanogui::Widget(tools);
+		shader_tools->setLayout(new nanogui::GridLayout(nanogui::Orientation::Horizontal, 4, nanogui::Alignment::Middle, 2, 2));
+
+		b = shader_tools->add<nanogui::Button>("", ENTYPO_ICON_MONITOR);
+		b->setFlags(nanogui::Button::ToggleButton);
+		b->setFixedSize(bsize);
+		b->setPushed(use_textures);
+		b->setChangeCallback([&](bool state) { std::cout << "Textures: " << state << std::endl; use_textures = state;});
+
+		b = shader_tools->add<nanogui::Button>("", ENTYPO_ICON_HAIR_CROSS);
+		b->setFlags(nanogui::Button::ToggleButton);
+		b->setFixedSize(bsize);
+		b->setPushed(show_rays);
+		b->setChangeCallback([&](bool state) { std::cout << "Show Rays: " << state << std::endl; show_rays = state;});
+
+		b = shader_tools->add<nanogui::Button>("", ENTYPO_ICON_KEYBOARD);
+		b->setFlags(nanogui::Button::ToggleButton);
+		b->setFixedSize(bsize);
+		b->setPushed(keyboard_enabled);
+		b->setChangeCallback([&](bool state) { std::cout << "Textures: " << state << std::endl; keyboard_enabled = state;});
+
+		b = shader_tools->add<nanogui::Button>("", ENTYPO_ICON_MOUSE);
+		b->setFlags(nanogui::Button::ToggleButton);
+		b->setFixedSize(bsize);
+		b->setPushed(mousemotion_enabled);
+		b->setChangeCallback([&](bool state) { std::cout << "Mouse: " << state << std::endl; mousemotion_enabled = state;});
+
 		nanogui::Slider *slider = new nanogui::Slider(tools);
 		slider->setValue(0.5f);
 		slider->setFixedWidth(80);
@@ -126,10 +161,6 @@ class Plot : public nanogui::GLCanvas {
 
 		});
 
-
-		b = new nanogui::Button(tools, "TEX");
-		b->setFlags(nanogui::Button::ToggleButton);
-		b->setChangeCallback([&](bool state) { std::cout << "Textures: " << state << std::endl; use_textures = state;});
 
 		tools->setPosition({w_size[0] - 91, 0});
 
@@ -153,6 +184,9 @@ class Plot : public nanogui::GLCanvas {
 
 		m_camShader = new nanogui::GLShader();
 		m_camShader->initFromFiles ( CAM_SHADER_NAME, CAM_VERT_FILE, CAM_FRAG_FILE, CAM_GEOM_FILE );
+
+		m_rayShader = new nanogui::GLShader();
+		m_rayShader->initFromFiles ( RAY_SHADER_NAME, RAY_VERT_FILE, RAY_FRAG_FILE, RAY_GEOM_FILE );
 
 	}
 
@@ -280,12 +314,53 @@ class Plot : public nanogui::GLCanvas {
 		data->e_vertices.col (2 * index) = camera - forward;
 		data->e_vertices.col (2 * index + 1) = camera;
 
+		//update rays
+		data->r_vertices.col (2 * index) = camera;
+		data->r_vertices.col (2 * index + 1) = camera + 50 * raydir;
+
 		m_camShader->bind();
 		m_camShader->uploadAttrib("position", data->e_vertices);
 		m_camShader->uploadAttrib("color", data->e_colors);
 
+		m_rayShader->bind();
+		m_rayShader->uploadAttrib("position", data->r_vertices);
+		m_rayShader->uploadAttrib("color", data->e_colors);
+
 	}
 
+	bool mouseMotionEvent ( const Eigen::Vector2i &p, const Eigen::Vector2i &rel, int button, int modifiers ) override {
+
+		if (mousemotion_enabled) {
+			/* takes mouse position on screen and return ray in world coords */
+			Eigen::Vector3f relative_pos = Eigen::Vector3f ( 2.0f * ( float ) ( p[0] - mPos[0] ) / ( float ) mSize[0] - 1.0f,
+			                               ( float ) ( -2.0f * ( p[1] - mPos[1] ) ) / ( float ) mSize[0] + 1.0f, 1.0f );
+
+			mouse_last_x = relative_pos[0];
+			mouse_last_y = relative_pos[1];
+
+			update_mouse_overlay();
+
+			return true;
+
+		} else return false;
+
+	}
+
+	void update_mouse_overlay() {
+
+		// ray casting
+		Eigen::Vector3f ray_nds ( mouse_last_x, mouse_last_y, 1.0f );
+		Eigen::Vector4f ray_clip ( mouse_last_x, mouse_last_y, -1.0f, 1.0f );
+		Eigen::Vector4f ray_eye = proj.inverse() * ray_clip; ray_eye[2] = -1.0f; ray_eye[3] = 0.0f;
+		Eigen::Vector3f world = ( view.inverse() * ray_eye ).head<3>();
+
+		// std::cout << "world: " << std::endl << world << std::endl;
+		Eigen::Vector3f world_normalized = world.normalized();
+		// std::cout << "normalized: " << std::endl << world_normalized << std::endl;
+
+		raydir = world_normalized;
+
+	}
 
 	void process_keyboard() {
 
@@ -358,19 +433,34 @@ class Plot : public nanogui::GLCanvas {
 		glBlendFunc ( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
 		glEnable ( GL_BLEND );
 
-		m_cubeShader->bind();
-		m_cubeShader->setUniform("mvp", mvp);
-		m_cubeShader->drawIndexed ( GL_LINES, 0, data->c_indices.cols() );
+		if (show_box) {
+
+			m_cubeShader->bind();
+			m_cubeShader->setUniform("mvp", mvp);
+			m_cubeShader->drawIndexed ( GL_LINES, 0, data->c_indices.cols() );
+
+		}
 
 		m_camShader->bind();
 		m_camShader->setUniform("mvp", mvp);
 		m_camShader->drawArray(GL_LINES, 0, data->e_vertices.cols());
+
+		if (show_rays) {
+
+			m_rayShader->bind();
+			m_rayShader->setUniform("mvp", mvp);
+			m_rayShader->drawArray(GL_LINES, 0, data->r_vertices.cols());
+		}
+
+		float radius_intersect = 0.1f;
 
 		if (!use_textures) {
 
 			glEnable ( GL_PROGRAM_POINT_SIZE );
 			m_pointShader->bind();
 			m_pointShader->setUniform("mvp", data_mvp);
+
+			// m_pointShader->setUniform ( "radius_intersect", radius_intersect );
 			m_pointShader->drawArray(GL_POINTS, 0, data->p_vertices.cols());
 
 			glDisable ( GL_PROGRAM_POINT_SIZE );
@@ -391,7 +481,7 @@ class Plot : public nanogui::GLCanvas {
 			m_pointTexShader->setUniform ( "image", 0 );
 			m_pointTexShader->setUniform ( "view", view );
 			m_pointTexShader->setUniform ( "proj", proj );
-			m_pointTexShader->setUniform ( "mvp", data_mvp );
+			m_pointTexShader->setUniform ( "selected", selected );
 			m_pointTexShader->setUniform ( "model", data_model );
 
 			float textures_per_dim = ceil ( sqrtf ( train_data.size() ) );
@@ -400,6 +490,7 @@ class Plot : public nanogui::GLCanvas {
 			float tex_w = 1.0f / (float)textures_per_dim;
 
 			m_pointTexShader->setUniform ( "radius", radius );
+			// m_pointTexShader->setUniform ( "radius_intersect", radius_intersect );
 			m_pointTexShader->setUniform ( "tex_w", tex_w );
 
 			glPointSize ( 1 );
@@ -444,6 +535,8 @@ class Plot : public nanogui::GLCanvas {
 				nvgText(vg, mPos.x() + 3, mPos.y() + size().y() - 3, string_format ( "FOV: %.1f", fovy).c_str(), nullptr);
 			else
 				nvgText(vg, mPos.x() + 3, mPos.y() + size().y() - 3, string_format ( "ORTHO" ).c_str(), nullptr);
+
+			nvgText(vg, mPos.x() + 95, mPos.y() + size().y() - 3, string_format ( "mouse at [%.3f, %.3f]", mouse_last_x, mouse_last_y ).c_str(), nullptr);
 
 			// bottom-right label
 			nvgFontFace(vg, "sans");
@@ -535,18 +628,103 @@ class Plot : public nanogui::GLCanvas {
 
 	virtual bool resizeEvent ( const Eigen::Vector2i &size ) {  tools->setPosition({size[0] - 91, 0}); return true; }
 
+	/* check if a ray and a sphere intersect. if not hit, returns false. it rejects
+	intersections behind the ray caster's origin, and sets intersection_distance to
+	the closest intersection */
+	// bool ray_sphere (
+	//     Eigen::Vector3f ray_origin_wor,
+	//     Eigen::Vector3f ray_direction_wor,
+	//     Eigen::Vector3f sphere_centre_wor,
+	//     float sphere_radius,
+	//     float* intersection_distance
+	// ) {
+	// 	// work out components of quadratic
+	// 	Eigen::Vector3f dist_to_sphere = ray_origin_wor - sphere_centre_wor;
+	// 	float b = ray_direction_wor.dot(dist_to_sphere);
+	// 	float c = dist_to_sphere.dot(dist_to_sphere) -
+	// 	          sphere_radius * sphere_radius;
+	// 	float b_squared_minus_c = b * b - c;
+	// 	// check for "imaginary" answer. == ray completely misses sphere
+	// 	if (b_squared_minus_c < 0.0f) {
+	// 		return false;
+	// 	}
+	// 	// check for ray hitting twice (in and out of the sphere)
+	// 	if (b_squared_minus_c > 0.0f) {
+	// 		// get the 2 intersection distances along ray
+	// 		float t_a = -b + sqrt (b_squared_minus_c);
+	// 		float t_b = -b - sqrt (b_squared_minus_c);
+	// 		*intersection_distance = t_b;
+	// 		// if behind viewer, throw one or both away
+	// 		if (t_a < 0.0) {
+	// 			if (t_b < 0.0) {
+	// 				return false;
+	// 			}
+	// 		} else if (t_b < 0.0) {
+	// 			*intersection_distance = t_a;
+	// 		}
+
+	// 		return true;
+	// 	}
+	// 	// check for ray hitting once (skimming the surface)
+	// 	if (0.0f == b_squared_minus_c) {
+	// 		// if behind viewer, throw away
+	// 		float t = -b + sqrt (b_squared_minus_c);
+	// 		if (t < 0.0f) {
+	// 			return false;
+	// 		}
+	// 		*intersection_distance = t;
+	// 		return true;
+	// 	}
+	// 	// note: could also check if ray origin is inside sphere radius
+	// 	return false;
+	// }
+
+	// bool mouseButtonEvent ( const Eigen::Vector2i &p, int button, bool down, int modifiers ) override {
+
+	// 	if ( button == GLFW_MOUSE_BUTTON_1 && down ) {
+	// 		int closest_sphere_clicked = -1;
+	// 		float closest_intersection = 0.0f;
+	// 		for (int i = 0; i < data->p_vertices.cols(); i++) {
+	// 			float t_dist = 0.0f;
+	// 			if (ray_sphere (
+	// 			            camera, raydir, data->p_vertices.col(i), 0.1f, &t_dist
+	// 			        )) {
+	// 				// if more than one sphere is in path of ray, only use the closest one
+	// 				if (-1 == closest_sphere_clicked || t_dist < closest_intersection) {
+	// 					closest_sphere_clicked = i;
+	// 					closest_intersection = t_dist;
+	// 				}
+	// 			}
+	// 		} // endfor
+
+	// 		if (closest_sphere_clicked > -1) {
+	// 			int idx = closest_sphere_clicked;
+	// 			printf ("sphere %i was clicked\n", idx);
+	// 			selected = Eigen::Vector3f(0, 0, 0);
+	// 			selected << data->p_vertices.col(idx)[0], data->p_vertices.col(idx)[1], data->p_vertices.col(idx)[2];
+	// 		}
+
+	// 	}
+
+	// 	return true;
+	// }
+
+
 	~Plot() { /* free resources */
 
 		delete m_pointShader;
 		delete m_pointTexShader;
 		delete m_cubeShader;
 		delete m_camShader;
+		delete m_rayShader;
 
 	}
 
 	//data
 	PlotData *data;
 	nanogui::Widget *tools;
+
+	Eigen::Vector3f selected;
 
 	std::vector<std::pair<int, std::string>> textures;
 
@@ -555,6 +733,8 @@ class Plot : public nanogui::GLCanvas {
 	std::string record_prefix = "";
 
 	bool keyboard_enabled = false;
+	bool mousemotion_enabled = true;
+	bool show_box = true;
 
 	// for intercepting keyboard events
 	GLFWwindow *glfw_window = nullptr;
@@ -565,21 +745,24 @@ class Plot : public nanogui::GLCanvas {
 	nanogui::GLShader *m_pointTexShader = nullptr;
 	nanogui::GLShader *m_cubeShader = nullptr;
 	nanogui::GLShader *m_camShader = nullptr;
+	nanogui::GLShader *m_rayShader = nullptr;
 
 	nanogui::GLShader *master_pointShader = nullptr;
 	nanogui::GLShader *master_pointTexShader = nullptr;
 	nanogui::GLShader *master_cubeShader = nullptr;
 	nanogui::GLShader *master_camShader = nullptr;
-
+	nanogui::GLShader *master_rayShader = nullptr;
 
 	//model, view, projection...
 	Eigen::Vector3f translation, rotation, camera, forward, right, up, data_translation, box_size, total_translation, total_rotation;
 	Eigen::Matrix4f view, proj, model, data_model, mvp, data_mvp;
 	Eigen::Matrix4f T, R;
 	Eigen::Quaternionf q;
+	Eigen::Vector3f raydir;
 
 	bool ortho = false;
 	bool use_textures = false;
+	bool show_rays = true;
 
 	float near, far, fovy;
 	float cam_speed, cam_angular_speed;
@@ -589,6 +772,8 @@ class Plot : public nanogui::GLCanvas {
 
 	float frame_time, tic;
 	size_t num_frames = 0;
+
+	float mouse_last_x = -1, mouse_last_y = - 1;
 };
 
 #endif

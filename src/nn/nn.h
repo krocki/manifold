@@ -2,7 +2,7 @@
 * @Author: kmrocki
 * @Date:   2016-02-24 15:28:10
 * @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-03-26 15:08:38
+* @Last Modified time: 2017-03-27 00:02:33
 */
 
 #ifndef __NN_H__
@@ -194,6 +194,8 @@ class NN {
 					loss_data->tail ( 1 ) ( 0 ) = current_loss;
 
 				}
+
+
 			}
 
 			//apply changes

@@ -2,7 +2,7 @@
 * @Author: kmrocki@us.ibm.com
 * @Date:   2017-03-20 10:11:47
 * @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-03-26 18:00:02
+* @Last Modified time: 2017-03-26 22:15:37
 */
 
 #ifndef __PLOTDATA_H__
@@ -21,6 +21,7 @@ class PlotData {
 	~PlotData() {};
 
 	Eigen::MatrixXf e_vertices, e_colors;
+	Eigen::MatrixXf r_vertices;
 	Eigen::MatrixXf p_vertices, p_colors;
 	Eigen::VectorXf p_labels;
 	Eigen::MatrixXf p_texcoords;
