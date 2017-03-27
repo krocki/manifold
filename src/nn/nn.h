@@ -2,7 +2,7 @@
 * @Author: kmrocki
 * @Date:   2016-02-24 15:28:10
 * @Last Modified by:   Kamil M Rocki
-* @Last Modified time: 2017-03-26 13:37:36
+* @Last Modified time: 2017-03-26 18:14:29
 */
 
 #ifndef __NN_H__
@@ -295,7 +295,7 @@ public:
 
 		for ( size_t l = 0; l < layer_sizes.size() - 1; l++ ) {
 
-			layers.push_back ( new Linear ( layer_sizes[l], layer_sizes[l + 1], batch_size ) );
+			layers.push_back ( new Linear ( layer_sizes[l], layer_sizes[l + 1], batch_size, false) );
 
 			if ( ( l + 1 ) == layer_sizes.size() - 1 )
 				layers.push_back ( new Sigmoid ( layer_sizes[l + 1], layer_sizes[l + 1], batch_size ) );

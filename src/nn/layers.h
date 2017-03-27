@@ -2,7 +2,7 @@
 * @Author: kmrocki@us.ibm.com
 * @Date:   2017-03-03 15:06:37
 * @Last Modified by:   Kamil M Rocki
-* @Last Modified time: 2017-03-25 17:32:24
+* @Last Modified time: 2017-03-26 21:37:53
 */
 
 #ifndef __LAYERS_H__
@@ -74,6 +74,9 @@ public:
 	Matrix dW;
 	Matrix db;
 
+	Matrix mW;
+	Matrix mb;
+
 	Matrix gaussian_noise;
 	bool add_gaussian_noise = false;
 
@@ -84,7 +87,7 @@ public:
 		if ( add_gaussian_noise ) {
 
 			gaussian_noise.resize ( x.rows(), x.cols() );
-			matrix_randn ( gaussian_noise, 0, 1 );
+			matrix_randn ( gaussian_noise, 0, 0.25 );
 			x += gaussian_noise;
 		}
 
@@ -108,6 +111,9 @@ public:
 
 		W = Matrix ( outputs, inputs );
 		b = Vector::Zero ( outputs );
+		mW = Matrix::Zero ( outputs, inputs );
+		mb = Vector::Zero ( outputs );
+
 		matrix_randn ( W, 0, ( 1.0f ) / sqrtf ( W.rows() + W.cols() ) );
 
 	};
@@ -118,6 +124,40 @@ public:
 		db = Vector::Zero ( b.rows() );
 	}
 
+	// pseudo adadelta
+	// void applyGrads ( float alpha, float decay = 0.0f ) {
+
+	// 	float rho = 0.95f;
+
+	// 	mW.array() = rho * mW.array() + (1 - rho) * dW.array() * dW.array();
+	// 	mb.array() = rho * mb.array() + (1 - rho) * db.array() * db.array();
+
+	// 	W *= ( 1.0f - decay );
+
+	// 	b.array() += alpha * db.array() / (( mb.array() + 1e-6 )).sqrt().array();
+	// 	W.array() += alpha * dW.array() / (( mW.array() + 1e-6 )).sqrt().array();
+
+	// 	flops_performed += W.size() * 4 + 2 * b.size();
+	// 	bytes_read += W.size() * sizeof ( dtype ) * 3;
+	// }
+
+
+	// adagrad
+	// void applyGrads ( float alpha, float decay = 0.0f ) {
+
+	// 	mW.array() += dW.array() * dW.array();
+	// 	mb.array() += db.array() * db.array();
+
+	// 	W *= ( 1.0f - decay );
+
+	// 	b.array() += alpha * db.array() / (( mb.array() + 1e-6 )).sqrt().array();
+	// 	W.array() += alpha * dW.array() / (( mW.array() + 1e-6 )).sqrt().array();
+
+	// 	flops_performed += W.size() * 4 + 2 * b.size();
+	// 	bytes_read += W.size() * sizeof ( dtype ) * 3;
+	// }
+
+	// sgd
 	void applyGrads ( float alpha, float decay = 0.0f ) {
 
 		W *= ( 1.0f - decay );
@@ -126,6 +166,7 @@ public:
 		flops_performed += W.size() * 4 + 2 * b.size();
 		bytes_read += W.size() * sizeof ( dtype ) * 3;
 	}
+
 
 	virtual void save(nanogui::Serializer &s) const {
 

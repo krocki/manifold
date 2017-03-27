@@ -2,7 +2,7 @@
 * @Author: Kamil Rocki
 * @Date:   2017-02-28 11:25:34
 * @Last Modified by:   Kamil M Rocki
-* @Last Modified time: 2017-03-26 13:45:08
+* @Last Modified time: 2017-03-26 21:38:08
 */
 
 #include <thread>
@@ -46,7 +46,7 @@ int compute() {
 	train_data = MNISTImporter::importFromFile ( "data/mnist/train-images-idx3-ubyte", "data/mnist/train-labels-idx1-ubyte" );
 	test_data = MNISTImporter::importFromFile ( "data/mnist/t10k-images-idx3-ubyte", "data/mnist/t10k-labels-idx1-ubyte" );
 
-	nn = new NN ( batch_size, decay, DAE, {image_size * image_size, 64, 64, 32, 32, 3, 32, 32, 64, 64, image_size * image_size});
+	nn = new NN ( batch_size, decay, DAE, {image_size * image_size, 64, 3, 64, image_size * image_size});
 
 	//bind graph data
 	if (screen)
