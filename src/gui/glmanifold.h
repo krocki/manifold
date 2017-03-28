@@ -2,7 +2,7 @@
 * @Author: kmrocki@us.ibm.com
 * @Date:   2017-03-20 10:09:39
 * @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-03-27 14:12:42
+* @Last Modified time: 2017-03-27 18:21:30
 */
 
 #ifndef __GLPLOT_H__
@@ -86,9 +86,6 @@ class Plot : public nanogui::GLCanvas {
 		tic = glfwGetTime();
 
 		m_arcball.setSize ( w_size );
-		Eigen::Matrix3f mat = Eigen::Matrix3f::Identity();
-		Eigen::Quaternionf qarc ( mat );
-		m_arcball.setState ( qarc );
 
 		model_scale = Eigen::Vector3f(1, 1, 1);
 
@@ -257,6 +254,8 @@ class Plot : public nanogui::GLCanvas {
 
 	void update_view() {
 
+		// have to update cam position based on m_arcball state somehow
+
 		q = rotate(rotation, forward, up, right) * q;
 		R = quat_to_mat(q);
 
@@ -282,7 +281,8 @@ class Plot : public nanogui::GLCanvas {
 	void update_model() {
 
 		model.setIdentity();
-		data_model = nanogui::scale(model_scale);
+		data_model = model; //nanogui::scale(model_scale);
+		box_model = model; //nanogui::scale(model_scale);
 		data_model = translate({ -box_size[0] / 2, -box_size[1] / 2, -box_size[2] / 2}) * data_model;
 
 	}
@@ -354,23 +354,38 @@ class Plot : public nanogui::GLCanvas {
 
 	}
 
+	bool mouseButtonEvent(const Eigen::Vector2i &p, int button, bool down, int modifiers) {
+
+		if (!GLCanvas::mouseButtonEvent(p, button, down, modifiers)) {
+			if (button == GLFW_MOUSE_BUTTON_1)
+				m_arcball.button(p, down);
+		}
+		return true;
+	}
+
 	bool mouseMotionEvent ( const Eigen::Vector2i &p, const Eigen::Vector2i &rel, int button, int modifiers ) override {
 
-		if (mousemotion_enabled) {
-			/* takes mouse position on screen and return ray in world coords */
-			Eigen::Vector3f relative_pos = Eigen::Vector3f ( 2.0f * ( float ) ( p[0] - mPos[0] ) / ( float ) mSize[0] - 1.0f,
-			                               ( float ) ( -2.0f * ( p[1] - mPos[1] ) ) / ( float ) mSize[0] + 1.0f, 1.0f );
+		if (!GLCanvas::mouseMotionEvent(p, rel, button, modifiers)) {
 
-			mouse_last_x = relative_pos[0];
-			mouse_last_y = relative_pos[1];
+			if (mousemotion_enabled) {
 
-			update_mouse_overlay();
+				/* takes mouse position on screen and return ray in world coords */
+				Eigen::Vector3f relative_pos = Eigen::Vector3f ( 2.0f * ( float ) ( p[0] - mPos[0] ) / ( float ) mSize[0] - 1.0f,
+				                               ( float ) ( -2.0f * ( p[1] - mPos[1] ) ) / ( float ) mSize[0] + 1.0f, 1.0f );
 
-			// m_arcball.motion ( p );
+				mouse_last_x = relative_pos[0];
+				mouse_last_y = relative_pos[1];
 
-			return true;
+				update_mouse_overlay();
 
-		} else return false;
+				m_arcball.motion(p);
+
+				// std::cout << m_arcball.matrix() << std::endl;
+
+			}
+		}
+
+		return true;
 
 	}
 
@@ -424,6 +439,7 @@ class Plot : public nanogui::GLCanvas {
 
 		mvp = proj * view * model;
 		data_mvp = proj * view * data_model;
+		box_mvp = proj * view * box_model;
 
 	}
 
@@ -464,7 +480,7 @@ class Plot : public nanogui::GLCanvas {
 		if (show_box) {
 
 			m_cubeShader->bind();
-			m_cubeShader->setUniform("mvp", mvp);
+			m_cubeShader->setUniform("mvp", box_mvp);
 			m_cubeShader->drawIndexed ( GL_LINES, 0, data->c_indices.cols() );
 
 		}
@@ -796,7 +812,7 @@ class Plot : public nanogui::GLCanvas {
 
 	//model, view, projection...
 	Eigen::Vector3f translation, rotation, camera, forward, right, up, data_translation, box_size, total_translation, total_rotation, model_scale;
-	Eigen::Matrix4f view, proj, model, data_model, mvp, data_mvp;
+	Eigen::Matrix4f view, proj, model, data_model, box_model, mvp, data_mvp, box_mvp;
 	Eigen::Matrix4f T, R;
 	Eigen::Quaternionf q;
 	Eigen::Vector3f raydir;
