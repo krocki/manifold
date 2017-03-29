@@ -2,7 +2,7 @@
 * @Author: kmrocki@us.ibm.com
 * @Date:   2017-03-03 15:06:37
 * @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-03-27 09:27:10
+* @Last Modified time: 2017-03-28 22:43:22
 */
 
 #ifndef __LAYERS_H__
@@ -38,6 +38,7 @@ class Layer {
 	virtual void resetGrads() {};
 	virtual void applyGrads ( float alpha, float decay = 0.0f ) { UNUSED ( alpha ); UNUSED ( decay ); };
 
+	virtual void layer_info() { std:: cout << "layer " << std::endl; }
 	virtual ~Layer() {};
 
 	virtual void save(nanogui::Serializer &s) const {
@@ -117,6 +118,8 @@ class Linear : public Layer {
 		matrix_randn ( W, 0, ( 1.0f ) / sqrtf ( W.rows() + W.cols() ) );
 
 	};
+
+	virtual void layer_info() { std:: cout << "lin " << W.rows() << ", " << W.cols() << std::endl; }
 
 	void resetGrads() {
 
@@ -215,6 +218,8 @@ class Sigmoid : public Layer {
 
 	}
 
+	virtual void layer_info() { std:: cout << "sigm " << std::endl; }
+
 	Sigmoid ( size_t inputs, size_t outputs, size_t batch_size ) : Layer ( inputs, outputs, batch_size ) {};
 	~Sigmoid() {};
 
@@ -238,6 +243,7 @@ class ReLU : public Layer {
 		bytes_read += dy.size() * sizeof ( dtype );
 
 	}
+	virtual void layer_info() { std:: cout << "relu " << std::endl; }
 
 	ReLU ( size_t inputs, size_t outputs, size_t batch_size ) : Layer ( inputs, outputs, batch_size ) {};
 	~ReLU() {};
@@ -262,9 +268,53 @@ class Softmax : public Layer {
 		bytes_read += dy.size() * sizeof ( dtype ) * 2;
 	}
 
+	virtual void layer_info() { std:: cout << "softmax " << std::endl; }
 
 	Softmax ( size_t inputs, size_t outputs, size_t batch_size ) : Layer ( inputs, outputs, batch_size ) {};
 	~Softmax() {};
+
+};
+
+class Dropout : public Layer {
+
+  public:
+
+	const float keep_ratio;
+	Matrix dropout_mask;
+
+	void forward () {
+
+		// if ( test ) // skip at test time
+
+		// 	y = x;
+
+		// else {
+
+		Matrix rands = Matrix::Zero ( y.rows(), y.cols() );
+		matrix_rand ( rands, 0.0f, 1.0f );
+
+		//dropout mask - 1s - preserved elements
+		dropout_mask = ( rands.array() < keep_ratio ).cast <float> ();
+
+		// y = y .* dropout_mask, discard elements where mask is 0
+		y.array() = x.array() * dropout_mask.array();
+
+		// normalize, so that we don't have to do anything at test time
+		y /= keep_ratio;
+
+		// }
+	}
+
+	virtual void layer_info() { std:: cout << "dropout " << std::endl; }
+
+	void backward() {
+
+		dx.array() = dy.array() * dropout_mask.array();
+	}
+
+	Dropout ( size_t inputs, size_t outputs, size_t batch_size, float _ratio ) :
+		Layer ( inputs, outputs, batch_size),  keep_ratio ( _ratio ) {};
+	~Dropout() {};
 
 };
 
