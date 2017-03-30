@@ -27,6 +27,6 @@ all:
 	# $(CC) -o mlp_mnist ./src/mlp_mnist.cc $(INCLUDES) $(CFLAGS) $(LFLAGS)
 	# $(CC) -o graphs ./src/graphs.cc $(INCLUDES) $(CFLAGS) $(LFLAGS)
 	# $(CC) -o template ./src/template.cc $(INCLUDES) $(CFLAGS) $(LFLAGS)
-	$(CC) -o nbody ./src/nbody.cc  $(INCLUDES) $(CFLAGS) $(LFLAGS)
-	$(CC) -o fplot ./src/fplot.cc $(INCLUDES) $(CFLAGS) $(LFLAGS)
+	# $(CC) -o nbody ./src/nbody.cc  $(INCLUDES) $(CFLAGS) $(LFLAGS)
+	# $(CC) -o fplot ./src/fplot.cc $(INCLUDES) $(CFLAGS) $(LFLAGS)
 	$(CC) -o manifold ./src/manifold.cc $(INCLUDES) $(CFLAGS) $(LFLAGS)

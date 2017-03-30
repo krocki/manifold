@@ -2,7 +2,7 @@
 * @Author: kmrocki@us.ibm.com
 * @Date:   2017-03-20 10:09:39
 * @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-03-27 18:21:30
+* @Last Modified time: 2017-03-28 11:25:16
 */
 
 #ifndef __GLPLOT_H__
@@ -226,7 +226,7 @@ class Plot : public nanogui::GLCanvas {
 		near = 0.1f;
 		far = 200.0f;
 
-		cam_speed = 0.07f;
+		cam_speed = 0.2f;
 		cam_angular_speed = (cam_speed / 1000.0f) * 360.0f / M_PI;
 
 	}
@@ -354,7 +354,7 @@ class Plot : public nanogui::GLCanvas {
 
 	}
 
-	bool mouseButtonEvent(const Eigen::Vector2i &p, int button, bool down, int modifiers) {
+	bool mouseButtonEvent(const Eigen::Vector2i &p, int button, bool down, int modifiers) override {
 
 		if (!GLCanvas::mouseButtonEvent(p, button, down, modifiers)) {
 			if (button == GLFW_MOUSE_BUTTON_1)
@@ -517,6 +517,7 @@ class Plot : public nanogui::GLCanvas {
 
 			glActiveTexture ( GL_TEXTURE0 );
 			glBindTexture ( GL_TEXTURE_2D, ( std::vector<std::pair<int, std::string>> ( data->textures ) [0] ).first );
+			float textures_per_dim = ceil ( sqrtf ( train_data.size() ) );
 
 			//star
 			// glBindTexture ( GL_TEXTURE_2D, ( std::vector<std::pair<int, std::string>> ( data->textures ) [1] ).first );
@@ -528,13 +529,11 @@ class Plot : public nanogui::GLCanvas {
 			m_pointTexShader->setUniform ( "selected", selected );
 			m_pointTexShader->setUniform ( "model", data_model );
 
-			float textures_per_dim = ceil ( sqrtf ( train_data.size() ) );
 			float quad_size = 0.005f;
 			float radius = sqrtf ( 2 * quad_size );
 			float tex_w = 1.0f / (float)textures_per_dim;
 
 			m_pointTexShader->setUniform ( "radius", radius );
-			// m_pointTexShader->setUniform ( "radius_intersect", radius_intersect );
 			m_pointTexShader->setUniform ( "tex_w", tex_w );
 
 			glPointSize ( 1 );

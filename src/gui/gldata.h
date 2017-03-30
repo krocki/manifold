@@ -2,7 +2,7 @@
 * @Author: kmrocki@us.ibm.com
 * @Date:   2017-03-20 10:11:47
 * @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-03-26 22:15:37
+* @Last Modified time: 2017-03-28 12:13:23
 */
 
 #ifndef __PLOTDATA_H__
@@ -12,6 +12,8 @@
 #include <random>
 
 #include <gl/tex.h>
+#include <io/import.h>
+#include <iostream>
 
 class PlotData {
 
@@ -73,15 +75,41 @@ class PlotData {
 
 		}
 
-		textures.resize ( 1 );
+		textures.resize ( 2 );
 
 		textures[0] = ( std::pair<int, std::string> ( nvgCreateImageA ( nvg,
 		                sqr_dim * image_size, sqr_dim * image_size, NVG_IMAGE_NEAREST, ( unsigned char * ) rgba_image.data() ), "" ) );
 
 
-		// GLTexture texture("star");
-		// auto tdata = texture.load("./images/star.png");
-		// textures[1] = ( std::pair<int, std::string> ( texture.texture(), "" )) ;
+
+
+		// TODO, clean up
+		//star
+		int force_channels = 0;
+		int w, h, n;
+		std::unique_ptr<uint8_t[], void(*)(void*)> textureData(stbi_load("./images/star.png", &w, &h, &n, force_channels), stbi_image_free);
+		std::cout << w << ", " << h << ", " << n << ", " << std::endl;
+
+		GLuint mTextureId;
+
+		glGenTextures(1, &mTextureId);
+		glBindTexture(GL_TEXTURE_2D, mTextureId);
+		GLint internalFormat;
+		GLint format;
+		switch (n) {
+		case 1: internalFormat = GL_R8; format = GL_RED; break;
+		case 2: internalFormat = GL_RG8; format = GL_RG; break;
+		case 3: internalFormat = GL_RGB8; format = GL_RGB; break;
+		case 4: internalFormat = GL_RGBA8; format = GL_RGBA; break;
+		default: internalFormat = 0; format = 0; break;
+		}
+		glTexImage2D(GL_TEXTURE_2D, 0, internalFormat, w, h, 0, format, GL_UNSIGNED_BYTE, textureData.get());
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+
+		textures[1] = ( std::pair<int, std::string> ( mTextureId, "" ) );
 
 	}
 

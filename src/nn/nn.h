@@ -2,7 +2,7 @@
 * @Author: kmrocki
 * @Date:   2016-02-24 15:28:10
 * @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-03-27 14:16:40
+* @Last Modified time: 2017-03-30 10:36:29
 */
 
 #ifndef __NN_H__
@@ -255,6 +255,8 @@ class NN {
 				return ( double ) correct / ( double ) ( data.size() );
 			}
 		}
+
+		return 0.0;
 	}
 
 	void testcode ( const std::deque<datapoint>& data ) {
@@ -297,7 +299,9 @@ class NN {
 
 		layer_sizes = _layer_sizes;
 
-		code_layer_no = 2 * ( layer_sizes.size() - 1 ) / 2 - 1;
+		code_layer_no = 3 * ( layer_sizes.size() - 1 ) / 2 - 2;
+
+		std::cout << code_layer_no << std::endl;
 
 		for ( size_t l = 0; l < layer_sizes.size() - 1; l++ ) {
 
@@ -305,14 +309,25 @@ class NN {
 
 			if ( ( l + 1 ) == layer_sizes.size() - 1 )
 				layers.push_back ( new Sigmoid ( layer_sizes[l + 1], layer_sizes[l + 1], batch_size ) );
-			else
+			else {
 				layers.push_back ( new ReLU ( layer_sizes[l + 1], layer_sizes[l + 1], batch_size ) );
+				if ((layers.size() - 1) != code_layer_no)
+					layers.push_back ( new Dropout ( layer_sizes[l + 1], layer_sizes[l + 1], batch_size, 1.0f ) );
+			}
 
 		}
+
+		for ( size_t l = 0; l < layers.size(); l++) {
+			std::cout << l << ", ";
+			layers[l]->layer_info();
+		}
+
 
 	}
 
 	void save(nanogui::Serializer & s) {
+
+		params.lock();
 
 		s.set("current_loss", current_loss);
 		// s.set("loss_data", *loss_data);
@@ -329,8 +344,6 @@ class NN {
 		s.set("code_layer_no", code_layer_no);
 
 		s.set("layer_sizes", layer_sizes);
-
-		params.lock();
 
 		for ( size_t i = 0; i < layers.size(); i++ ) {
 

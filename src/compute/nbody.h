@@ -2,7 +2,7 @@
 * @Author: kmrocki@us.ibm.com
 * @Date:   2017-03-20 21:17:46
 * @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-03-21 09:51:21
+* @Last Modified time: 2017-03-28 12:27:28
 */
 
 #ifndef __NBODY_H__
@@ -10,7 +10,7 @@
 
 namespace nbody {
 
-void calculate_forces(Eigen::MatrixXf& points, Eigen::MatrixXf& velocities, float softening = 0.5f * 1e-1f, float dt = 0.001f) {
+void calculate_forces(Eigen::MatrixXf& points, Eigen::MatrixXf& velocities, float softening = 1e-7f, float dt = 0.001f) {
 
 	//#pragma omp parallel for schedule(dynamic)
 	for (size_t i = 0; i < (size_t) points.cols(); i++) {
@@ -22,9 +22,8 @@ void calculate_forces(Eigen::MatrixXf& points, Eigen::MatrixXf& velocities, floa
 		for (size_t j = 0; j < (size_t) points.cols(); j++) {
 
 			d = points.col(j) - p;
-
-			float dist = d.squaredNorm() + softening;
-			float invDist = 1.0f / dist;
+			float dist = d[0] * d[0] + d[1] * d[1] + d[2] * d[2] + softening;
+			float invDist = 1.0f / sqrtf(dist);
 			float invDist3 = invDist * invDist * invDist;
 
 			f += invDist3 * d;

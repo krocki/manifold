@@ -2,7 +2,7 @@
 * @Author: Kamil Rocki
 * @Date:   2017-02-28 11:25:34
 * @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-03-27 09:33:15
+* @Last Modified time: 2017-03-30 10:36:03
 */
 
 #include <thread>
@@ -17,7 +17,8 @@
 #include <io/import.h>
 #include <nn/nn.h>
 
-NN *nn;
+std::shared_ptr<NN> nn;
+
 std::deque<datapoint> train_data;
 std::deque<datapoint> test_data;
 
@@ -25,7 +26,7 @@ std::deque<datapoint> test_data;
 #include "gui/manifoldscreen.h"
 #include <compute/functions.h>
 
-GUI *screen;
+std::shared_ptr<GUI> screen;
 
 int compute() {
 
@@ -35,13 +36,14 @@ int compute() {
 	PlotData* gl_data = screen->plot_data;
 
 	// NN stuff
-	double learning_rate = 1e-4;
-	float decay = 1e-7;
+	double learning_rate = 1e-3;
+	float decay = 0;
 	const size_t image_size = 28;
 	const size_t batch_size = 50;
 	size_t e = 0;
 
-	nn = new NN ( batch_size, decay, AE, {image_size * image_size, 64, 32, 3, 32, 64, image_size * image_size});
+	nn = std::shared_ptr<NN>(new NN( batch_size, decay, AE, {image_size * image_size, 512, 256, 128, 64, 32, 16, 8, 3, 8, 16, 32, 64, 128, 256, 512, image_size * image_size}));
+
 	nn->pause = true;
 
 	//bind graph data
@@ -78,26 +80,7 @@ int compute() {
 
 	}
 
-	// save last state
-	// end = std::chrono::system_clock::now();
-	// std::chrono::duration<double> elapsed_seconds = end - start;
-	// std::string t = return_current_time_and_date("%y%m%d_%H%M%S");
-	// std::cout << "End time: " << t << ", " << "elapsed time: " << elapsed_seconds.count() << std::endl;
-	// std::string fprefix = string_format ( "snapshots/%s_%d_%d", t.c_str(), (int)elapsed_seconds.count(), (int)nn->current_loss);
-	// nanogui::Serializer s(string_format ( "%s.nn.bin", fprefix.c_str()), true);
-	// nn->save(s);
-	// std::cout << "Done " << std::endl;
-
-	// std::fstream fin("dump.png", ios::in | ios::binary);
-	// std::fstream fout(string_format ( "%s.png", fprefix.c_str()), ios::out | ios::binary);
-
-	// char c;
-	// while (!fin.eof()) {
-	// 	fin.get(c);
-	// 	fout.put(c);
-	// }
-
-	delete nn; return 0;
+	return 0;
 
 }
 
@@ -107,7 +90,7 @@ int main ( int /* argc */, char ** /* argv */ ) {
 
 		/* init GUI */
 		nanogui::init();
-		screen = new GUI();
+		screen = std::shared_ptr<GUI>(new GUI());
 
 		// launch a compute thread
 		std::thread compute_thread(compute);
@@ -115,7 +98,6 @@ int main ( int /* argc */, char ** /* argv */ ) {
 		nanogui::mainloop ( 1 );
 
 		compute_thread.join();
-		delete screen;
 		nanogui::shutdown();
 
 	} catch ( const std::runtime_error &e ) {

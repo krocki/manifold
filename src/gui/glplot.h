@@ -2,7 +2,7 @@
 * @Author: kmrocki@us.ibm.com
 * @Date:   2017-03-20 10:09:39
 * @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-03-26 15:43:21
+* @Last Modified time: 2017-03-30 10:35:18
 */
 
 #ifndef __GLPLOT_H__
@@ -125,7 +125,7 @@ class Plot : public nanogui::GLCanvas {
 		q = rotate(rotation, forward, up, right) * q;
 
 		near = 0.1f;
-		far = 100.0f;
+		far = 200.0f;
 
 		cam_speed = 0.15f;
 		cam_angular_speed = 0.0002f * 360.0f / M_PI;

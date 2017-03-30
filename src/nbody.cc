@@ -2,7 +2,7 @@
 * @Author: Kamil Rocki
 * @Date:   2017-02-28 11:25:34
 * @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-03-24 14:48:37
+* @Last Modified time: 2017-03-28 12:26:33
 */
 
 #include <thread>
@@ -30,7 +30,7 @@ int compute() {
 
 	// nbody code
 	generate(func3::normal, func1::normal, gl_data->p_vertices, point_count, 2);
-	generate(func3::uniform, func1::uniform, velocities, point_count, 1);
+	set({0.0f, 0.0f, 0.0f}, velocities, point_count);
 
 	gl_data->updated();
 

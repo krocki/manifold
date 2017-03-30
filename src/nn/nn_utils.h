@@ -2,7 +2,7 @@
 * @Author: kmrocki
 * @Date:   2016-02-24 10:47:03
 * @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-03-24 20:39:01
+* @Last Modified time: 2017-03-28 22:27:11
 */
 
 #ifndef __NN_UTILS_H__
@@ -151,6 +151,20 @@ void matrix_randi ( Eigen::VectorXi &m, int range_min, int range_max ) {
 
 	for ( int i = 0; i < m.rows(); i++ )
 		m ( i ) = ( float ) dis ( mt );
+
+}
+
+//generate an array of random numbers in range
+void matrix_rand ( Matrix &m, int range_min, int range_max ) {
+
+	std::random_device rd;
+	std::mt19937 mt ( rd() );
+	std::uniform_real_distribution<> randf ( range_min, range_max );
+
+	for ( int i = 0; i < m.rows(); i++ ) {
+		for ( int j = 0; j < m.cols(); j++ )
+			m ( i, j ) = randf ( mt );
+	}
 
 }
 
