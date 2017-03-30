@@ -2,7 +2,7 @@
 * @Author: kmrocki@us.ibm.com
 * @Date:   2017-03-20 10:09:39
 * @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-03-28 11:25:16
+* @Last Modified time: 2017-03-30 10:45:06
 */
 
 #ifndef __GLPLOT_H__
@@ -495,8 +495,6 @@ class Plot : public nanogui::GLCanvas {
 			m_rayShader->setUniform("mvp", mvp);
 			m_rayShader->drawArray(GL_LINES, 0, data->r_vertices.cols());
 		}
-
-		float radius_intersect = 0.1f;
 
 		if (!use_textures) {
 

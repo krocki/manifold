@@ -2,7 +2,7 @@
 * @Author: kmrocki
 * @Date:   2016-02-24 15:28:10
 * @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-03-30 10:36:29
+* @Last Modified time: 2017-03-30 10:44:36
 */
 
 #ifndef __NN_H__
@@ -307,12 +307,12 @@ class NN {
 
 			layers.push_back ( new Linear ( layer_sizes[l], layer_sizes[l + 1], batch_size, false) );
 
-			if ( ( l + 1 ) == layer_sizes.size() - 1 )
+			if ( ( l + 1 ) == (layer_sizes.size() - 1) )
 				layers.push_back ( new Sigmoid ( layer_sizes[l + 1], layer_sizes[l + 1], batch_size ) );
 			else {
 				layers.push_back ( new ReLU ( layer_sizes[l + 1], layer_sizes[l + 1], batch_size ) );
-				if ((layers.size() - 1) != code_layer_no)
-					layers.push_back ( new Dropout ( layer_sizes[l + 1], layer_sizes[l + 1], batch_size, 1.0f ) );
+				if (int(layers.size() - 1) != code_layer_no)
+					layers.push_back ( new Dropout ( layer_sizes[l + 1], layer_sizes[l + 1], batch_size, 0.9f ) );
 			}
 
 		}

@@ -2,7 +2,7 @@
 * @Author: Kamil Rocki
 * @Date:   2017-02-28 11:25:34
 * @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-03-30 10:36:03
+* @Last Modified time: 2017-03-30 10:46:53
 */
 
 #include <thread>
@@ -42,7 +42,7 @@ int compute() {
 	const size_t batch_size = 50;
 	size_t e = 0;
 
-	nn = std::shared_ptr<NN>(new NN( batch_size, decay, AE, {image_size * image_size, 512, 256, 128, 64, 32, 16, 8, 3, 8, 16, 32, 64, 128, 256, 512, image_size * image_size}));
+	nn = std::shared_ptr<NN>(new NN( batch_size, decay, AE, {image_size * image_size, 256, 64, 3, 64, 256, image_size * image_size}));
 
 	nn->pause = true;
 
