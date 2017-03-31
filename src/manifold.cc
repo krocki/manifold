@@ -2,7 +2,7 @@
 * @Author: Kamil Rocki
 * @Date:   2017-02-28 11:25:34
 * @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-03-30 19:30:30
+* @Last Modified time: 2017-03-31 11:10:45
 */
 
 #include <thread>
@@ -33,7 +33,7 @@ int compute() {
 	std::chrono::time_point<std::chrono::system_clock> start, end;
 	start = std::chrono::system_clock::now();
 
-	PlotData* gl_data = screen->plot_data;
+	PlotData *gl_data = screen->plot_data;
 
 	// NN stuff
 	double learning_rate = 1e-4;
@@ -42,13 +42,15 @@ int compute() {
 	const size_t batch_size = 50;
 	size_t e = 0;
 
-	nn = std::shared_ptr<NN>(new NN( batch_size, decay, AE, {image_size * image_size, 64, 64, 64, 64, 3, 64, 64, 64, 64, image_size * image_size}));
+	nn = std::shared_ptr<NN> ( new NN ( batch_size, decay, learning_rate, AE, {image_size * image_size, 64, 64, 3, 64, 64, image_size * image_size} ) );
+
+	nn->otype = SGD;
 
 	nn->pause = true;
 
 	//bind graph data
-	if (screen) {
-		if (screen->graph_loss)
+	if ( screen ) {
+		if ( screen->graph_loss )
 			nn->loss_data = screen->graph_loss->values_ptr();
 
 	}
@@ -57,7 +59,7 @@ int compute() {
 	size_t iters = 50;
 
 	/* work until main window is open */
-	while (screen->getVisible()) {
+	while ( screen->getVisible() ) {
 
 		// drawing
 		nn->testcode ( train_data );
@@ -65,18 +67,18 @@ int compute() {
 		gl_data->p_vertices = nn->codes;
 
 		// convert labels to colors, TODO: move somewhere else
-		gl_data->p_colors.resize(3, nn->codes_colors.cols());
-		for (int k = 0; k < nn->codes_colors.cols(); k++) {
-			nanogui::Color c = nanogui::parula_lut[(int)nn->codes_colors(0, k)];
-			gl_data->p_colors.col(k) = Eigen::Vector3f(c[0], c[1], c[2]);
+		gl_data->p_colors.resize ( 3, nn->codes_colors.cols() );
+		for ( int k = 0; k < nn->codes_colors.cols(); k++ ) {
+			nanogui::Color c = nanogui::parula_lut[ ( int ) nn->codes_colors ( 0, k )];
+			gl_data->p_colors.col ( k ) = Eigen::Vector3f ( c[0], c[1], c[2] );
 		}
 
-		nn->train ( train_data, learning_rate, iters );
+		nn->train ( train_data, iters );
 
 		std::cout << return_current_time_and_date() << std::endl;
 		printf ( "Epoch %3lu: Loss: %.2f\n", ++e, ( float ) nn->test ( test_data ) );
 
-		usleep(1000);
+		usleep ( 1000 );
 
 	}
 
@@ -90,10 +92,10 @@ int main ( int /* argc */, char ** /* argv */ ) {
 
 		/* init GUI */
 		nanogui::init();
-		screen = std::shared_ptr<GUI>(new GUI());
+		screen = std::shared_ptr<GUI> ( new GUI() );
 
 		// launch a compute thread
-		std::thread compute_thread(compute);
+		std::thread compute_thread ( compute );
 
 		nanogui::mainloop ( 1 );
 

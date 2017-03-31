@@ -17,12 +17,9 @@ out vec4 frag_color;
 
 void main() {
 
-	gl_Position = mvp * vec4 (position, 1.0 );
-
-	if (distance(gl_Position, selected < radius))
-		gl_PointSize = 10;
-	else
-		gl_PointSize = 3;
-
-	frag_color = vec4(color, 0.2);
+	gl_Position = mvp * vec4 ( position, 1.0 );
+	
+	gl_PointSize = 1;
+	
+	frag_color = vec4 ( color, 0.2 );
 }

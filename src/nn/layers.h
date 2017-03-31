@@ -2,13 +2,14 @@
 * @Author: kmrocki@us.ibm.com
 * @Date:   2017-03-03 15:06:37
 * @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-03-28 23:13:12
+* @Last Modified time: 2017-03-31 10:40:59
 */
 
 #ifndef __LAYERS_H__
 #define __LAYERS_H__
 
 #include <nn/nn_utils.h>
+#include <nn/opt.h>
 
 //abstract
 class Layer {
@@ -36,7 +37,7 @@ class Layer {
 	virtual void forward() = 0;
 	virtual void backward() = 0;
 	virtual void resetGrads() {};
-	virtual void applyGrads ( float alpha, float decay = 0.0f ) { UNUSED ( alpha ); UNUSED ( decay ); };
+	virtual void applyGrads ( opt_type otype, float alpha, float decay = 0.0f ) { UNUSED ( alpha, decay, otype ); };
 
 	virtual void layer_info() { std:: cout << "layer " << std::endl; }
 	virtual ~Layer() {};
@@ -128,28 +129,12 @@ class Linear : public Layer {
 	}
 
 	// pseudo adadelta
-	void applyGrads ( float alpha, float decay = 0.0f ) {
-
-		float rho = 0.9f;
-
-		mW.array() = rho * mW.array() + (1 - rho) * dW.array() * dW.array();
-		mb.array() = rho * mb.array() + (1 - rho) * db.array() * db.array();
-
-		W *= ( 1.0f - decay );
-
-		b.array() += alpha * db.array() / (( mb.array() + 1e-6 )).sqrt().array();
-		W.array() += alpha * dW.array() / (( mW.array() + 1e-6 )).sqrt().array();
-
-		flops_performed += W.size() * 4 + 2 * b.size();
-		bytes_read += W.size() * sizeof ( dtype ) * 3;
-	}
-
-
-	// adagrad
 	// void applyGrads ( float alpha, float decay = 0.0f ) {
 
-	// 	mW.array() += dW.array() * dW.array();
-	// 	mb.array() += db.array() * db.array();
+	// 	float rho = 0.99f;
+
+	// 	mW.array() = rho * mW.array() + (1 - rho) * dW.array() * dW.array();
+	// 	mb.array() = rho * mb.array() + (1 - rho) * db.array() * db.array();
 
 	// 	W *= ( 1.0f - decay );
 
@@ -160,15 +145,55 @@ class Linear : public Layer {
 	// 	bytes_read += W.size() * sizeof ( dtype ) * 3;
 	// }
 
-	// sgd
-	// void applyGrads ( float alpha, float decay = 0.0f ) {
 
-	// 	W *= ( 1.0f - decay );
-	// 	b += alpha * db;
-	// 	W += alpha * dW;
-	// 	flops_performed += W.size() * 4 + 2 * b.size();
-	// 	bytes_read += W.size() * sizeof ( dtype ) * 3;
-	// }
+	void applyGrads ( opt_type otype, float alpha, float decay = 0.0f ) {
+
+		if (otype == SGD) sgd ( alpha, decay );
+		else if (otype == ADAGRAD) adagrad ( alpha, decay );
+		else if (otype == ADADELTA) pseudo_adadelta ( alpha, decay );
+	}
+
+	// sgd
+	void sgd ( float alpha, float decay = 0.0f ) {
+
+		W *= ( 1.0f - decay );
+		b += alpha * db;
+		W += alpha * dW;
+		flops_performed += W.size() * 4 + 2 * b.size();
+		bytes_read += W.size() * sizeof ( dtype ) * 3;
+	}
+
+	// adagrad
+	void adagrad ( float alpha, float decay ) {
+
+		mW.array() += dW.array() * dW.array();
+		mb.array() += db.array() * db.array();
+
+		W *= ( 1.0f - decay );
+
+		b.array() += alpha * db.array() / (( mb.array() + 1e-6 )).sqrt().array();
+		W.array() += alpha * dW.array() / (( mW.array() + 1e-6 )).sqrt().array();
+
+		flops_performed += W.size() * 6 + 2 * b.size();
+		bytes_read += W.size() * sizeof ( dtype ) * 4;
+	}
+
+	// pseudo adadelta
+	void pseudo_adadelta ( float alpha, float decay ) {
+
+		float rho = 0.95f;
+
+		mW.array() = rho * mW.array() + (1 - rho) * dW.array() * dW.array();
+		mb.array() = rho * mb.array() + (1 - rho) * db.array() * db.array();
+
+		W *= ( 1.0f - decay );
+
+		b.array() += alpha * db.array() / (( mb.array() + 1e-6 )).sqrt().array();
+		W.array() += alpha * dW.array() / (( mW.array() + 1e-6 )).sqrt().array();
+
+		flops_performed += W.size() * 6 + 2 * b.size();
+		bytes_read += W.size() * sizeof ( dtype ) * 4;
+	}
 
 
 	virtual void save(nanogui::Serializer &s) const {

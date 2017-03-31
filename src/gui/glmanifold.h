@@ -2,7 +2,7 @@
 * @Author: kmrocki@us.ibm.com
 * @Date:   2017-03-20 10:09:39
 * @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-03-30 10:45:06
+* @Last Modified time: 2017-03-31 10:16:30
 */
 
 #ifndef __GLPLOT_H__
@@ -99,6 +99,7 @@ class Plot : public nanogui::GLCanvas {
 
 		Eigen::Vector2i bsize = Eigen::Vector2i(20, 20);
 		nanogui::Color bcolor = nanogui::Color(192, 128, 0, 25);
+		nanogui::Color ccolor = nanogui::Color(64, 128, 32, 25);
 
 		b = arrows->add<nanogui::Button>("", ENTYPO_ICON_TRIANGLE_LEFT);
 		b->setFixedSize(bsize);
@@ -119,6 +120,33 @@ class Plot : public nanogui::GLCanvas {
 		b->setFixedSize(bsize);
 		b->setBackgroundColor(bcolor);
 		b->setCallback([&] { translation[0] += cam_speed; }); b->setTooltip("right");
+
+		nanogui::Widget *views = new nanogui::Widget(tools);
+		views->setLayout(new nanogui::GridLayout(nanogui::Orientation::Horizontal, 4, nanogui::Alignment::Middle, 2, 2));
+		b = views->add<nanogui::Button>("", ENTYPO_ICON_PLUS);
+		b->setFlags(nanogui::Button::RadioButton);
+		b->setFixedSize(bsize);
+		b->setBackgroundColor(ccolor);
+		b->setPushed(coord_type == 0);
+		b->setCallback([&]() { std::cout << "Coords 0: " << std::endl; coord_type = 0;});
+		b = views->add<nanogui::Button>("", ENTYPO_ICON_CD);
+		b->setFlags(nanogui::Button::RadioButton);
+		b->setFixedSize(bsize);
+		b->setPushed(coord_type == 1);
+		b->setBackgroundColor(ccolor);
+		b->setCallback([&]() { std::cout << "Coords 1: " << std::endl; coord_type = 1;});
+		b = views->add<nanogui::Button>("", ENTYPO_ICON_GLOBE);
+		b->setFlags(nanogui::Button::RadioButton);
+		b->setFixedSize(bsize);
+		b->setPushed(coord_type == 2);
+		b->setBackgroundColor(ccolor);
+		b->setCallback([&]() { std::cout << "Coords 2: " << std::endl; coord_type = 2;});
+		b = views->add<nanogui::Button>("", ENTYPO_ICON_SWEDEN);
+		b->setFlags(nanogui::Button::ToggleButton);
+		b->setFixedSize(bsize);
+		b->setBackgroundColor(ccolor);
+		b->setPushed(show_box);
+		b->setChangeCallback([&](bool state) { std::cout << "Grid off/on " << std::endl; show_box = state; });
 
 		nanogui::Widget *shader_tools = new nanogui::Widget(tools);
 		shader_tools->setLayout(new nanogui::GridLayout(nanogui::Orientation::Horizontal, 4, nanogui::Alignment::Middle, 2, 2));
@@ -183,6 +211,24 @@ class Plot : public nanogui::GLCanvas {
 
 		});
 
+		new nanogui::Label(sliders, "SZ", "sans-bold", 7);
+		slider = new nanogui::Slider(sliders);
+		slider->setValue(0.2f);
+		slider->setFixedWidth(80);
+		slider->setCallback([&](float value) {
+			float s = value * 10.0f;
+			pt_size = s; std::cout << "pt size: " << pt_size << std::endl;
+
+		});
+
+		new nanogui::Label(sliders, "A", "sans-bold", 7);
+		slider = new nanogui::Slider(sliders);
+		slider->setValue(0.7f);
+		slider->setFixedWidth(80);
+		slider->setCallback([&](float value) {
+			alpha = value; std::cout << "alpha: " << alpha << std::endl;
+
+		});
 
 		tools->setPosition({w_size[0] - 91, 0});
 
@@ -281,7 +327,7 @@ class Plot : public nanogui::GLCanvas {
 	void update_model() {
 
 		model.setIdentity();
-		data_model = model; //nanogui::scale(model_scale);
+		data_model = nanogui::scale(model_scale) * model; //nanogui::scale(model_scale);
 		box_model = model; //nanogui::scale(model_scale);
 		data_model = translate({ -box_size[0] / 2, -box_size[1] / 2, -box_size[2] / 2}) * data_model;
 
@@ -501,6 +547,9 @@ class Plot : public nanogui::GLCanvas {
 			glEnable ( GL_PROGRAM_POINT_SIZE );
 			m_pointShader->bind();
 			m_pointShader->setUniform("mvp", data_mvp);
+			m_pointShader->setUniform ( "coord_type", coord_type );
+			m_pointShader->setUniform ( "pt_size", pt_size );
+			m_pointShader->setUniform ( "alpha", alpha );
 
 			// m_pointShader->setUniform ( "radius_intersect", radius_intersect );
 			m_pointShader->drawArray(GL_POINTS, 0, data->p_vertices.cols());
@@ -526,6 +575,7 @@ class Plot : public nanogui::GLCanvas {
 			m_pointTexShader->setUniform ( "proj", proj );
 			m_pointTexShader->setUniform ( "selected", selected );
 			m_pointTexShader->setUniform ( "model", data_model );
+			m_pointTexShader->setUniform ( "coord_type", coord_type );
 
 			float quad_size = 0.005f;
 			float radius = sqrtf ( 2 * quad_size );
@@ -819,6 +869,9 @@ class Plot : public nanogui::GLCanvas {
 	bool ortho = false;
 	bool use_textures = false;
 	bool show_rays = true;
+	int coord_type = 0;
+	float pt_size = 2.0f;
+	float alpha = 0.7f;
 
 	float near, far, fovy;
 	float cam_speed, cam_angular_speed;

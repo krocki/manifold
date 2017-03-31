@@ -232,39 +232,20 @@ class GUI : public nanogui::Screen {
 
 	void makeWidgets() {
 
-		window = new nanogui::Window(this, "");
-		window->setPosition(Eigen::Vector2i(3, DEF_WIDTH / 3 + 3));
-
-		nanogui::GridLayout *layout =
-		    new nanogui::GridLayout(nanogui::Orientation::Horizontal, 1,
-		                            nanogui::Alignment::Middle, 15, 5);
-		layout->setColAlignment(
-		{ nanogui::Alignment::Maximum, nanogui::Alignment::Fill });
+		nanogui::GridLayout *layout = new nanogui::GridLayout(nanogui::Orientation::Horizontal, 1, nanogui::Alignment::Middle, 15, 5);
+		layout->setColAlignment( { nanogui::Alignment::Maximum, nanogui::Alignment::Fill });
 		layout->setSpacing(0, 10);
-		window->setLayout(layout);
 
-		nanogui::GridLayout *layout_2cols =
-		    new nanogui::GridLayout(nanogui::Orientation::Horizontal, 2,
-		                            nanogui::Alignment::Middle, 15, 5);
-		layout_2cols->setColAlignment(
-		{ nanogui::Alignment::Maximum, nanogui::Alignment::Fill });
+		nanogui::GridLayout *layout_2cols = new nanogui::GridLayout(nanogui::Orientation::Horizontal, 2, nanogui::Alignment::Middle, 15, 5);
+		layout_2cols->setColAlignment( { nanogui::Alignment::Maximum, nanogui::Alignment::Fill });
 		layout_2cols->setSpacing(0, 10);
 
 
 		// nanogui::Label* message = new nanogui::Label(window, "", "sans-bold");
 
-		// /* FP widget */ {
-		// 	new nanogui::Label(window, "Floating point :", "sans-bold");
-		// 	nanogui::TextBox *textBox = new nanogui::TextBox(window);
-		// 	textBox->setEditable(true);
-		// 	textBox->setFixedSize(Eigen::Vector2i(100, 20));
-		// 	textBox->setValue("50");
-		// 	textBox->setUnits("GiB");
-		// 	textBox->setDefaultValue("0.0");
-		// 	textBox->setFontSize(16);
-		// 	textBox->setFormat("[-]?[0-9]*\\.?[0-9]+");
-		// }
-
+		window = new nanogui::Window(this, "");
+		window->setPosition(Eigen::Vector2i(3, DEF_WIDTH / 3 + 3));
+		window->setLayout(layout);
 		// /* Positive integer widget */ {
 		// 	new nanogui::Label(window, "Positive integer :", "sans-bold");
 		// 	auto intBox = new nanogui::IntBox<int>(window);
@@ -381,6 +362,51 @@ class GUI : public nanogui::Screen {
 			nn->pause = !pushed;
 
 		}); b->setTooltip("pause/unpause");
+
+		nanogui::Window* window_params = new nanogui::Window(window, "");
+		window_params->setLayout(layout);
+		{
+			new nanogui::Label(window_params, "Learning rate", "sans-bold");
+			nanogui::TextBox *textBox = new nanogui::TextBox(window_params);
+			textBox->setEditable(true);
+			textBox->setFixedSize(Eigen::Vector2i(100, 20));
+			textBox->setValue("1e-4");
+			textBox->setUnits("");
+			textBox->setDefaultValue("1e-4");
+			textBox->setFontSize(16);
+			textBox->setFormat("[-+]?[0-9]*\\.?[0-9]+([eE][-+]?[0-9]+)?");
+
+			nanogui::Slider* slider = new nanogui::Slider(window_params);
+			slider->setValue(0.2f);
+			slider->setFixedSize(Eigen::Vector2i(100, 20));
+			slider->setCallback([textBox](float value) {
+				float s = 1e-6 * pow(10, value * 5);
+				float lrate = s; std::cout << "learning rate: " << lrate << std::endl;
+				textBox->setValue(string_format("%.*e", lrate).c_str());
+				nn->learning_rate = lrate;
+
+			});
+
+			new nanogui::Label(window_params, "Decay", "sans-bold");
+			nanogui::TextBox *textBox_decay = new nanogui::TextBox(window_params);
+			textBox_decay->setEditable(true);
+			textBox_decay->setFixedSize(Eigen::Vector2i(100, 20));
+			textBox_decay->setValue("0");
+			textBox_decay->setFontSize(16);
+			textBox_decay->setFormat("[-+]?[0-9]*\\.?[0-9]+([eE][-+]?[0-9]+)?");
+
+			slider = new nanogui::Slider(window_params);
+			slider->setValue(0.0f);
+			slider->setFixedSize(Eigen::Vector2i(100, 20));
+			slider->setCallback([textBox_decay](float value) {
+				float s = 1e-8 * pow(10, value * 5) - 1e-8;
+				float decay = s; std::cout << "decay: " << decay << std::endl;
+				textBox_decay->setValue(string_format("%.*e", decay).c_str());
+				nn->decay = decay;
+
+			});
+
+		}
 
 		// auto imageWindow = new nanogui::Window(this, "Selected image");
 		// imageWindow->setPosition(Eigen::Vector2i(410, 400));

@@ -5,6 +5,10 @@ in vec3 position;
 in vec3 color;
 out vec4 frag_color;
 
+uniform int coord_type;
+uniform float pt_size;
+uniform float alpha;
+
 /*
 * @Author: Kamil Rocki
 * @Date:   2017-02-28 11:25:34
@@ -14,7 +18,31 @@ out vec4 frag_color;
 
 void main() {
 
-	gl_Position = mvp * vec4 (position, 1.0 );
-	gl_PointSize = 2;
-	frag_color = vec4(color, 0.7);
+	vec3 coords;
+
+	if (coord_type == 1) {
+
+		//polar
+		float r = position[0];
+		float theta = position[1];
+		coords = vec3(r * cos ( theta ), r * sin ( theta ), position[2]);
+
+	} else if (coord_type == 2) {
+
+		//spherical
+		float r = position[0];
+		float theta = position[1];
+		float phi = position[2];
+
+		coords = vec3(r * sin ( phi ) * cos(theta), r * sin ( theta ) * sin ( phi ), r * cos ( phi ));
+
+	} else {
+
+		//normal
+		coords = position;
+	}
+
+	gl_Position = mvp * vec4 (coords, 1.0 );
+	gl_PointSize = pt_size;
+	frag_color = vec4(color, alpha);
 }
