@@ -12,12 +12,12 @@ out vec4 out_color;
 
 void main() {
 
-	vec2 uv = gl_PointCoord;
-	vec2 circ = 2.0 * uv - 1.0;
-	float distance = sqrt(dot ( circ, circ ));
-
-	if ( distance > 1.0 )
-		discard;
-
+	// vec2 uv = gl_PointCoord;
+	// vec2 circ = 2.0 * uv - 1.0;
+	// float distance = sqrt(dot ( circ, circ ));
+	
+	// if ( distance > 1.0 )
+	// 	discard;
+	
 	out_color = vec4 ( frag_color );
 }
