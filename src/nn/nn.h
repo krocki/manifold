@@ -2,7 +2,7 @@
 * @Author: kmrocki
 * @Date:   2016-02-24 15:28:10
 * @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-03-30 10:44:36
+* @Last Modified time: 2017-03-30 12:43:07
 */
 
 #ifndef __NN_H__
@@ -312,7 +312,7 @@ class NN {
 			else {
 				layers.push_back ( new ReLU ( layer_sizes[l + 1], layer_sizes[l + 1], batch_size ) );
 				if (int(layers.size() - 1) != code_layer_no)
-					layers.push_back ( new Dropout ( layer_sizes[l + 1], layer_sizes[l + 1], batch_size, 0.9f ) );
+					layers.push_back ( new Dropout ( layer_sizes[l + 1], layer_sizes[l + 1], batch_size, 1.0f ) );
 			}
 
 		}

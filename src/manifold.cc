@@ -2,7 +2,7 @@
 * @Author: Kamil Rocki
 * @Date:   2017-02-28 11:25:34
 * @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-03-30 10:46:53
+* @Last Modified time: 2017-03-30 19:30:30
 */
 
 #include <thread>
@@ -36,13 +36,13 @@ int compute() {
 	PlotData* gl_data = screen->plot_data;
 
 	// NN stuff
-	double learning_rate = 1e-3;
-	float decay = 0;
+	double learning_rate = 1e-4;
+	float decay = 1e-7;
 	const size_t image_size = 28;
 	const size_t batch_size = 50;
 	size_t e = 0;
 
-	nn = std::shared_ptr<NN>(new NN( batch_size, decay, AE, {image_size * image_size, 256, 64, 3, 64, 256, image_size * image_size}));
+	nn = std::shared_ptr<NN>(new NN( batch_size, decay, AE, {image_size * image_size, 64, 64, 64, 64, 3, 64, 64, 64, 64, image_size * image_size}));
 
 	nn->pause = true;
 
