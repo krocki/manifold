@@ -1,8 +1,8 @@
 /*
 * @Author: kmrocki@us.ibm.com
 * @Date:   2017-03-03 15:22:47
-* @Last Modified by:   Kamil M Rocki
-* @Last Modified time: 2017-03-25 12:29:34
+* @Last Modified by:   kmrocki@us.ibm.com
+* @Last Modified time: 2017-04-01 18:29:03
 */
 
 #ifndef __UTIL_MAIN_H__
@@ -19,6 +19,14 @@
 
 #include <Eigen/Dense>
 
+void push_back_noresize(Eigen::VectorXf* vec, float val) {
+
+	if (vec) {
+		vec->head ( vec->size() - 1 ) = vec->tail ( vec->size() - 1 );
+		vec->tail ( 1 ) ( 0 ) = val;
+	}
+
+}
 
 std::string return_current_time_and_date(const char* format = "%x %X") {
 

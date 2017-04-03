@@ -2,12 +2,11 @@
 * @Author: Kamil Rocki
 * @Date:   2017-02-28 11:25:34
 * @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-04-01 21:43:14
+* @Last Modified time: 2017-03-31 22:05:58
 */
 
 #include <thread>
 #include <unistd.h>
-#include <ctime>
 
 //nanogui
 #include <nanogui/screen.h>
@@ -30,8 +29,7 @@ std::shared_ptr<GUI> screen;
 
 int compute() {
 
-	std::chrono::time_point<std::chrono::system_clock> start, end;
-	start = std::chrono::system_clock::now();
+	size_t point_count = 50000;
 
 	PlotData *gl_data = screen->plot_data;
 
@@ -47,42 +45,19 @@ int compute() {
 	nn->otype = SGD;
 	nn->pause = true;
 
-	//bind graph data
-	if ( screen ) {
-		if ( screen->graph_loss )
-			nn->loss_data = screen->graph_loss->values_ptr();
+	generate ( std::normal_distribution<> ( 0, 0.35 ),
+	           std::normal_distribution<> ( 0, 0.35 ),
+	           std::normal_distribution<> ( 0, 0.35 ),
+	           gl_data->p_vertices, point_count, STRATIFIED );
 
-		for (int i = 0; i < 7; i++) {
-			if (nn->layers[i]) {
-				screen->graph_norms[i]->setExt(nn->layers[i]->norms[L2].ptr("W"));
+	func3::set ( {0.0f, 1.0f, 0.0f}, gl_data->p_colors, point_count );
 
-			}
-		}
-	}
-
-	// size_t iters = train_data.size() / batch_size;
-	size_t iters = 50;
+	gl_data->updated();
 
 	/* work until main window is open */
 	while ( screen->getVisible() ) {
 
-		// drawing
-		nn->testcode ( train_data );
-		gl_data->updated();
-		gl_data->p_vertices = nn->codes;
-
-		// convert labels to colors, TODO: move somewhere else
-		gl_data->p_colors.resize ( 3, nn->codes_colors.cols() );
-		for ( int k = 0; k < nn->codes_colors.cols(); k++ ) {
-			nanogui::Color c = nanogui::parula_lut[ ( int ) nn->codes_colors ( 0, k )];
-			gl_data->p_colors.col ( k ) = Eigen::Vector3f ( c[0], c[1], c[2] );
-		}
-
-		nn->train ( train_data, iters );
-
-		std::cout << return_current_time_and_date() << std::endl;
-		printf ( "Epoch %3lu: Loss: %.2f\n", ++e, ( float ) nn->test ( test_data ) );
-
+		// gl_data->updated();
 		usleep ( 1000 );
 
 	}
@@ -105,9 +80,13 @@ int main ( int /* argc */, char ** /* argv */ ) {
 		nanogui::mainloop ( 1 );
 
 		compute_thread.join();
+
 		nanogui::shutdown();
 
-	} catch ( const std::runtime_error &e ) {
+
+	}
+
+	catch ( const std::runtime_error &e ) {
 
 		std::string error_msg = std::string ( "std::runtime_error: " ) + std::string ( e.what() );
 		return -1;

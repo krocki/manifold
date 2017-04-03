@@ -2,7 +2,7 @@
 * @Author: kmrocki
 * @Date:   2016-02-24 15:28:10
 * @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-03-31 11:10:29
+* @Last Modified time: 2017-04-01 21:19:35
 */
 
 #ifndef __NN_H__
@@ -118,6 +118,13 @@ class NN {
 
 	}
 
+	void compute_norms(std::initializer_list<int> which_layers, std::initializer_list<norm_type> which_norms, bool reset = false) {
+
+		for ( auto i : which_layers )
+			layers[i]->compute_norms(which_norms, reset);
+
+	}
+
 	void train ( const std::deque<datapoint> &data, size_t iterations ) {
 
 		size_t classes = 10;
@@ -196,14 +203,11 @@ class NN {
 				if ( ii % 50 == 0 ) {
 
 					clock = true;
+
 					//update graph data
-					if ( loss_data ) {
+					push_back_noresize(loss_data, current_loss);
 
-						loss_data->head ( loss_data->size() - 1 ) = loss_data->tail ( loss_data->size() - 1 );
-						loss_data->tail ( 1 ) ( 0 ) = current_loss;
-
-					}
-
+					compute_norms({0, 1, 2, 3, 4, 5, 6}, {L2});
 
 				}
 
@@ -267,9 +271,49 @@ class NN {
 		return 0.0;
 	}
 
+	void generate(const Eigen::MatrixXf & coords, Eigen::MatrixXf & reconstructions) {
+
+		if ( !quit ) {
+
+			reconstructions.resize(784, coords.cols());
+			std::cout << reconstructions.rows() << ", " << reconstructions.cols() << std::endl;
+
+			Eigen::VectorXi numbers ( batch_size );
+			Eigen::MatrixXf codes_batch;
+
+			codes_batch.resize ( coords.rows(), batch_size );
+
+			//compute forward activations
+			for ( size_t ii = 0; ii < coords.cols(); ii += batch_size ) {
+
+				linspace ( numbers, ii, ii + batch_size );
+				make_batch ( codes_batch, coords, numbers );
+
+				layers[code_layer_no]->x = codes_batch;
+
+				for ( size_t i = code_layer_no; i < layers.size(); i++ ) {
+
+					//y = f(x)
+					layers[i]->forward();
+
+					//x(next layer) = y(current layer)
+					if ( i + 1 < layers.size() )
+						layers[i + 1]->x = layers[i]->y;
+
+				}
+
+				//outputs
+				reconstructions.block(0, ii, layers[layers.size() - 1]->y.rows(), batch_size) = layers[layers.size() - 1]->y;
+
+			}
+
+		}
+	}
+
 	void testcode ( const std::deque<datapoint> &data ) {
 
 		if ( !quit ) {
+
 			size_t dims = layers[code_layer_no]->y.rows();
 
 			codes.resize ( dims, data.size() );
@@ -292,7 +336,7 @@ class NN {
 
 				make_targets ( targets, encoding, data, numbers );
 
-				forward ( batch, code_layer_no );
+				forward ( batch );
 
 				codes.block ( 0, ii, dims, batch_size ) = layers[code_layer_no]->y;
 				codes_colors.block ( 0, ii, 1, batch_size ) = targets;
@@ -320,7 +364,8 @@ class NN {
 
 		init_net();
 
-		for ( size_t l = 0; l < layers.size(); l++ ) {
+		for ( int l = 0; l < layers.size(); l++ ) {
+			compute_norms({l}, {L2}, true);
 			std::cout << l << ", ";
 			layers[l]->layer_info();
 		}
@@ -332,7 +377,7 @@ class NN {
 
 		for ( size_t l = 0; l < layer_sizes.size() - 1; l++ ) {
 
-			layers.push_back ( new Linear ( layer_sizes[l], layer_sizes[l + 1], batch_size, false ) );
+			layers.push_back ( new Linear ( layer_sizes[l], layer_sizes[l + 1], batch_size) );
 
 			if ( ( l + 1 ) == ( layer_sizes.size() - 1 ) )
 				layers.push_back ( new Sigmoid ( layer_sizes[l + 1], layer_sizes[l + 1], batch_size ) );
@@ -353,7 +398,7 @@ class NN {
 		}
 
 	}
-	void save ( nanogui::Serializer &s ) {
+	void save ( nanogui::Serializer & s ) {
 
 		params.lock();
 
@@ -387,7 +432,7 @@ class NN {
 
 	}
 
-	bool load ( nanogui::Serializer &s ) {
+	bool load ( nanogui::Serializer & s ) {
 
 		if ( !s.get ( "current_loss", current_loss ) ) return false;
 		//if (!s.get("loss_data", *loss_data)) return false;

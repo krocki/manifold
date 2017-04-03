@@ -22,11 +22,12 @@
 #include <gui/gldata.h>
 #include <gui/glmanifold.h>
 #include <gui/glplothelper.h>
+#include <compute/functions.h>
 
 #include <gl/tex.h>
 
 #define DEF_WIDTH 1300
-#define DEF_HEIGHT 720
+#define DEF_HEIGHT 770
 #define SCREEN_NAME "Manifold"
 #define RESIZABLE true
 #define FULLSCREEN false
@@ -75,7 +76,7 @@ class GUI : public nanogui::Screen {
 		// plots.push_back(new Plot ( root, "front", {DEF_WIDTH / 3, DEF_WIDTH / 3}, 2, plot_data, true, true, mGLFWWindow, mNVGContext, 40.0f, {0.0f, 0.0f, 11.0f}, {0.0f, 0.0f, 0.0f}, {box_size * 2, box_size * 2, box_size * 2}, false, 0, string_format ( "%s_plot_ortho", t.c_str())));
 
 		plots.push_back(new Plot ( root, "top frustum", {DEF_WIDTH / 3, DEF_WIDTH / 3}, 1, plot_data, true, false, false, true, mGLFWWindow, mNVGContext, 66.0f, {0.0f, 35.0f, 0.0f}, {0.0f, 0.0f, -M_PI / 4.0f}, {box_size * 2, box_size * 2, box_size * 2}, false, 0, string_format ( "%s_plot_top", t.c_str())));
-		plots.push_back(new Plot ( root, "front ortho", {DEF_WIDTH / 3, DEF_WIDTH / 3}, 2, plot_data, true, false, false, false, mGLFWWindow, mNVGContext, 40.0f, {0.0f, 0.0f, 11.0f}, {0.0f, 0.0f, 0.0f}, {box_size * 2, box_size * 2, box_size * 2}, true, 0, string_format ( "%s_plot_ortho", t.c_str())));
+		plots.push_back(new Plot ( root, "front ortho", {DEF_WIDTH / 3, DEF_WIDTH / 3}, 2, plot_data, false, false, false, false, mGLFWWindow, mNVGContext, 40.0f, {0.0f, 0.0f, 11.0f}, {0.0f, 0.0f, 0.0f}, {box_size * 2, box_size * 2, box_size * 2}, true, 0, string_format ( "%s_plot_ortho", t.c_str())));
 
 		int number_of_cameras = plots.size();
 
@@ -204,6 +205,12 @@ class GUI : public nanogui::Screen {
 
 	};
 
+	void update_reconstructions() {
+
+		plot_data->update_reconstruction_textures(mNVGContext);
+
+	}
+
 	void update_data_textures() {
 
 		plot_data->load_data_textures(train_data, mNVGContext);
@@ -222,6 +229,7 @@ class GUI : public nanogui::Screen {
 
 		window->setPosition(Eigen::Vector2i(5, size[0] / 3 + 8));
 		graphs->setPosition(Eigen::Vector2i(window->size()[0] + 12, size[0] / 3 + 8));
+		norm_graphs->setPosition(Eigen::Vector2i(window->size()[0] + 232, size[0] / 3 + 8));
 		// controls->setPosition(Eigen::Vector2i(window->size()[0] + graphs->size()[0] + 8, size[0] / 3 + 5));
 		// needs to be called 2nd time
 		performLayout();
@@ -237,6 +245,10 @@ class GUI : public nanogui::Screen {
 		layout->setSpacing(0, 10);
 
 		nanogui::GridLayout *layout_2cols = new nanogui::GridLayout(nanogui::Orientation::Horizontal, 2, nanogui::Alignment::Middle, 15, 5);
+		layout_2cols->setColAlignment( { nanogui::Alignment::Maximum, nanogui::Alignment::Fill });
+		layout_2cols->setSpacing(0, 10);
+
+		nanogui::GridLayout *layout_3cols = new nanogui::GridLayout(nanogui::Orientation::Horizontal, 3, nanogui::Alignment::Middle, 15, 5);
 		layout_2cols->setColAlignment( { nanogui::Alignment::Maximum, nanogui::Alignment::Fill });
 		layout_2cols->setSpacing(0, 10);
 
@@ -310,6 +322,9 @@ class GUI : public nanogui::Screen {
 			nn->load(s);
 			std::cout << "Done." << '\n';
 			nn->testcode ( train_data );
+			std::cout << nn->codes << std::endl;
+			nn->generate(nn->codes, plot_data->p_reconstructions);
+			update_reconstructions();
 			plot_data->updated();
 			plot_data->p_vertices = nn->codes;
 
@@ -363,6 +378,25 @@ class GUI : public nanogui::Screen {
 
 		}); b->setTooltip("pause/unpause");
 
+
+		b = window->add<nanogui::Button>("", ENTYPO_ICON_CLOUD); //25B6
+		b->setFixedSize(Eigen::Vector2i(90, 20));
+		b->setBackgroundColor(nanogui::Color(192, 160, 0, 65));
+		b->setCallback([this]() {
+
+			size_t point_count = 50000;
+			generate ( std::normal_distribution<> ( 0, 0.35 ),
+			           std::normal_distribution<> ( 0, 0.35 ),
+			           std::normal_distribution<> ( 0, 0.35 ),
+			           plot_data->p_vertices, point_count, STRATIFIED );
+			nn->generate ( plot_data->p_vertices, plot_data->p_reconstructions );
+			func3::set ( {0.0f, 1.0f, 0.0f}, plot_data->p_colors, point_count );
+
+			update_reconstructions();
+			plot_data->updated();
+
+		}); b->setTooltip("reconstructions");
+
 		nanogui::Window* window_params = new nanogui::Window(window, "");
 		window_params->setLayout(layout);
 		{
@@ -377,7 +411,7 @@ class GUI : public nanogui::Screen {
 			textBox->setFormat("[-+]?[0-9]*\\.?[0-9]+([eE][-+]?[0-9]+)?");
 
 			nanogui::Slider* slider = new nanogui::Slider(window_params);
-			slider->setValue(0.2f);
+			slider->setValue(0.4f);
 			slider->setFixedSize(Eigen::Vector2i(100, 20));
 			slider->setCallback([textBox](float value) {
 				float s = 1e-6 * pow(10, value * 5);
@@ -480,6 +514,32 @@ class GUI : public nanogui::Screen {
 		graph_bytes->values().resize(500);
 		graph_bytes->values().setZero();
 
+		norm_graphs = new nanogui::Window(this, "");
+		norm_graphs->setPosition(Eigen::Vector2i(window->size()[0] + 230, DEF_WIDTH / 3 + 5));
+		norm_graphs->setLayout(layout);
+
+		for (size_t i = 0; i < 7; i++) {
+
+			// graph_norms.push_back(new nanogui::Graph ( norm_graphs, "" ));
+			// graph_norms.back()->setFooter ( string_format("%d", i).c_str() );
+			// graph_norms.back()->setGraphColor ( nanogui::Color ( 255, 255, 150, 255 ) );
+			// graph_norms.back()->setBackgroundColor ( nanogui::Color ( 0, 0, 0, 32 ) );
+			// graph_norms.back()->setFixedSize({100, 30});
+
+			graph_norms.push_back(new nanogui::Graph ( norm_graphs, "" ));
+			graph_norms.back()->setFooter ( string_format("%d", i).c_str() );
+			graph_norms.back()->setGraphColor ( nanogui::Color ( 255, 255, 255, 255 ) );
+			graph_norms.back()->setBackgroundColor ( nanogui::Color ( 0, 0, 0, 32 ) );
+			graph_norms.back()->setFixedSize({100, 30});
+
+			// graph_norms.push_back(new nanogui::Graph ( norm_graphs, "" ));
+			// graph_norms.back()->setFooter ( string_format("%d", i).c_str() );
+			// graph_norms.back()->setGraphColor ( nanogui::Color ( 150, 255, 255, 255 ) );
+			// graph_norms.back()->setBackgroundColor ( nanogui::Color ( 0, 0, 0, 32 ) );
+			// graph_norms.back()->setFixedSize({100, 30});
+
+		}
+
 		// /* FPS GRAPH */
 		// graph_fps = new nanogui::Graph ( graphs, "" );
 		// graph_fps->setGraphColor ( nanogui::Color ( 0, 160, 192, 255 ) );
@@ -503,10 +563,11 @@ class GUI : public nanogui::Screen {
 	PlotData *plot_data;
 	nanogui::Window *root;
 	nanogui::Window *window;
-	nanogui::Window *graphs;
+	nanogui::Window *graphs, *norm_graphs;
 	nanogui::Window *controls;
 	nanogui::Graph *graph_loss;
 	nanogui::Graph *graph_fps, *graph_cpu, *graph_flops, *graph_bytes;
+	std::vector<nanogui::Graph *> graph_norms;
 
 	int completed_frames = 0;
 

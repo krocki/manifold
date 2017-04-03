@@ -2,7 +2,7 @@
 * @Author: kmrocki@us.ibm.com
 * @Date:   2017-03-03 15:06:37
 * @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-03-31 10:40:59
+* @Last Modified time: 2017-04-01 21:42:22
 */
 
 #ifndef __LAYERS_H__
@@ -10,6 +10,10 @@
 
 #include <nn/nn_utils.h>
 #include <nn/opt.h>
+
+#include <containers/dict.h>
+
+typedef enum norm_type {L0 = 0, L1 = 1, L2 = 2, MAX = 3, INF = 4, SPECTRAL = 5} norm_type;
 
 //abstract
 class Layer {
@@ -23,6 +27,8 @@ class Layer {
 	//grads, used in backward pass
 	Matrix dx;
 	Matrix dy;
+
+	Dict<Eigen::VectorXf> norms[6];
 
 	Layer ( size_t inputs, size_t outputs, size_t batch_size ) {
 
@@ -42,23 +48,83 @@ class Layer {
 	virtual void layer_info() { std:: cout << "layer " << std::endl; }
 	virtual ~Layer() {};
 
-	virtual void save(nanogui::Serializer &s) const {
+	virtual void save ( nanogui::Serializer &s ) const {
 
-		s.set("x", x);
-		s.set("y", y);
-		s.set("dx", dx);
-		s.set("dy", dy);
+		s.set ( "x", x );
+		s.set ( "y", y );
+		s.set ( "dx", dx );
+		s.set ( "dy", dy );
 
 	};
 
-	virtual bool load(nanogui::Serializer &s) {
+	virtual bool load ( nanogui::Serializer &s ) {
 
-		if (!s.get("x", x)) return false;
-		if (!s.get("y", y)) return false;
-		if (!s.get("dx", dx)) return false;
-		if (!s.get("dy", dy)) return false;
+		if ( !s.get ( "x", x ) ) return false;
+		if ( !s.get ( "y", y ) ) return false;
+		if ( !s.get ( "dx", dx ) ) return false;
+		if ( !s.get ( "dy", dy ) ) return false;
 
 		return true;
+	}
+
+	virtual void compute_norms(std::initializer_list<norm_type> which_norms, bool reset = false) {
+
+		compute_norms({std::make_tuple("x", x), std::make_tuple("y", y)}, which_norms, reset);
+
+	}
+
+	virtual void compute_norms(std::initializer_list<std::tuple<std::string, Eigen::MatrixXf>> args, std::initializer_list<norm_type> which_norms, bool reset = false) {
+
+		for ( auto i : args ) {
+			compute_norms(std::get<0> ( i ), std::get<1> ( i ), which_norms, reset);
+		}
+	}
+
+	virtual void compute_norms(char key, Eigen::MatrixXf& m, std::initializer_list<norm_type> which_norms, bool reset = false) {
+
+		compute_norms(std::string ( 1, key ), m, which_norms, reset);
+	}
+
+	virtual void compute_norms(std::string key, Eigen::MatrixXf& m, std::initializer_list<norm_type> which_norms, bool reset = false) {
+
+		double eps = 1e-6;
+
+		for ( auto n : which_norms ) {
+
+			norm_type nt = n;
+			if (reset) {
+				norms[nt][key].resize(500);
+				norms[nt][key].setZero();
+			}
+			float val = 0.0f;
+
+			switch (nt) {
+
+			case L0:
+				val = (m.cwiseAbs().array() > eps).cast<float>().sum();
+				break;
+			case L1:
+				val = m.lpNorm<1>();
+				break;
+			case L2:
+				val = m.norm();
+				break;
+			case MAX:
+				val = m.cwiseAbs().maxCoeff();
+				break;
+			case INF:
+				val = m.lpNorm<Eigen::Infinity>();
+				break;
+			case SPECTRAL:
+				val = m.operatorNorm();
+				break;
+			}
+
+			push_back_noresize(&norms[nt][key], val);
+			std::cout << key << " " << nt << " " << " " << norms[nt][key].tail ( 1 ) ( 0 ) << std::endl;
+
+		}
+
 	}
 
 	// count number of operations for perf counters
@@ -79,21 +145,21 @@ class Linear : public Layer {
 	Matrix mW;
 	Matrix mb;
 
-	Matrix gaussian_noise;
-	bool add_gaussian_noise = false;
+	Matrix W_delta;
+	Matrix b_delta;
 
 	void forward() {
 
 		y = b.replicate ( 1, x.cols() );
 
-		if ( add_gaussian_noise ) {
-
-			gaussian_noise.resize ( x.rows(), x.cols() );
-			matrix_randn ( gaussian_noise, 0, 0.1 );
-			x += gaussian_noise;
-		}
-
 		BLAS_mmul ( y, W, x );
+
+	}
+
+	virtual void compute_norms(std::initializer_list<norm_type> which_norms, bool reset = false) {
+
+		// Layer::compute_norms(which_norms, reset);
+		Layer::compute_norms({std::make_tuple("x", x), std::make_tuple("y", y), std::make_tuple("W", W)}, which_norms, reset);
 
 	}
 
@@ -105,11 +171,9 @@ class Linear : public Layer {
 		dx.setZero();
 		BLAS_mmul ( dx, W, dy, true, false );
 
-
 	}
 
-	Linear ( size_t inputs, size_t outputs, size_t batch_size, bool n = false ) : Layer ( inputs, outputs, batch_size ),
-		add_gaussian_noise ( n ) {
+	Linear ( size_t inputs, size_t outputs, size_t batch_size) : Layer ( inputs, outputs, batch_size ) {
 
 		W = Matrix ( outputs, inputs );
 		b = Vector::Zero ( outputs );
@@ -148,17 +212,22 @@ class Linear : public Layer {
 
 	void applyGrads ( opt_type otype, float alpha, float decay = 0.0f ) {
 
-		if (otype == SGD) sgd ( alpha, decay );
-		else if (otype == ADAGRAD) adagrad ( alpha, decay );
-		else if (otype == ADADELTA) pseudo_adadelta ( alpha, decay );
+		if ( otype == SGD ) sgd ( alpha, decay );
+		else if ( otype == ADAGRAD ) adagrad ( alpha, decay );
+		else if ( otype == ADADELTA ) pseudo_adadelta ( alpha, decay );
+
 	}
 
 	// sgd
 	void sgd ( float alpha, float decay = 0.0f ) {
 
 		W *= ( 1.0f - decay );
-		b += alpha * db;
-		W += alpha * dW;
+
+		b_delta = alpha * db;
+		W_delta = alpha * dW;
+		b += b_delta;
+		W += W_delta;
+
 		flops_performed += W.size() * 4 + 2 * b.size();
 		bytes_read += W.size() * sizeof ( dtype ) * 3;
 	}
@@ -171,8 +240,8 @@ class Linear : public Layer {
 
 		W *= ( 1.0f - decay );
 
-		b.array() += alpha * db.array() / (( mb.array() + 1e-6 )).sqrt().array();
-		W.array() += alpha * dW.array() / (( mW.array() + 1e-6 )).sqrt().array();
+		b.array() += alpha * db.array() / ( ( mb.array() + 1e-6 ) ).sqrt().array();
+		W.array() += alpha * dW.array() / ( ( mW.array() + 1e-6 ) ).sqrt().array();
 
 		flops_performed += W.size() * 6 + 2 * b.size();
 		bytes_read += W.size() * sizeof ( dtype ) * 4;
@@ -183,40 +252,36 @@ class Linear : public Layer {
 
 		float rho = 0.95f;
 
-		mW.array() = rho * mW.array() + (1 - rho) * dW.array() * dW.array();
-		mb.array() = rho * mb.array() + (1 - rho) * db.array() * db.array();
+		mW.array() = rho * mW.array() + ( 1 - rho ) * dW.array() * dW.array();
+		mb.array() = rho * mb.array() + ( 1 - rho ) * db.array() * db.array();
 
 		W *= ( 1.0f - decay );
 
-		b.array() += alpha * db.array() / (( mb.array() + 1e-6 )).sqrt().array();
-		W.array() += alpha * dW.array() / (( mW.array() + 1e-6 )).sqrt().array();
+		b.array() += alpha * db.array() / ( ( mb.array() + 1e-6 ) ).sqrt().array();
+		W.array() += alpha * dW.array() / ( ( mW.array() + 1e-6 ) ).sqrt().array();
 
 		flops_performed += W.size() * 6 + 2 * b.size();
 		bytes_read += W.size() * sizeof ( dtype ) * 4;
 	}
 
 
-	virtual void save(nanogui::Serializer &s) const {
+	virtual void save ( nanogui::Serializer &s ) const {
 
-		Layer::save(s);
-		s.set("W", W);
-		s.set("b", b);
-		s.set("dW", dW);
-		s.set("db", db);
-		s.set("add_gaussian_noise", add_gaussian_noise);
-		s.set("gaussian_noise", gaussian_noise);
+		Layer::save ( s );
+		s.set ( "W", W );
+		s.set ( "b", b );
+		s.set ( "dW", dW );
+		s.set ( "db", db );
 
 	};
 
-	virtual bool load(nanogui::Serializer &s) {
+	virtual bool load ( nanogui::Serializer &s ) {
 
-		Layer::load(s);
-		if (!s.get("W", W)) return false;
-		if (!s.get("b", b)) return false;
-		if (!s.get("dW", dW)) return false;
-		if (!s.get("db", db)) return false;
-		if (!s.get("add_gaussian_noise", add_gaussian_noise)) return false;
-		if (!s.get("gaussian_noise", gaussian_noise)) return false;
+		Layer::load ( s );
+		if ( !s.get ( "W", W ) ) return false;
+		if ( !s.get ( "b", b ) ) return false;
+		if ( !s.get ( "dW", dW ) ) return false;
+		if ( !s.get ( "db", db ) ) return false;
 
 		return true;
 	}
@@ -268,6 +333,7 @@ class ReLU : public Layer {
 		bytes_read += dy.size() * sizeof ( dtype );
 
 	}
+
 	virtual void layer_info() { std:: cout << "relu " << std::endl; }
 
 	ReLU ( size_t inputs, size_t outputs, size_t batch_size ) : Layer ( inputs, outputs, batch_size ) {};
@@ -291,6 +357,7 @@ class Softmax : public Layer {
 
 		flops_performed += dy.size() * 2;
 		bytes_read += dy.size() * sizeof ( dtype ) * 2;
+
 	}
 
 	virtual void layer_info() { std:: cout << "softmax " << std::endl; }
@@ -335,12 +402,29 @@ class Dropout : public Layer {
 	void backward() {
 
 		dx.array() = dy.array() * dropout_mask.array();
+
 	}
 
 	Dropout ( size_t inputs, size_t outputs, size_t batch_size, float _ratio ) :
-		Layer ( inputs, outputs, batch_size),  keep_ratio ( _ratio ) {};
+		Layer ( inputs, outputs, batch_size ),  keep_ratio ( _ratio ) {};
 	~Dropout() {};
 
+};
+
+
+class Gaussian : public Layer {
+
+	// in -> 	x (remember for backward pass)
+	//		  	 } - x + n -> out
+	// rng -> 	n (remember for backward pass)
+
+	// if ( add_gaussian_noise ) {
+
+	// 	gaussian_noise.resize ( x.rows(), x.cols() );
+	// 	matrix_randn ( gaussian_noise, 0, 0.1 );
+	// 	x += gaussian_noise;
+	// }
+	// Matrix gaussian_noise;
 };
 
 #endif

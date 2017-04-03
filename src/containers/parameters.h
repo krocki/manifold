@@ -14,31 +14,31 @@
 #define __PARAMETERS_H__
 
 #include <map>
-#include <containers/matrixarray.h>
+#include <containers/Dict.h>
 
 template <typename T>
-class Parameters : public MatrixArray<T> {
+class Parameters : public Dict<T> {
 
   public:
 
 	/* default constr */
-	Parameters<T>() : MatrixArray<T>() {};
+	Parameters<T>() : Dict<T>() {};
 
 	/* main constr */
 	Parameters<T> ( std::string name,
 	                std::initializer_list<std::tuple<std::string, size_t, size_t>>
 	                args, std::string id ) :
-		MatrixArray<T> ( name, args, id ) { };
+		Dict<T> ( name, args, id ) { };
 
 	/* copy constr */
-	Parameters<T> ( const Parameters<T> &other ) : MatrixArray<T> (
+	Parameters<T> ( const Parameters<T> &other ) : Dict<T> (
 		    other ) { N = other.N; }
 
 	/* assignment op */
 	Parameters<T> &operator= ( const Parameters<T> &other ) {
 
 		N = other.N;
-		MatrixArray<T>::operator= ( other );
+		Dict<T>::operator= ( other );
 		return *this;
 
 	}
@@ -47,7 +47,7 @@ class Parameters : public MatrixArray<T> {
 	Parameters<T> &operator= ( const Parameters<otherType> &other ) {
 
 		N = other.N;
-		MatrixArray<T>::operator= ( other );
+		Dict<T>::operator= ( other );
 		return *this;
 
 	}

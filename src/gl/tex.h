@@ -1,8 +1,8 @@
 /*
 * @Author: kmrocki@us.ibm.com
 * @Date:   2017-03-06 13:20:16
-* @Last Modified by:   Kamil M Rocki
-* @Last Modified time: 2017-03-26 11:10:28
+* @Last Modified by:   kmrocki@us.ibm.com
+* @Last Modified time: 2017-04-02 22:16:40
 */
 #ifndef _GL_TEX_
 #define _GL_TEX_
@@ -118,7 +118,7 @@ int nvgCreateImageA(NVGcontext* ctx, int w, int h, int imageFlags, const unsigne
 }
 
 class GLTexture {
-public:
+  public:
 	using handleType = std::unique_ptr<uint8_t[], void(*)(void*)>;
 	GLTexture() = default;
 	GLTexture(const std::string& textureName)
@@ -180,9 +180,74 @@ public:
 		return textureData;
 	}
 
-private:
+  private:
 	std::string mTextureName;
 	GLuint mTextureId;
 };
+
+/*class Texture {
+
+  public:
+
+	GLuint id;
+	std::string name;
+
+	size_t tex_size;
+	size_t textures_per_dim;
+	size_t total_textures;
+
+	GLint internalFormat;
+	GLint format;
+
+	Texture() {
+
+		glGenTextures(1, &tex_id);
+		glBindTexture(GL_TEXTURE_2D, tex_id);
+	}
+
+	load(buffer, format) {
+
+		std::unique_ptr<float[]> buffer(new float[res]);
+
+		glBindTexture(GL_TEXTURE_2D, tex_id);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_R32F, xres, yres,
+		             0, GL_RED, GL_FLOAT, buffer.get());
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+
+				glTexImage2D(GL_TEXTURE_2D, 0, internalFormat, w, h, 0, format, GL_UNSIGNED_BYTE, textureData.get());
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+
+	}
+
+	load(const std::string& fname) {
+
+		int force_channels = 0;
+		int w, h, n;
+		handleType textureData(stbi_load(fileName.c_str(), &w, &h, &n, force_channels), stbi_image_free);
+		if (!textureData)
+			throw std::invalid_argument("Could not load texture data from file " + fileName);
+
+	}
+
+
+	Eigen::Vector2f texCoords(int i) {
+
+
+		// return coords of image i
+
+	}
+
+	~Texture() {
+
+		if (id)
+			glDeleteTextures(1, &id);
+
+	}
+
+};*/
 
 #endif

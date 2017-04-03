@@ -5,7 +5,7 @@
  *
  * 	Abstract state definition
  *
- *	MatrixArray is a dynamic array of matrices, so element of base class
+ *	Dict is a dynamic array of matrices, so element of base class
  *	State can hold any number of sub - states (kept in var 'matrices')
  *	sub - states are accessible by name with operator []
  *	for example if s is of class State and derived State
@@ -17,25 +17,25 @@
 #define __STATE_H__
 
 #include <map>
-#include <containers/matrixarray.h>
+#include <containers/Dict.h>
 
-/* Bare class State is just a MatrixArray + it defines some virtual methods which need to be implemented */
+/* Bare class State is just a Dict + it defines some virtual methods which need to be implemented */
 template <typename T>
-class State : public MatrixArray<T> {
+class State : public Dict<T> {
 
   public:
 
 	/* default constr */
-	State<T>() : MatrixArray<T>() {};
+	State<T>() : Dict<T>() {};
 
 	/* main constr */
 	State<T> ( size_t M, size_t N, size_t B, std::string name,
 	           std::initializer_list<std::tuple<std::string, size_t, size_t>>
 	           args, std::string id ) :
-		MatrixArray<T> ( name, args, id ) {
+		Dict<T> ( name, args, id ) {
 
 		/* add {x, y} as default states, assuming that any state has some inputs and outputs */
-		MatrixArray<T>::add (
+		Dict<T>::add (
 
 		{
 
@@ -47,13 +47,13 @@ class State : public MatrixArray<T> {
 	};
 
 	/* copy constr */
-	State<T> ( const State<T> &other ) : MatrixArray<T> (
+	State<T> ( const State<T> &other ) : Dict<T> (
 		    other ) { }
 
 	/* assignment op */
 	State<T> &operator= ( const State<T> &other ) {
 
-		MatrixArray<T>::operator= ( other );
+		Dict<T>::operator= ( other );
 		return *this;
 
 	}

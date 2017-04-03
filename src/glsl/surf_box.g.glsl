@@ -1,7 +1,7 @@
 #version 330
 
 layout (lines) in;
-layout (line_strip, max_vertices = 100) out;
+layout (line_strip, max_vertices = 200) out;
 
 uniform mat4 mvp;
 
@@ -24,8 +24,8 @@ void main() {
 	vec4 b = gl_in[1].gl_Position;
 
 	for (int i = 0; i < 20; i++) {
-		a.y += 2;
-		b.y += 2;
+		a.y += 1;
+		b.y += 1;
 		if (a.y < 11 && b.y < 11) {
 			gl_Position = mvp * (a);
 			fcolor.a = gcolor[0].a / 4;
@@ -42,8 +42,8 @@ void main() {
 	b = gl_in[1].gl_Position;
 
 	for (int i = 0; i < 20; i++) {
-		a.x += 2;
-		b.x += 2;
+		a.x += 1;
+		b.x += 1;
 		if (a.x < 11 && b.x < 11) {
 			gl_Position = mvp * (a);
 			fcolor.a = gcolor[0].a / 8;

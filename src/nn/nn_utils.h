@@ -2,7 +2,7 @@
 * @Author: kmrocki
 * @Date:   2016-02-24 10:47:03
 * @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-03-28 22:27:11
+* @Last Modified time: 2017-03-31 15:06:21
 */
 
 #ifndef __NN_UTILS_H__
@@ -188,6 +188,17 @@ void linspace ( Eigen::VectorXi &m, int range_min, int range_max ) {
 
 	for ( int i = 0; i < m.rows(); i++ )
 		m ( i ) = ( float ) ( range_min + i );
+
+}
+
+void make_batch ( Matrix &batch, const Matrix &data, const Eigen::VectorXi &random_numbers ) {
+
+	size_t batch_size = random_numbers.rows();
+
+	for ( size_t i = 0; i < batch_size; i++ )
+
+		batch.col ( i ) = data.col(random_numbers ( i ));
+
 
 }
 

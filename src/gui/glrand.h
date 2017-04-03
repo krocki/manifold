@@ -2,7 +2,7 @@
 * @Author: kmrocki@us.ibm.com
 * @Date:   2017-03-20 10:09:39
 * @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-04-02 21:49:20
+* @Last Modified time: 2017-03-31 14:17:10
 */
 
 #ifndef __GLPLOT_H__
@@ -42,6 +42,7 @@
 #define BOX_SHADER_NAME "box_shader"
 #define BOX_FRAG_FILE "./src/glsl/surf_box.f.glsl"
 #define BOX_GEOM_FILE "./src/glsl/surf_box.g.glsl"
+// #define BOX_GEOM_FILE "./src/glsl/boxgrid.g.glsl"
 #define BOX_VERT_FILE "./src/glsl/surf_box.v.glsl"
 
 class Plot : public nanogui::GLCanvas {
@@ -527,6 +528,9 @@ class Plot : public nanogui::GLCanvas {
 
 			m_cubeShader->bind();
 			m_cubeShader->setUniform("mvp", box_mvp);
+			m_cubeShader->setUniform("model", box_model);
+			m_cubeShader->setUniform("view", view);
+			m_cubeShader->setUniform("proj", proj);
 			m_cubeShader->drawIndexed ( GL_LINES, 0, data->c_indices.cols() );
 
 		}
@@ -562,18 +566,13 @@ class Plot : public nanogui::GLCanvas {
 
 			m_pointTexShader->bind();
 
-			glActiveTexture ( GL_TEXTURE0 );
-			glBindTexture ( GL_TEXTURE_2D, ( std::vector<std::pair<int, std::string>> ( data->textures ) [0] ).first );
-			float textures_per_dim = ceil ( sqrtf ( train_data.size() ) );
-
-			// reconstructions
 			// glActiveTexture ( GL_TEXTURE0 );
-			// glBindTexture ( GL_TEXTURE_2D, ( std::vector<std::pair<int, std::string>> ( data->textures ) [2] ).first );
-			// float textures_per_dim = ceil ( sqrtf ( data->max_reconstructions ) );
+			// glBindTexture ( GL_TEXTURE_2D, ( std::vector<std::pair<int, std::string>> ( data->textures ) [0] ).first );
+			// float textures_per_dim = ceil ( sqrtf ( train_data.size() ) );
 
 			//star
-			// glBindTexture ( GL_TEXTURE_2D, ( std::vector<std::pair<int, std::string>> ( data->textures ) [1] ).first );
-			// float textures_per_dim = 1;
+			glBindTexture ( GL_TEXTURE_2D, ( std::vector<std::pair<int, std::string>> ( data->textures ) [1] ).first );
+			float textures_per_dim = 1;
 
 			m_pointTexShader->setUniform ( "image", 0 );
 			m_pointTexShader->setUniform ( "view", view );
@@ -581,9 +580,8 @@ class Plot : public nanogui::GLCanvas {
 			m_pointTexShader->setUniform ( "selected", selected );
 			m_pointTexShader->setUniform ( "model", data_model );
 			m_pointTexShader->setUniform ( "coord_type", coord_type );
-			m_pointTexShader->setUniform ( "alpha", alpha );
 
-			float quad_size = 0.005f * pt_size;
+			float quad_size = 0.005f;
 			float radius = sqrtf ( 2 * quad_size );
 			float tex_w = 1.0f / (float)textures_per_dim;
 

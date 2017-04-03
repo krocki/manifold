@@ -2,7 +2,7 @@
 * @Author: kmrocki@us.ibm.com
 * @Date:   2017-03-20 10:11:47
 * @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-03-28 12:13:23
+* @Last Modified time: 2017-03-31 15:23:18
 */
 
 #ifndef __PLOTDATA_H__
@@ -24,7 +24,7 @@ class PlotData {
 
 	Eigen::MatrixXf e_vertices, e_colors;
 	Eigen::MatrixXf r_vertices;
-	Eigen::MatrixXf p_vertices, p_colors;
+	Eigen::MatrixXf p_vertices, p_colors, p_reconstructions;
 	Eigen::VectorXf p_labels;
 	Eigen::MatrixXf p_texcoords;
 
@@ -41,11 +41,50 @@ class PlotData {
 
 	size_t checksum = 0; // or write update time
 
+	// reconstructions
+	int max_reconstructions = 250000;
+	size_t image_size = 28;
+
+	void update_reconstruction_textures(NVGcontext *nvg) {
+
+		Eigen::Matrix<unsigned char, Eigen::Dynamic, Eigen::Dynamic> rgba_image;
+
+		size_t sqr_dim = ceil ( sqrtf ( max_reconstructions ) );
+
+		std::cout << "r " << sqr_dim * sqr_dim << " " << ceil ( sqr_dim ) << std::endl;
+
+		rgba_image.resize ( sqr_dim * image_size, sqr_dim * image_size );
+		float textures_per_dim = ceil ( sqrtf ( max_reconstructions ) );
+		Eigen::MatrixXf float_image = Eigen::MatrixXf ( image_size, image_size );
+
+		p_labels.resize(p_reconstructions.cols());
+		p_texcoords.resize(3, p_reconstructions.cols());
+
+		for ( size_t i = 0; i < p_reconstructions.cols(); i++ ) {
+
+			float_image =  p_reconstructions.col(i);
+			float_image.resize ( image_size, image_size );
+			float_image *= 255.0f;
+
+			rgba_image.block ( ( i / sqr_dim ) * image_size, ( i % sqr_dim ) * image_size, image_size,
+			                   image_size ) = float_image.cast<unsigned char>();
+
+			p_labels[i] = 0;
+
+			p_texcoords.col(i) = Eigen::Vector3f ( ( i / ( int ) textures_per_dim ) / textures_per_dim,
+			                                       ( i % ( int ) textures_per_dim ) / textures_per_dim, 0 );
+
+
+		}
+
+		nvgUpdateImage ( nvg, textures[2].first, ( unsigned char * ) rgba_image.data() );
+
+	}
+
 	void load_data_textures(std::deque<datapoint>& data, NVGcontext *nvg) {
 
 		Eigen::Matrix<unsigned char, Eigen::Dynamic, Eigen::Dynamic> rgba_image;
 
-		size_t image_size = 28;
 		size_t sqr_dim = ceil ( sqrtf ( data.size() ) );
 		std::cout << sqr_dim * sqr_dim << " " << ceil ( sqr_dim ) << std::endl;
 
@@ -75,12 +114,13 @@ class PlotData {
 
 		}
 
-		textures.resize ( 2 );
+		textures.resize ( 3 );
 
 		textures[0] = ( std::pair<int, std::string> ( nvgCreateImageA ( nvg,
 		                sqr_dim * image_size, sqr_dim * image_size, NVG_IMAGE_NEAREST, ( unsigned char * ) rgba_image.data() ), "" ) );
 
-
+		textures[2] = ( std::pair<int, std::string> ( nvgCreateImageA ( nvg,
+		                sqrt(max_reconstructions) * image_size, sqrt(max_reconstructions) * image_size, NVG_IMAGE_NEAREST, nullptr), "" ) );
 
 
 		// TODO, clean up
