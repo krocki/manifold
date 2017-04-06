@@ -16,12 +16,13 @@ out vec2 out_g_tex;
 
 uniform float radius;
 uniform float tex_w;
+uniform float pt_size;
 
 void main (void) {
 
 	vec4 P = gl_in[0].gl_Position;
 
-	float size = radius;// * length(P.xyz);
+	float size = radius * pt_size;// * length(P.xyz);
 
 	// a: left-bottom
 	vec2 va = P.xy + vec2(-0.5, -0.5) * size;

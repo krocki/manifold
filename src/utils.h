@@ -1,8 +1,8 @@
 /*
 * @Author: kmrocki@us.ibm.com
 * @Date:   2017-03-03 15:22:47
-* @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-04-01 18:29:03
+* @Last Modified by:   kmrocki
+* @Last Modified time: 2017-04-04 18:23:51
 */
 
 #ifndef __UTIL_MAIN_H__
@@ -16,17 +16,12 @@
 #include <iomanip>
 #include <stdarg.h>  // For va_start, etc.
 #include <memory>    // For std::unique_ptr
+#include <iostream>
+#include <cmath>
+#include <cfloat>
 
 #include <Eigen/Dense>
 
-void push_back_noresize(Eigen::VectorXf* vec, float val) {
-
-	if (vec) {
-		vec->head ( vec->size() - 1 ) = vec->tail ( vec->size() - 1 );
-		vec->tail ( 1 ) ( 0 ) = val;
-	}
-
-}
 
 std::string return_current_time_and_date(const char* format = "%x %X") {
 
@@ -90,6 +85,22 @@ Eigen::Quaternionf rotate(const Eigen::Vector3f &angle, const Eigen::Vector3f &f
 	Eigen::AngleAxisf pitch(angle[2], right);
 
 	return yaw * pitch * roll;
+}
+
+void checkNaNInf(Eigen::MatrixXf &m) {
+
+	m = m.unaryExpr([](float elem) { // changed type of parameter
+		return (std::isnan(elem) || std::isinf(elem)) ? 0.0 : elem; // return instead of assignment
+	});
+
+}
+
+void checkNaNInf(Eigen::VectorXf &v) {
+
+	v = v.unaryExpr([](float elem) { // changed type of parameter
+		return (std::isnan(elem) || std::isinf(elem)) ? 0.0 : elem; // return instead of assignment
+	});
+
 }
 
 #endif

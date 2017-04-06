@@ -1,8 +1,8 @@
 /*
 * @Author: Kamil Rocki
 * @Date:   2017-02-28 11:25:34
-* @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-04-01 21:43:14
+* @Last Modified by:   kamilrocki
+* @Last Modified time: 2017-04-06 10:04:30
 */
 
 #include <thread>
@@ -36,13 +36,13 @@ int compute() {
 	PlotData *gl_data = screen->plot_data;
 
 	// NN stuff
-	double learning_rate = 1e-4;
-	float decay = 1e-7;
-	const size_t image_size = 28;
+	double learning_rate = 1e-3;
+	float decay = 0;
+	const size_t image_size = 32;
 	const size_t batch_size = 50;
 	size_t e = 0;
 
-	nn = std::shared_ptr<NN> ( new NN ( batch_size, decay, learning_rate, AE, {image_size * image_size, 64, 3, 64, image_size * image_size} ) );
+	nn = std::shared_ptr<NN> ( new NN ( batch_size, decay, learning_rate, AE, {image_size * image_size * 3, 64, 64, 3, 64, 64, image_size * image_size * 3} ) );
 
 	nn->otype = SGD;
 	nn->pause = true;
@@ -52,23 +52,16 @@ int compute() {
 		if ( screen->graph_loss )
 			nn->loss_data = screen->graph_loss->values_ptr();
 
-		for (int i = 0; i < 7; i++) {
-			if (nn->layers[i]) {
-				screen->graph_norms[i]->setExt(nn->layers[i]->norms[L2].ptr("W"));
-
-			}
-		}
 	}
 
 	// size_t iters = train_data.size() / batch_size;
-	size_t iters = 50;
+	size_t iters = 10000;
 
 	/* work until main window is open */
 	while ( screen->getVisible() ) {
 
 		// drawing
 		nn->testcode ( train_data );
-		gl_data->updated();
 		gl_data->p_vertices = nn->codes;
 
 		// convert labels to colors, TODO: move somewhere else
@@ -78,7 +71,9 @@ int compute() {
 			gl_data->p_colors.col ( k ) = Eigen::Vector3f ( c[0], c[1], c[2] );
 		}
 
+		gl_data->updated();
 		nn->train ( train_data, iters );
+		gl_data->updated();
 
 		std::cout << return_current_time_and_date() << std::endl;
 		printf ( "Epoch %3lu: Loss: %.2f\n", ++e, ( float ) nn->test ( test_data ) );

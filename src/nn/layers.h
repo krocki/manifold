@@ -1,8 +1,8 @@
 /*
 * @Author: kmrocki@us.ibm.com
 * @Date:   2017-03-03 15:06:37
-* @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-04-01 21:42:22
+* @Last Modified by:   kamilrocki
+* @Last Modified time: 2017-04-06 10:04:14
 */
 
 #ifndef __LAYERS_H__
@@ -11,16 +11,15 @@
 #include <nn/nn_utils.h>
 #include <nn/opt.h>
 
-#include <containers/dict.h>
-
-typedef enum norm_type {L0 = 0, L1 = 1, L2 = 2, MAX = 3, INF = 4, SPECTRAL = 5} norm_type;
-
 //abstract
 class Layer {
 
   public:
 
+	const std::string name;
+
 	//used in forward pass
+
 	Matrix x; //inputs
 	Matrix y; //outputs
 
@@ -28,14 +27,16 @@ class Layer {
 	Matrix dx;
 	Matrix dy;
 
-	Dict<Eigen::VectorXf> norms[6];
-
-	Layer ( size_t inputs, size_t outputs, size_t batch_size ) {
+	Layer ( size_t inputs, size_t outputs, size_t batch_size, std::string _label = "layer" ) : name ( _label ) {
 
 		x = Matrix ( inputs, batch_size );
 		y = Matrix ( outputs, batch_size );
 		dx = Matrix ( inputs, batch_size );
 		dy = Matrix ( outputs, batch_size );
+
+		// avg_batch_activations.resize(y.rows());
+		// avg_hidden_activations.resize(y.cols());
+		// sparsity_correction.resize(y.rows());
 
 	};
 
@@ -43,91 +44,73 @@ class Layer {
 	virtual void forward() = 0;
 	virtual void backward() = 0;
 	virtual void resetGrads() {};
-	virtual void applyGrads ( opt_type otype, float alpha, float decay = 0.0f ) { UNUSED ( alpha, decay, otype ); };
+	virtual void applyGrads ( double alpha, double decay) {};
+
+	virtual void reset() {};
+	virtual void kick() {};
 
 	virtual void layer_info() { std:: cout << "layer " << std::endl; }
 	virtual ~Layer() {};
 
-	virtual void save ( nanogui::Serializer &s ) const {
+	virtual void save(nanogui::Serializer &s) const {
 
-		s.set ( "x", x );
-		s.set ( "y", y );
-		s.set ( "dx", dx );
-		s.set ( "dy", dy );
+		s.set("x", x);
+		s.set("y", y);
+		s.set("dx", dx);
+		s.set("dy", dy);
 
 	};
 
-	virtual bool load ( nanogui::Serializer &s ) {
+	virtual bool load(nanogui::Serializer &s) {
 
-		if ( !s.get ( "x", x ) ) return false;
-		if ( !s.get ( "y", y ) ) return false;
-		if ( !s.get ( "dx", dx ) ) return false;
-		if ( !s.get ( "dy", dy ) ) return false;
+		if (!s.get("x", x)) return false;
+		if (!s.get("y", y)) return false;
+		if (!s.get("dx", dx)) return false;
+		if (!s.get("dy", dy)) return false;
 
 		return true;
 	}
 
-	virtual void compute_norms(std::initializer_list<norm_type> which_norms, bool reset = false) {
+// 	virtual void sparsify() {
 
-		compute_norms({std::make_tuple("x", x), std::make_tuple("y", y)}, which_norms, reset);
+// 		if (adjust_sparsity && sparsity_penalty > 1e-9f) {
+// 			float eps = 1e-3f;
 
-	}
+// 			avg_batch_activations.array() = y.rowwise().mean().array() + eps; // hidden num x 1
+// 			avg_hidden_activations.array() = y.colwise().mean().array() + eps;
+// 			sparsity_target += eps;
 
-	virtual void compute_norms(std::initializer_list<std::tuple<std::string, Eigen::MatrixXf>> args, std::initializer_list<norm_type> which_norms, bool reset = false) {
+// 			sparsity_correction.array() =
+// 			    sparsity_penalty *
+// 			    (
+// 			        (-sparsity_target / avg_batch_activations.array()) +
+// 			        ((1.0f - sparsity_target) / (1.0f - avg_batch_activations.array() + eps)));
 
-		for ( auto i : args ) {
-			compute_norms(std::get<0> ( i ), std::get<1> ( i ), which_norms, reset);
-		}
-	}
+// 			// std::cout << "avg_batch_activations.array() " << avg_batch_activations.array() << std::endl;
+// 			// std::cout << "-sparsity_target / avg_batch_activations.array() " << -sparsity_target / avg_batch_activations.array() << std::endl;
+// 			// std::cout << "(1.0f - sparsity_target) " << (1.0f - sparsity_target) << std::endl;
+// 			// std::cout << "1.0f - avg_batch_activations.array()" << 1.0f - avg_batch_activations.array() << std::endl;
+// 			// std::cout << "1.0f - avg_batch_activations.array() + eps" << (1.0f - avg_batch_activations.array()) << std::endl;
+// 			// std::cout << "sparsity_correction " << sparsity_correction.mean() << std::endl;
 
-	virtual void compute_norms(char key, Eigen::MatrixXf& m, std::initializer_list<norm_type> which_norms, bool reset = false) {
+// 			// filter out NaNs and INFs just in case
+// 			checkNaNInf(sparsity_correction);
+// 			dy.colwise() += sparsity_correction;
 
-		compute_norms(std::string ( 1, key ), m, which_norms, reset);
-	}
+// 			sparsity_target -= eps;
+// 		}
+// 	}
 
-	virtual void compute_norms(std::string key, Eigen::MatrixXf& m, std::initializer_list<norm_type> which_norms, bool reset = false) {
+// // sparsity
+// 	bool adjust_sparsity = false;
+// 	float sparsity_penalty = 0.0000f;
+// 	float sparsity_target = 0.2f;
 
-		double eps = 1e-6;
+// 	Eigen::VectorXf avg_batch_activations;
+// 	Eigen::VectorXf avg_hidden_activations;
+// 	Eigen::VectorXf sparsity_correction;
 
-		for ( auto n : which_norms ) {
-
-			norm_type nt = n;
-			if (reset) {
-				norms[nt][key].resize(500);
-				norms[nt][key].setZero();
-			}
-			float val = 0.0f;
-
-			switch (nt) {
-
-			case L0:
-				val = (m.cwiseAbs().array() > eps).cast<float>().sum();
-				break;
-			case L1:
-				val = m.lpNorm<1>();
-				break;
-			case L2:
-				val = m.norm();
-				break;
-			case MAX:
-				val = m.cwiseAbs().maxCoeff();
-				break;
-			case INF:
-				val = m.lpNorm<Eigen::Infinity>();
-				break;
-			case SPECTRAL:
-				val = m.operatorNorm();
-				break;
-			}
-
-			push_back_noresize(&norms[nt][key], val);
-			std::cout << key << " " << nt << " " << " " << norms[nt][key].tail ( 1 ) ( 0 ) << std::endl;
-
-		}
-
-	}
-
-	// count number of operations for perf counters
+// count number of operations for perf counters
 	long ops;
 
 };
@@ -145,21 +128,29 @@ class Linear : public Layer {
 	Matrix mW;
 	Matrix mb;
 
-	Matrix W_delta;
-	Matrix b_delta;
+	// Matrix gaussian_noise;
+	// bool add_gaussian_noise = false;
+	// float bias_leakage = 0.0000001f;
 
-	void forward() {
+	// void forward() {
+
+	// 	y.setZero();// = b.replicate ( 1, x.cols() );
+
+	// 	if ( add_gaussian_noise ) {
+
+	// 		gaussian_noise.resize ( x.rows(), x.cols() );
+	// 		matrix_randn ( gaussian_noise, 0, 0.1 );
+	// 		x += gaussian_noise;
+	// 	}
+
+	// 	BLAS_mmul ( y, W, x );
+
+	// }
+
+	void forward () {
 
 		y = b.replicate ( 1, x.cols() );
-
 		BLAS_mmul ( y, W, x );
-
-	}
-
-	virtual void compute_norms(std::initializer_list<norm_type> which_norms, bool reset = false) {
-
-		// Layer::compute_norms(which_norms, reset);
-		Layer::compute_norms({std::make_tuple("x", x), std::make_tuple("y", y), std::make_tuple("W", W)}, which_norms, reset);
 
 	}
 
@@ -171,20 +162,34 @@ class Linear : public Layer {
 		dx.setZero();
 		BLAS_mmul ( dx, W, dy, true, false );
 
+
 	}
 
-	Linear ( size_t inputs, size_t outputs, size_t batch_size) : Layer ( inputs, outputs, batch_size ) {
+	Linear ( size_t inputs, size_t outputs, size_t batch_size ) :
+		Layer ( inputs, outputs, batch_size, "fc" ) {
+
+		reset();
 
 		W = Matrix ( outputs, inputs );
 		b = Vector::Zero ( outputs );
-		mW = Matrix::Zero ( outputs, inputs );
-		mb = Vector::Zero ( outputs );
+		double range = sqrt ( 6.0 / double ( inputs + outputs ) );
 
+		mW = Matrix::Zero ( W.rows(), W.cols() );
+		mb = Vector::Zero ( b.rows() );
+		dW = Matrix::Zero ( W.rows(), W.cols() );
+		db = Vector::Zero ( b.rows() );
+
+		//matrix_rand ( W, -range, range );
+		// matrix_randn ( W, 0, 0.1f );
 		matrix_randn ( W, 0, ( 1.0f ) / sqrtf ( W.rows() + W.cols() ) );
 
 	};
 
-	virtual void layer_info() { std:: cout << "lin " << W.rows() << ", " << W.cols() << std::endl; }
+	virtual void reset() {
+
+
+
+	}
 
 	void resetGrads() {
 
@@ -192,10 +197,96 @@ class Linear : public Layer {
 		db = Vector::Zero ( b.rows() );
 	}
 
-	// pseudo adadelta
-	// void applyGrads ( float alpha, float decay = 0.0f ) {
+	virtual void kick() {
 
-	// 	float rho = 0.99f;
+		//matrix_randn ( W, 0, ( 1.0f ) / sqrtf ( W.rows() + W.cols() ) );
+
+		//matrix_randn ( gaussian_noise, 0, 0.01f );
+		//W += gaussian_noise;
+
+	}
+
+
+	virtual void layer_info() { std:: cout << "lin " << W.rows() << ", " << W.cols() << std::endl; }
+
+
+	void applyGrads ( double alpha, double decay = 0 ) {
+
+		//adagrad
+
+		float memory_loss = 1e-1f;
+
+		mW += dW.cwiseProduct ( dW );
+		mb += db.cwiseProduct ( db );
+
+		W = ( 1 - decay ) * W + alpha * dW.cwiseQuotient ( mW.unaryExpr ( std::ptr_fun ( sqrt_eps ) ) );
+		b += alpha * db.cwiseQuotient ( mb.unaryExpr ( std::ptr_fun ( sqrt_eps ) ) );
+
+		mW = mW * (1 - memory_loss);
+		mb = mb * (1 - memory_loss);
+
+		// 'plain' fixed learning rate update
+		// b += alpha * db;
+		// W += alpha * dW;
+
+	}
+
+	// void applyGrads ( opt_type otype, float alpha, float decay = 0.0f ) {
+
+	// 	if (otype == SGD) sgd ( alpha, decay );
+	// 	else if (otype == SGD_MOMENTUM) sgd_momentum ( alpha, decay );
+	// 	else if (otype == ADAGRAD) adagrad ( alpha, decay );
+	// 	else if (otype == ADADELTA) pseudo_adadelta ( alpha, decay );
+
+	// 	b.array() += bias_leakage;
+	// }
+
+	// // sgd
+	// void sgd ( float alpha, float decay = 0.0f ) {
+
+	// 	W *= ( 1.0f - decay );
+	// 	b += alpha * db;
+	// 	W += alpha * dW;
+	// 	flops_performed += W.size() * 4 + 2 * b.size();
+	// 	bytes_read += W.size() * sizeof ( dtype ) * 3;
+	// }
+
+	// // sgd
+	// void sgd_momentum ( float alpha, float decay = 0.0f ) {
+
+	// 	float momentum = 0.5f;
+
+	// 	mW.array() = momentum * mW.array() + (1 - momentum) * dW.array();
+	// 	mb.array() = momentum * mb.array() + (1 - momentum) * db.array();
+
+	// 	W *= ( 1.0f - decay );
+
+	// 	b += alpha * mb;
+	// 	W += alpha * mW;
+
+	// 	flops_performed += W.size() * 4 + 2 * b.size();
+	// 	bytes_read += W.size() * sizeof ( dtype ) * 3;
+	// }
+
+	// // adagrad
+	// void adagrad ( float alpha, float decay ) {
+
+	// 	mW.array() += dW.array() * dW.array();
+	// 	mb.array() += db.array() * db.array();
+
+	// 	W *= ( 1.0f - decay );
+
+	// 	b.array() += alpha * db.array() / (( mb.array() + 1e-6 )).sqrt().array();
+	// 	W.array() += alpha * dW.array() / (( mW.array() + 1e-6 )).sqrt().array();
+
+	// 	flops_performed += W.size() * 6 + 2 * b.size();
+	// 	bytes_read += W.size() * sizeof ( dtype ) * 4;
+	// }
+
+	// // pseudo adadelta
+	// void pseudo_adadelta ( float alpha, float decay ) {
+
+	// 	float rho = 0.9f;
 
 	// 	mW.array() = rho * mW.array() + (1 - rho) * dW.array() * dW.array();
 	// 	mb.array() = rho * mb.array() + (1 - rho) * db.array() * db.array();
@@ -205,83 +296,32 @@ class Linear : public Layer {
 	// 	b.array() += alpha * db.array() / (( mb.array() + 1e-6 )).sqrt().array();
 	// 	W.array() += alpha * dW.array() / (( mW.array() + 1e-6 )).sqrt().array();
 
-	// 	flops_performed += W.size() * 4 + 2 * b.size();
-	// 	bytes_read += W.size() * sizeof ( dtype ) * 3;
+	// 	flops_performed += W.size() * 6 + 2 * b.size();
+	// 	bytes_read += W.size() * sizeof ( dtype ) * 4;
 	// }
 
 
-	void applyGrads ( opt_type otype, float alpha, float decay = 0.0f ) {
+	virtual void save(nanogui::Serializer &s) const {
 
-		if ( otype == SGD ) sgd ( alpha, decay );
-		else if ( otype == ADAGRAD ) adagrad ( alpha, decay );
-		else if ( otype == ADADELTA ) pseudo_adadelta ( alpha, decay );
-
-	}
-
-	// sgd
-	void sgd ( float alpha, float decay = 0.0f ) {
-
-		W *= ( 1.0f - decay );
-
-		b_delta = alpha * db;
-		W_delta = alpha * dW;
-		b += b_delta;
-		W += W_delta;
-
-		flops_performed += W.size() * 4 + 2 * b.size();
-		bytes_read += W.size() * sizeof ( dtype ) * 3;
-	}
-
-	// adagrad
-	void adagrad ( float alpha, float decay ) {
-
-		mW.array() += dW.array() * dW.array();
-		mb.array() += db.array() * db.array();
-
-		W *= ( 1.0f - decay );
-
-		b.array() += alpha * db.array() / ( ( mb.array() + 1e-6 ) ).sqrt().array();
-		W.array() += alpha * dW.array() / ( ( mW.array() + 1e-6 ) ).sqrt().array();
-
-		flops_performed += W.size() * 6 + 2 * b.size();
-		bytes_read += W.size() * sizeof ( dtype ) * 4;
-	}
-
-	// pseudo adadelta
-	void pseudo_adadelta ( float alpha, float decay ) {
-
-		float rho = 0.95f;
-
-		mW.array() = rho * mW.array() + ( 1 - rho ) * dW.array() * dW.array();
-		mb.array() = rho * mb.array() + ( 1 - rho ) * db.array() * db.array();
-
-		W *= ( 1.0f - decay );
-
-		b.array() += alpha * db.array() / ( ( mb.array() + 1e-6 ) ).sqrt().array();
-		W.array() += alpha * dW.array() / ( ( mW.array() + 1e-6 ) ).sqrt().array();
-
-		flops_performed += W.size() * 6 + 2 * b.size();
-		bytes_read += W.size() * sizeof ( dtype ) * 4;
-	}
-
-
-	virtual void save ( nanogui::Serializer &s ) const {
-
-		Layer::save ( s );
-		s.set ( "W", W );
-		s.set ( "b", b );
-		s.set ( "dW", dW );
-		s.set ( "db", db );
+		Layer::save(s);
+		s.set("W", W);
+		s.set("b", b);
+		s.set("dW", dW);
+		s.set("db", db);
+		// s.set("add_gaussian_noise", add_gaussian_noise);
+		// s.set("gaussian_noise", gaussian_noise);
 
 	};
 
-	virtual bool load ( nanogui::Serializer &s ) {
+	virtual bool load(nanogui::Serializer &s) {
 
-		Layer::load ( s );
-		if ( !s.get ( "W", W ) ) return false;
-		if ( !s.get ( "b", b ) ) return false;
-		if ( !s.get ( "dW", dW ) ) return false;
-		if ( !s.get ( "db", db ) ) return false;
+		Layer::load(s);
+		if (!s.get("W", W)) return false;
+		if (!s.get("b", b)) return false;
+		if (!s.get("dW", dW)) return false;
+		if (!s.get("db", db)) return false;
+		// if (!s.get("add_gaussian_noise", add_gaussian_noise)) return false;
+		// if (!s.get("gaussian_noise", gaussian_noise)) return false;
 
 		return true;
 	}
@@ -310,8 +350,53 @@ class Sigmoid : public Layer {
 
 	virtual void layer_info() { std:: cout << "sigm " << std::endl; }
 
-	Sigmoid ( size_t inputs, size_t outputs, size_t batch_size ) : Layer ( inputs, outputs, batch_size ) {};
+	Sigmoid ( size_t inputs, size_t outputs, size_t batch_size ) :
+		Layer ( inputs, outputs, batch_size, "sigmoid" ) {};
 	~Sigmoid() {};
+
+};
+
+class Softmax : public Layer {
+
+  public:
+
+	void forward () {
+
+		y = softmax ( x );
+
+	}
+
+	void backward() {
+
+		dx = dy - y;
+	}
+
+
+	Softmax ( size_t inputs, size_t outputs, size_t batch_size ) :
+		Layer ( inputs, outputs, batch_size, "softmax" ) {};
+	~Softmax() {};
+
+};
+
+class Identity : public Layer {
+
+  public:
+
+	void forward () {
+
+		y = x;
+
+	}
+
+	void backward() {
+
+		dx = dy;
+
+	}
+
+	Identity ( size_t inputs, size_t outputs, size_t batch_size ) :
+		Layer ( inputs, outputs, batch_size, "noop" ) {};
+	~Identity() {};
 
 };
 
@@ -319,7 +404,7 @@ class ReLU : public Layer {
 
   public:
 
-	void forward() {
+	void forward () {
 
 		y = rectify ( x );
 
@@ -329,41 +414,36 @@ class ReLU : public Layer {
 
 		dx.array() = derivative_ReLU ( y ).array() * dy.array();
 
-		flops_performed += dy.size();
-		bytes_read += dy.size() * sizeof ( dtype );
-
 	}
 
-	virtual void layer_info() { std:: cout << "relu " << std::endl; }
-
-	ReLU ( size_t inputs, size_t outputs, size_t batch_size ) : Layer ( inputs, outputs, batch_size ) {};
+	ReLU ( size_t inputs, size_t outputs, size_t batch_size ) :
+		Layer ( inputs, outputs, batch_size, "relu" ) {};
 	~ReLU() {};
 
 };
 
-class Softmax : public Layer {
+// Exponential Linear Unit
+// http://arxiv.org/pdf/1511.07289v5.pdf
+
+class ELU : public Layer {
 
   public:
 
-	void forward() {
+	void forward () {
 
-		y = softmax ( x );
+		y = activation_ELU ( x );
 
 	}
 
 	void backward() {
 
-		dx = dy - y;
-
-		flops_performed += dy.size() * 2;
-		bytes_read += dy.size() * sizeof ( dtype ) * 2;
+		dx.array() = derivative_ELU ( y ).array() * dy.array();
 
 	}
 
-	virtual void layer_info() { std:: cout << "softmax " << std::endl; }
-
-	Softmax ( size_t inputs, size_t outputs, size_t batch_size ) : Layer ( inputs, outputs, batch_size ) {};
-	~Softmax() {};
+	ELU ( size_t inputs, size_t outputs, size_t batch_size ) :
+		Layer ( inputs, outputs, batch_size, "elu" ) {};
+	~ELU() {};
 
 };
 
@@ -374,57 +454,38 @@ class Dropout : public Layer {
 	const float keep_ratio;
 	Matrix dropout_mask;
 
-	void forward () {
+	void forward ( bool test = false ) {
 
-		// if ( test ) // skip at test time
+		if ( test ) // skip at test time
 
-		// 	y = x;
+			y = x;
 
-		// else {
+		else {
 
-		Matrix rands = Matrix::Zero ( y.rows(), y.cols() );
-		matrix_rand ( rands, 0.0f, 1.0f );
+			Matrix rands = Matrix::Zero ( y.rows(), y.cols() );
+			matrix_rand ( rands, 0.0f, 1.0f );
 
-		//dropout mask - 1s - preserved elements
-		dropout_mask = ( rands.array() < keep_ratio ).cast <float> ();
+			//dropout mask - 1s - preserved elements
+			dropout_mask = ( rands.array() < keep_ratio ).cast <float> ();
 
-		// y = y .* dropout_mask, discard elements where mask is 0
-		y.array() = x.array() * dropout_mask.array();
+			// y = y .* dropout_mask, discard elements where mask is 0
+			y.array() = x.array() * dropout_mask.array();
 
-		// normalize, so that we don't have to do anything at test time
-		y /= keep_ratio;
+			// normalize, so that we don't have to do anything at test time
+			y /= keep_ratio;
 
-		// }
+		}
 	}
-
-	virtual void layer_info() { std:: cout << "dropout " << std::endl; }
 
 	void backward() {
 
 		dx.array() = dy.array() * dropout_mask.array();
-
 	}
 
 	Dropout ( size_t inputs, size_t outputs, size_t batch_size, float _ratio ) :
-		Layer ( inputs, outputs, batch_size ),  keep_ratio ( _ratio ) {};
+		Layer ( inputs, outputs, batch_size, "dropout" ),  keep_ratio ( _ratio ) {};
 	~Dropout() {};
 
-};
-
-
-class Gaussian : public Layer {
-
-	// in -> 	x (remember for backward pass)
-	//		  	 } - x + n -> out
-	// rng -> 	n (remember for backward pass)
-
-	// if ( add_gaussian_noise ) {
-
-	// 	gaussian_noise.resize ( x.rows(), x.cols() );
-	// 	matrix_randn ( gaussian_noise, 0, 0.1 );
-	// 	x += gaussian_noise;
-	// }
-	// Matrix gaussian_noise;
 };
 
 #endif

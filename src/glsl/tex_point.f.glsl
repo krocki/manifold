@@ -4,7 +4,6 @@ out vec4 out_color;
 in vec3 out_g_color;
 uniform sampler2D image;
 in vec2 out_g_tex;
-uniform float alpha;
 
 /*
 * @Author: Kamil Rocki
@@ -13,11 +12,13 @@ uniform float alpha;
 * @Last Modified time: 2017-03-03 11:10:30
 */
 
+uniform float alpha;
+
 void main() {
 
-	vec4 in_color = vec4(out_g_color, alpha);
+	vec4 in_color = vec4(out_g_color, 1.0);
 	//out_color =  vec4(1.0, 1.0, 1.0, 1.0);
 	vec4 col = texture ( image, out_g_tex );
-	out_color = min ( in_color, vec4 ( col.x, col.x, col.x, alpha ) );
+	out_color = vec4(col.x, col.y, col.z, alpha);//min ( in_color, vec4 ( col.x, col.x, col.x, alpha ) );
 
 }

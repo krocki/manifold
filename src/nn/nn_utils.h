@@ -1,8 +1,8 @@
 /*
 * @Author: kmrocki
 * @Date:   2016-02-24 10:47:03
-* @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-03-31 15:06:21
+* @Last Modified by:   kamilrocki
+* @Last Modified time: 2017-04-05 22:24:27
 */
 
 #ifndef __NN_UTILS_H__
@@ -24,19 +24,23 @@ typedef Eigen::VectorXf Vector;
 #include "perf.h"
 #include "aux.h"
 
-//f(x) = sigm(x)
-inline float __logistic ( const float x ) {
-	return 1.0 / ( 1.0 +::expf ( -x ) );
+inline float sqrt_eps(const float x) {
+	return sqrtf(x + 1e-6);
 }
 
-inline float __exponential ( const float x ) {
-	return exp ( x );
+//f(x) = sigm(x)
+inline float __logistic(const float x) {
+	return 1.0f / (1.0f +::expf(-x));
+}
+
+inline float __exponential(const float x) {
+	return expf(x);
 }
 
 #ifdef USE_BLAS
 #include <cblas.h>
-void BLAS_mmul ( Eigen::MatrixXf &__restrict c, Eigen::MatrixXf &__restrict a,
-                 Eigen::MatrixXf &__restrict b, bool aT = false, bool bT = false );
+void BLAS_mmul( Eigen::MatrixXf& __restrict c, Eigen::MatrixXf& __restrict a,
+                Eigen::MatrixXf& __restrict b, bool aT = false, bool bT = false );
 
 #endif
 
@@ -50,81 +54,115 @@ void random_binary_mask ( Matrix &mask ) {
 	}
 }
 
-Matrix rectify ( Matrix &x ) {
 
-	Matrix y ( x.rows(), x.cols() );
+Matrix rectify(Matrix& x) {
 
-	for ( int i = 0; i < x.rows(); i++ ) {
-		for ( int j = 0; j < x.cols(); j++ )
+	Matrix y(x.rows(), x.cols());
 
-			y ( i, j ) = x ( i, j ) > 0 ? x ( i, j ) : 0;
+	for (int i = 0; i < x.rows(); i++) {
+		for (int j = 0; j < x.cols(); j++) {
+
+			y(i, j) = x(i, j) > 0.0f ? x(i, j) : 0.0f;
+		}
 	}
 
-	bytes_read += x.size() * sizeof ( dtype );
-	flops_performed += y.size();
 	return y;
 
 }
 
-Matrix derivative_ReLU ( Matrix &x ) {
+// Exponential Linear Unit
+// http://arxiv.org/pdf/1511.07289v5.pdf
+Matrix activation_ELU(Matrix& x) {
 
-	Matrix y ( x.rows(), x.cols() );
+	float alpha = 1.0f;
 
-	for ( int i = 0; i < x.rows(); i++ ) {
-		for ( int j = 0; j < x.cols(); j++ )
+	Matrix y(x.rows(), x.cols());
 
-			y ( i, j ) = x ( i, j ) > 0 ? 1 : 0;
+	for (int i = 0; i < x.rows(); i++) {
+		for (int j = 0; j < x.cols(); j++) {
+
+			y(i, j) = x(i, j) >= 0.0f ? x(i, j) : alpha * (expf(x(i, j)) - 1.0f);
+
+		}
 	}
 
-	bytes_read += x.size() * sizeof ( dtype );
-	flops_performed += y.size();
 	return y;
 
 }
 
-Matrix logistic ( Matrix &x ) {
+Matrix derivative_ELU(Matrix& x) {
 
-	Matrix y ( x.rows(), x.cols() );
+	float alpha = 1.0f;
 
-	for ( int i = 0; i < x.rows(); i++ ) {
-		for ( int j = 0; j < x.cols(); j++ )
+	Matrix y(x.rows(), x.cols());
 
-			y ( i, j ) = __logistic ( x ( i, j ) );
+	for (int i = 0; i < x.rows(); i++) {
+		for (int j = 0; j < x.cols(); j++) {
+
+			y(i, j) = x(i, j) >= 0.0f ? 1.0f : (expf(x(i, j)) + alpha);
+		}
 	}
 
-	bytes_read += x.size() * sizeof ( dtype );
-	flops_performed += y.size() * 3;
+	return y;
+
+}
+
+Matrix derivative_ReLU(Matrix& x) {
+
+	Matrix y(x.rows(), x.cols());
+
+	for (int i = 0; i < x.rows(); i++) {
+		for (int j = 0; j < x.cols(); j++) {
+
+			y(i, j) = (float)(x(i, j) > 0);
+		}
+	}
+
+	return y;
+
+}
+
+Matrix logistic(Matrix& x) {
+
+	Matrix y(x.rows(), x.cols());
+
+	for (int i = 0; i < x.rows(); i++) {
+		for (int j = 0; j < x.cols(); j++) {
+
+			y(i, j) = __logistic(x(i, j));
+		}
+	}
+
 	return y;
 }
 
-Matrix softmax ( Matrix &x ) {
+Matrix softmax(Matrix& x) {
 
-	Matrix y ( x.rows(), x.cols() );
+	Matrix y(x.rows(), x.cols());
 
 	//probs(class) = exp(x, class)/sum(exp(x, class))
 
-	//TODO: x[i] -= max(x)
+	Matrix e = x.unaryExpr(std::ptr_fun(::expf));
 
-	Matrix e = x.unaryExpr ( std::ptr_fun ( ::expf ) );
 	Vector sum = e.colwise().sum();
 
-	for ( int i = 0; i < e.rows(); i++ ) {
-		for ( int j = 0; j < e.cols(); j++ )
-			y ( i, j ) = e ( i, j ) / sum ( j );
+	for (int i = 0; i < e.rows(); i++) {
+		for (int j = 0; j < e.cols(); j++) {
+
+			y(i, j) = e(i, j) / sum(j);
+		}
 	}
 
-	bytes_read += x.size() * sizeof ( dtype );
-	flops_performed += y.size() * 3;
 	return y;
 }
 
-float cross_entropy ( Matrix &predictions, Matrix &targets ) {
+float cross_entropy(Matrix& predictions, Matrix& targets) {
 
-	float ce = 0.0;
-	Matrix error ( predictions.rows(), predictions.cols() );
+	float ce = 0.0f;
+	Matrix error(predictions.rows(), predictions.cols());
 
 	//check what has happened and get information content for that event
-	error.array() = -predictions.unaryExpr ( std::ptr_fun ( ::logf ) ).array() * targets.array();
+	error.array() = -predictions.unaryExpr(std::ptr_fun(::logf)).array() * targets.array();
 	ce = error.sum();
 
 	return ce;
@@ -155,15 +193,17 @@ void matrix_randi ( Eigen::VectorXi &m, int range_min, int range_max ) {
 }
 
 //generate an array of random numbers in range
-void matrix_rand ( Matrix &m, int range_min, int range_max ) {
+void matrix_rand ( Matrix &m, float range_min, float range_max ) {
 
 	std::random_device rd;
 	std::mt19937 mt ( rd() );
 	std::uniform_real_distribution<> randf ( range_min, range_max );
 
 	for ( int i = 0; i < m.rows(); i++ ) {
-		for ( int j = 0; j < m.cols(); j++ )
+		for ( int j = 0; j < m.cols(); j++ ) {
 			m ( i, j ) = randf ( mt );
+		}
+
 	}
 
 }
@@ -188,17 +228,6 @@ void linspace ( Eigen::VectorXi &m, int range_min, int range_max ) {
 
 	for ( int i = 0; i < m.rows(); i++ )
 		m ( i ) = ( float ) ( range_min + i );
-
-}
-
-void make_batch ( Matrix &batch, const Matrix &data, const Eigen::VectorXi &random_numbers ) {
-
-	size_t batch_size = random_numbers.rows();
-
-	for ( size_t i = 0; i < batch_size; i++ )
-
-		batch.col ( i ) = data.col(random_numbers ( i ));
-
 
 }
 
@@ -292,10 +321,9 @@ void BLAS_mmul ( Eigen::MatrixXf &__restrict c, Eigen::MatrixXf &__restrict a,
 	size_t ldb = bT ? N : K;
 	size_t ldc = M;
 
-	cblas_sgemm ( CblasColMajor, transA, transB, M, N, K, alpha,
-	              a.data(), lda,
-	              b.data(), ldb, beta, c.data(), ldc );
-
+	cblas_sgemm( CblasColMajor, transA, transB, M, N, K, alpha,
+	             a.data(), lda,
+	             b.data(), ldb, beta, c.data(), ldc );
 
 	flops_performed += 2 * M * N * K;
 	bytes_read += ( a.size() + b.size() ) * sizeof ( dtype );

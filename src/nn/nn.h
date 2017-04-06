@@ -1,8 +1,8 @@
 /*
 * @Author: kmrocki
 * @Date:   2016-02-24 15:28:10
-* @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-04-01 21:19:35
+* @Last Modified by:   kamilrocki
+* @Last Modified time: 2017-04-05 23:09:09
 */
 
 #ifndef __NN_H__
@@ -56,11 +56,15 @@ class NN {
 	network_type ntype;
 	opt_type otype;
 
+	Eigen::VectorXi random_numbers;
+
 	Matrix batch;
 	Matrix targets;
 	Matrix encoding;
 	Matrix codes, codes_colors;
 	Eigen::MatrixXi codes_idxs;
+
+	float epoch_progress;
 
 	int code_layer_no = 1;
 
@@ -96,6 +100,8 @@ class NN {
 		for ( int i = layers.size() - 1; i >= 0; i-- ) {
 
 			layers[i]->resetGrads();
+			// std::cout << "layer " << i << std::endl;
+			// layers[i]->sparsify();
 			layers[i]->backward();
 
 			//dy(previous layer) = dx(current layer)
@@ -112,23 +118,16 @@ class NN {
 		//update all layers according to gradients
 		for ( size_t i = 0; i < layers.size(); i++ )
 
-			layers[i]->applyGrads ( otype, alpha, decay );
+			layers[i]->applyGrads ( alpha, decay );
 
 		params.unlock();
-
-	}
-
-	void compute_norms(std::initializer_list<int> which_layers, std::initializer_list<norm_type> which_norms, bool reset = false) {
-
-		for ( auto i : which_layers )
-			layers[i]->compute_norms(which_norms, reset);
 
 	}
 
 	void train ( const std::deque<datapoint> &data, size_t iterations ) {
 
 		size_t classes = 10;
-		Eigen::VectorXi random_numbers ( batch_size );
+		random_numbers.resize ( batch_size );
 		batch.resize ( data[0].x.rows(), batch_size );
 		// size_t dims = layers[code_layer_no]->y.rows();
 
@@ -203,16 +202,23 @@ class NN {
 				if ( ii % 50 == 0 ) {
 
 					clock = true;
-
 					//update graph data
-					push_back_noresize(loss_data, current_loss);
+					if ( loss_data ) {
 
-					compute_norms({0, 1, 2, 3, 4, 5, 6}, {L2});
+						loss_data->head ( loss_data->size() - 1 ) = loss_data->tail ( loss_data->size() - 1 );
+						loss_data->tail ( 1 ) ( 0 ) = current_loss;
+
+					}
+
+					// perturb net randomly
+					// kick();
 
 				}
 
 				//apply changes
 				update ( learning_rate, decay );
+
+
 
 				tocf();
 				toc();
@@ -221,6 +227,10 @@ class NN {
 					usleep ( 10000 );
 					if ( step || quit ) { step = false; break; }
 				}
+
+				epoch_progress = ((float)ii) / (float)iterations;
+				printf("\t%.1f%%\r", epoch_progress * 100.0);
+				fflush(stdout);
 
 			}
 		}
@@ -271,45 +281,6 @@ class NN {
 		return 0.0;
 	}
 
-	void generate(const Eigen::MatrixXf & coords, Eigen::MatrixXf & reconstructions) {
-
-		if ( !quit ) {
-
-			reconstructions.resize(784, coords.cols());
-			std::cout << reconstructions.rows() << ", " << reconstructions.cols() << std::endl;
-
-			Eigen::VectorXi numbers ( batch_size );
-			Eigen::MatrixXf codes_batch;
-
-			codes_batch.resize ( coords.rows(), batch_size );
-
-			//compute forward activations
-			for ( size_t ii = 0; ii < coords.cols(); ii += batch_size ) {
-
-				linspace ( numbers, ii, ii + batch_size );
-				make_batch ( codes_batch, coords, numbers );
-
-				layers[code_layer_no]->x = codes_batch;
-
-				for ( size_t i = code_layer_no; i < layers.size(); i++ ) {
-
-					//y = f(x)
-					layers[i]->forward();
-
-					//x(next layer) = y(current layer)
-					if ( i + 1 < layers.size() )
-						layers[i + 1]->x = layers[i]->y;
-
-				}
-
-				//outputs
-				reconstructions.block(0, ii, layers[layers.size() - 1]->y.rows(), batch_size) = layers[layers.size() - 1]->y;
-
-			}
-
-		}
-	}
-
 	void testcode ( const std::deque<datapoint> &data ) {
 
 		if ( !quit ) {
@@ -336,7 +307,7 @@ class NN {
 
 				make_targets ( targets, encoding, data, numbers );
 
-				forward ( batch );
+				forward ( batch, code_layer_no );
 
 				codes.block ( 0, ii, dims, batch_size ) = layers[code_layer_no]->y;
 				codes_colors.block ( 0, ii, 1, batch_size ) = targets;
@@ -355,17 +326,16 @@ class NN {
 		otype = SGD;
 
 		//dropout
-		if (use_dropout)
-			code_layer_no = 3 * ( layer_sizes.size() - 1 ) / 2 - 2;
-		else
-			code_layer_no = 2 * ( layer_sizes.size() - 1 ) / 2 - 1;
+		// if (use_dropout)
+		// 	code_layer_no = 3 * ( layer_sizes.size() - 1 ) / 2 - 2;
+		// else
+		code_layer_no = 2 * ( layer_sizes.size() - 1 ) / 2 - 1;
 
 		std::cout << code_layer_no << std::endl;
 
 		init_net();
 
-		for ( int l = 0; l < layers.size(); l++ ) {
-			compute_norms({l}, {L2}, true);
+		for ( size_t l = 0; l < layers.size(); l++ ) {
 			std::cout << l << ", ";
 			layers[l]->layer_info();
 		}
@@ -373,32 +343,62 @@ class NN {
 
 	}
 
+	void set_sparsity_penalty(float p) {
+
+		// for ( size_t l = 0; l < layers.size(); l++ )
+		// 	layers[l]->sparsity_penalty = p;
+
+	}
+
+	void set_sparsity_target(float t) {
+
+		// for ( size_t l = 0; l < layers.size(); l++ )
+		// 	layers[l]->sparsity_target = t;
+
+	}
+
+	void reset() {
+
+		for ( size_t l = 0; l < layers.size(); l++ )
+			layers[l]->reset();
+	}
+
+	void kick() {
+
+		for ( size_t l = 0; l < layers.size(); l++ )
+			layers[l]->kick();
+	}
+
 	void init_net() {
 
 		for ( size_t l = 0; l < layer_sizes.size() - 1; l++ ) {
 
 			layers.push_back ( new Linear ( layer_sizes[l], layer_sizes[l + 1], batch_size) );
+			// layers.back()->adjust_sparsity = false;
 
 			if ( ( l + 1 ) == ( layer_sizes.size() - 1 ) )
 				layers.push_back ( new Sigmoid ( layer_sizes[l + 1], layer_sizes[l + 1], batch_size ) );
 			else {
 
-				if (use_code_sigmoid &&  int ( layers.size() ) == code_layer_no )
-					layers.push_back ( new Sigmoid ( layer_sizes[l + 1], layer_sizes[l + 1], batch_size ) );
-				else
-					layers.push_back ( new ReLU ( layer_sizes[l + 1], layer_sizes[l + 1], batch_size ) );
+				// if (use_code_sigmoid &&  int ( layers.size() ) == code_layer_no )
+				// 	layers.push_back ( new Sigmoid ( layer_sizes[l + 1], layer_sizes[l + 1], batch_size ) );
+				// else {
+				layers.push_back ( new ReLU ( layer_sizes[l + 1], layer_sizes[l + 1], batch_size ) );
+
+				// }
 
 				//dropout
-				if (use_dropout) {
-					if ( int ( layers.size() - 1 ) != code_layer_no )
-						layers.push_back ( new Dropout ( layer_sizes[l + 1], layer_sizes[l + 1], batch_size, 1.0f ) );
-				}
+				// if (use_dropout) {
+				// 	if ( int ( layers.size() - 1 ) != code_layer_no )
+				// 		layers.push_back ( new Dropout ( layer_sizes[l + 1], layer_sizes[l + 1], batch_size, 1.0f ) );
+				// }
 			}
 
 		}
 
 	}
-	void save ( nanogui::Serializer & s ) {
+
+	void save ( nanogui::Serializer &s ) {
 
 		params.lock();
 
@@ -432,7 +432,7 @@ class NN {
 
 	}
 
-	bool load ( nanogui::Serializer & s ) {
+	bool load ( nanogui::Serializer &s ) {
 
 		if ( !s.get ( "current_loss", current_loss ) ) return false;
 		//if (!s.get("loss_data", *loss_data)) return false;

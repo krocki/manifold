@@ -27,7 +27,7 @@ using namespace std;
 
 class PlotHelper : public nanogui::Window {
 
-public:
+  public:
 
 	PlotHelper ( Widget *parent, const std::string &title ) : nanogui::Window ( parent, title ) {
 

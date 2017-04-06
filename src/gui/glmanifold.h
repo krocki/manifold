@@ -2,7 +2,7 @@
 * @Author: kmrocki@us.ibm.com
 * @Date:   2017-03-20 10:09:39
 * @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-04-02 21:49:20
+* @Last Modified time: 2017-04-03 17:39:02
 */
 
 #ifndef __GLPLOT_H__
@@ -43,6 +43,11 @@
 #define BOX_FRAG_FILE "./src/glsl/surf_box.f.glsl"
 #define BOX_GEOM_FILE "./src/glsl/surf_box.g.glsl"
 #define BOX_VERT_FILE "./src/glsl/surf_box.v.glsl"
+
+#define MESH_SHADER_NAME "mesh_shader"
+#define MESH_FRAG_FILE "./src/glsl/mesh.f.glsl"
+#define MESH_GEOM_FILE "./src/glsl/mesh.g.glsl"
+#define MESH_VERT_FILE "./src/glsl/mesh.v.glsl"
 
 class Plot : public nanogui::GLCanvas {
 
@@ -245,16 +250,14 @@ class Plot : public nanogui::GLCanvas {
 		m_cubeShader = new nanogui::GLShader();
 		m_cubeShader->initFromFiles ( BOX_SHADER_NAME, BOX_VERT_FILE, BOX_FRAG_FILE, BOX_GEOM_FILE );
 
-		size_t tex_size = 64;
-		Eigen::Matrix<unsigned char, Eigen::Dynamic, Eigen::Dynamic> rgba_image = Eigen::Matrix<unsigned char, Eigen::Dynamic, Eigen::Dynamic>::Ones(tex_size, tex_size * 4) * 16;
-		// textures.emplace_back ( std::pair<int, std::string> ( nvgCreateImageA ( vg, 512, 512, NVG_IMAGE_GENERATE_MIPMAPS, ( unsigned char * ) rgba_image.data() ), "" ) );
-		textures.emplace_back ( std::pair<int, std::string> ( nvgCreateImageRGBA ( vg,  tex_size, tex_size, NVG_IMAGE_NEAREST, ( unsigned char * ) rgba_image.data() ), "" ) );
-
 		m_camShader = new nanogui::GLShader();
 		m_camShader->initFromFiles ( CAM_SHADER_NAME, CAM_VERT_FILE, CAM_FRAG_FILE, CAM_GEOM_FILE );
 
 		m_rayShader = new nanogui::GLShader();
 		m_rayShader->initFromFiles ( RAY_SHADER_NAME, RAY_VERT_FILE, RAY_FRAG_FILE, RAY_GEOM_FILE );
+
+		m_meshShader = new nanogui::GLShader();
+		m_meshShader->initFromFiles ( MESH_SHADER_NAME, MESH_VERT_FILE, MESH_FRAG_FILE, MESH_GEOM_FILE );
 
 	}
 
@@ -360,7 +363,8 @@ class Plot : public nanogui::GLCanvas {
 			m_pointTexShader->bind();
 			m_pointTexShader->uploadAttrib("position", data->p_vertices);
 			m_pointTexShader->uploadAttrib("color", data->p_colors);
-			m_pointTexShader->uploadAttrib("texcoords", data->p_texcoords);
+			m_pointTexShader->uploadAttrib("texcoords", data->c100_data_textures.p_texcoords);
+			// m_pointTexShader->uploadAttrib("texcoords", data->data_textures.p_texcoords);
 
 
 			// }
@@ -369,6 +373,12 @@ class Plot : public nanogui::GLCanvas {
 			m_cubeShader->uploadIndices ( data->c_indices );
 			m_cubeShader->uploadAttrib("position", data->c_vertices);
 			m_cubeShader->uploadAttrib("color", data->c_colors);
+
+			m_meshShader->bind();
+			m_meshShader->uploadIndices ( data->m_indices );
+			m_meshShader->uploadAttrib ( "position", data->m_vertices );
+			m_meshShader->uploadAttrib ( "color", data->m_colors );
+			m_meshShader->uploadAttrib ( "texcoords", data->m_texcoords );
 
 			local_data_checksum = data->checksum;
 
@@ -519,7 +529,7 @@ class Plot : public nanogui::GLCanvas {
 		/* Render */
 
 		glDisable ( GL_DEPTH_TEST );
-		//glBlendFunc ( GL_ONE, GL_ONE );
+		glBlendFunc ( GL_ONE, GL_ONE );
 		glBlendFunc ( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
 		glEnable ( GL_BLEND );
 
@@ -542,6 +552,17 @@ class Plot : public nanogui::GLCanvas {
 			m_rayShader->drawArray(GL_LINES, 0, data->r_vertices.cols());
 		}
 
+		// glDisable ( GL_BLEND );
+
+		// m_meshShader->bind();
+		// glActiveTexture ( GL_TEXTURE0 );
+		// glBindTexture ( GL_TEXTURE_2D, data->c100_data_textures.id );
+
+		// m_meshShader->setUniform("mvp", mvp);
+		// m_meshShader->drawIndexed ( GL_TRIANGLES, 0, data->m_indices.cols() );
+
+		// glEnable ( GL_BLEND );
+
 		if (!use_textures) {
 
 			glEnable ( GL_PROGRAM_POINT_SIZE );
@@ -551,7 +572,6 @@ class Plot : public nanogui::GLCanvas {
 			m_pointShader->setUniform ( "pt_size", pt_size );
 			m_pointShader->setUniform ( "alpha", alpha );
 
-			// m_pointShader->setUniform ( "radius_intersect", radius_intersect );
 			m_pointShader->drawArray(GL_POINTS, 0, data->p_vertices.cols());
 
 			glDisable ( GL_PROGRAM_POINT_SIZE );
@@ -563,13 +583,8 @@ class Plot : public nanogui::GLCanvas {
 			m_pointTexShader->bind();
 
 			glActiveTexture ( GL_TEXTURE0 );
-			glBindTexture ( GL_TEXTURE_2D, ( std::vector<std::pair<int, std::string>> ( data->textures ) [0] ).first );
-			float textures_per_dim = ceil ( sqrtf ( train_data.size() ) );
-
-			// reconstructions
-			// glActiveTexture ( GL_TEXTURE0 );
-			// glBindTexture ( GL_TEXTURE_2D, ( std::vector<std::pair<int, std::string>> ( data->textures ) [2] ).first );
-			// float textures_per_dim = ceil ( sqrtf ( data->max_reconstructions ) );
+			glBindTexture ( GL_TEXTURE_2D, ( data->c100_data_textures.id ));
+			float textures_per_dim = data->c100_data_textures.txs_per_dim;
 
 			//star
 			// glBindTexture ( GL_TEXTURE_2D, ( std::vector<std::pair<int, std::string>> ( data->textures ) [1] ).first );
@@ -582,10 +597,11 @@ class Plot : public nanogui::GLCanvas {
 			m_pointTexShader->setUniform ( "model", data_model );
 			m_pointTexShader->setUniform ( "coord_type", coord_type );
 			m_pointTexShader->setUniform ( "alpha", alpha );
+			m_pointTexShader->setUniform ( "pt_size", pt_size );
 
-			float quad_size = 0.005f * pt_size;
+			float quad_size = 0.005f;
 			float radius = sqrtf ( 2 * quad_size );
-			float tex_w = 1.0f / (float)textures_per_dim;
+			float tex_w = 1.0f / (float)(data->c100_data_textures.txs_per_dim);
 
 			m_pointTexShader->setUniform ( "radius", radius );
 			m_pointTexShader->setUniform ( "tex_w", tex_w );
@@ -601,7 +617,9 @@ class Plot : public nanogui::GLCanvas {
 			glDisable ( GL_BLEND );
 			glDisable ( GL_DEPTH_TEST );
 
+
 		}
+
 		// additional stuff, directly in nanovg
 
 		if (vg) {
@@ -728,98 +746,6 @@ class Plot : public nanogui::GLCanvas {
 		return true;
 	}
 
-	// virtual bool mouseButtonEvent ( const Eigen::Vector2i &p, int button, bool down, int modifiers ) {
-
-	// 	// if ( !SurfPlot::mouseButtonEvent ( p, button, down, modifiers ) ) {
-	// 	if ( button == GLFW_MOUSE_BUTTON_1 )
-	// 		m_arcball.button ( p, down );
-	// 	// }
-
-	// 	return false;
-	// }
-
-	/* check if a ray and a sphere intersect. if not hit, returns false. it rejects
-	intersections behind the ray caster's origin, and sets intersection_distance to
-	the closest intersection */
-	// bool ray_sphere (
-	//     Eigen::Vector3f ray_origin_wor,
-	//     Eigen::Vector3f ray_direction_wor,
-	//     Eigen::Vector3f sphere_centre_wor,
-	//     float sphere_radius,
-	//     float* intersection_distance
-	// ) {
-	// 	// work out components of quadratic
-	// 	Eigen::Vector3f dist_to_sphere = ray_origin_wor - sphere_centre_wor;
-	// 	float b = ray_direction_wor.dot(dist_to_sphere);
-	// 	float c = dist_to_sphere.dot(dist_to_sphere) -
-	// 	          sphere_radius * sphere_radius;
-	// 	float b_squared_minus_c = b * b - c;
-	// 	// check for "imaginary" answer. == ray completely misses sphere
-	// 	if (b_squared_minus_c < 0.0f) {
-	// 		return false;
-	// 	}
-	// 	// check for ray hitting twice (in and out of the sphere)
-	// 	if (b_squared_minus_c > 0.0f) {
-	// 		// get the 2 intersection distances along ray
-	// 		float t_a = -b + sqrt (b_squared_minus_c);
-	// 		float t_b = -b - sqrt (b_squared_minus_c);
-	// 		*intersection_distance = t_b;
-	// 		// if behind viewer, throw one or both away
-	// 		if (t_a < 0.0) {
-	// 			if (t_b < 0.0) {
-	// 				return false;
-	// 			}
-	// 		} else if (t_b < 0.0) {
-	// 			*intersection_distance = t_a;
-	// 		}
-
-	// 		return true;
-	// 	}
-	// 	// check for ray hitting once (skimming the surface)
-	// 	if (0.0f == b_squared_minus_c) {
-	// 		// if behind viewer, throw away
-	// 		float t = -b + sqrt (b_squared_minus_c);
-	// 		if (t < 0.0f) {
-	// 			return false;
-	// 		}
-	// 		*intersection_distance = t;
-	// 		return true;
-	// 	}
-	// 	// note: could also check if ray origin is inside sphere radius
-	// 	return false;
-	// }
-
-	// bool mouseButtonEvent ( const Eigen::Vector2i &p, int button, bool down, int modifiers ) override {
-
-	// 	if ( button == GLFW_MOUSE_BUTTON_1 && down ) {
-	// 		int closest_sphere_clicked = -1;
-	// 		float closest_intersection = 0.0f;
-	// 		for (int i = 0; i < data->p_vertices.cols(); i++) {
-	// 			float t_dist = 0.0f;
-	// 			if (ray_sphere (
-	// 			            camera, raydir, data->p_vertices.col(i), 0.1f, &t_dist
-	// 			        )) {
-	// 				// if more than one sphere is in path of ray, only use the closest one
-	// 				if (-1 == closest_sphere_clicked || t_dist < closest_intersection) {
-	// 					closest_sphere_clicked = i;
-	// 					closest_intersection = t_dist;
-	// 				}
-	// 			}
-	// 		} // endfor
-
-	// 		if (closest_sphere_clicked > -1) {
-	// 			int idx = closest_sphere_clicked;
-	// 			printf ("sphere %i was clicked\n", idx);
-	// 			selected = Eigen::Vector3f(0, 0, 0);
-	// 			selected << data->p_vertices.col(idx)[0], data->p_vertices.col(idx)[1], data->p_vertices.col(idx)[2];
-	// 		}
-
-	// 	}
-
-	// 	return true;
-	// }
-
-
 	~Plot() { /* free resources */
 
 		delete m_pointShader;
@@ -827,6 +753,7 @@ class Plot : public nanogui::GLCanvas {
 		delete m_cubeShader;
 		delete m_camShader;
 		delete m_rayShader;
+		delete m_meshShader;
 
 	}
 
@@ -856,6 +783,7 @@ class Plot : public nanogui::GLCanvas {
 	nanogui::GLShader *m_cubeShader = nullptr;
 	nanogui::GLShader *m_camShader = nullptr;
 	nanogui::GLShader *m_rayShader = nullptr;
+	nanogui::GLShader *m_meshShader = nullptr;
 
 	nanogui::GLShader *master_pointShader = nullptr;
 	nanogui::GLShader *master_pointTexShader = nullptr;
