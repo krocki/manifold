@@ -2,7 +2,7 @@
 * @Author: kmrocki@us.ibm.com
 * @Date:   2017-03-20 10:09:39
 * @Last Modified by:   Kamil Rocki
-* @Last Modified time: 2017-04-06 16:18:08
+* @Last Modified time: 2017-04-06 19:45:48
 */
 
 #ifndef __GLPLOT_H__
@@ -206,10 +206,10 @@ class Plot : public nanogui::GLCanvas {
 			
 			new nanogui::Label ( sliders, "CAM", "sans-bold", 7 );
 			slider = new nanogui::Slider ( sliders );
-			slider->setValue ( cam_speed );
+			slider->setValue ( cam_speed * 10.0f );
 			slider->setFixedWidth ( 80 );
 			slider->setCallback ( [&] ( float value ) {
-				cam_speed = value; std::cout << "cam speed: " << cam_speed << std::endl;
+				cam_speed = value / 10.0f; std::cout << "cam speed: " << cam_speed << std::endl;
 				cam_angular_speed = ( cam_speed / 1000.0f ) * 360.0f / M_PI;
 				
 			} );
@@ -284,7 +284,7 @@ class Plot : public nanogui::GLCanvas {
 			near = 0.1f;
 			far = 200.0f;
 			
-			cam_speed = 0.2f;
+			cam_speed = 0.1f;
 			cam_angular_speed = ( cam_speed / 1000.0f ) * 360.0f / M_PI;
 			
 		}
