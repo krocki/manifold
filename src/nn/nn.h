@@ -2,7 +2,7 @@
 * @Author: kmrocki
 * @Date:   2016-02-24 15:28:10
 * @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-04-06 21:48:22
+* @Last Modified time: 2017-04-07 12:27:56
 */
 
 #ifndef __NN_H__
@@ -395,7 +395,7 @@ class NN {
 				// if (use_code_sigmoid &&  int ( layers.size() ) == code_layer_no )
 				// 	layers.push_back ( new Sigmoid ( layer_sizes[l + 1], layer_sizes[l + 1], batch_size ) );
 				// else {
-				layers.push_back ( new Sigmoid ( layer_sizes[l + 1], layer_sizes[l + 1], batch_size ) );
+				layers.push_back ( new ELU ( layer_sizes[l + 1], layer_sizes[l + 1], batch_size ) );
 
 				// }
 
