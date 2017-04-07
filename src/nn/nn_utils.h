@@ -2,7 +2,7 @@
 * @Author: kmrocki
 * @Date:   2016-02-24 10:47:03
 * @Last Modified by:   Kamil Rocki
-* @Last Modified time: 2017-04-06 11:52:38
+* @Last Modified time: 2017-04-06 16:28:51
 */
 
 #ifndef __NN_UTILS_H__
@@ -226,6 +226,7 @@ void linspace ( Eigen::VectorXi &m, int range_min, int range_max ) {
 
 void make_batch ( Matrix &batch, const std::deque<datapoint> &data, const Eigen::VectorXi &random_numbers ) {
 
+	// TODO: this crashes when batch_size is > than data[], not checking the bounds, for example , batch_size = 16, data = 5000, 5000 % 16 != 0, will access 5001 and crash
 	size_t batch_size = random_numbers.rows();
 	
 	for ( size_t i = 0; i < batch_size; i++ )

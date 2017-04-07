@@ -107,14 +107,18 @@ class GUI : public nanogui::Screen {
 			// test_data = MNISTImporter::importFromFile ( "data/mnist/t10k-images-idx3-ubyte", "data/mnist/t10k-labels-idx1-ubyte" );
 			
 			//train_data = CIFARImporter::importFromFile("data/cifar-100-binary/train.bin", 2);
-			train_data = CIFARImporter::importFromFiles ( {
-				"data/cifar-10-batches-bin/data_batch_1.bin",
-				"data/cifar-10-batches-bin/data_batch_2.bin",
-				"data/cifar-10-batches-bin/data_batch_3.bin",
-				"data/cifar-10-batches-bin/data_batch_4.bin",
-				"data/cifar-10-batches-bin/data_batch_5.bin"
-			}, 1 );
 			
+			// train_data = CIFARImporter::importFromFiles ( {
+			// 	"data/cifar-10-batches-bin/data_batch_1.bin",
+			// 	"data/cifar-10-batches-bin/data_batch_2.bin",
+			// 	"data/cifar-10-batches-bin/data_batch_3.bin",
+			// 	"data/cifar-10-batches-bin/data_batch_4.bin",
+			// 	"data/cifar-10-batches-bin/data_batch_5.bin"
+			// }, 1 );
+			
+			train_data = MNISTImporter::importFromFile ( "data/mnist/train-images-idx3-ubyte",
+						 "data/mnist/train-labels-idx1-ubyte" );
+						 
 			update_data_textures();
 			
 			// todo: set/save layout (including dynamically created widgets)
@@ -174,7 +178,11 @@ class GUI : public nanogui::Screen {
 				
 					if ( plot_data->checksum != local_data_checksum ) {
 					
-						plot_data->update_nn_matrix_textures ( nn, mNVGContext );
+						if ( train_data[0].rgba )
+							plot_data->update_nn_matrix_textures ( nn, mNVGContext, GL_RGBA );
+						else
+							plot_data->update_nn_matrix_textures ( nn, mNVGContext, GL_RED );
+							
 						local_data_checksum = plot_data->checksum;
 						
 					}
@@ -245,7 +253,7 @@ class GUI : public nanogui::Screen {
 		void update_data_textures() {
 		
 			//plot_data->load_data_textures(train_data, mNVGContext);
-			plot_data->load_c100_data_textures ( train_data, mNVGContext );
+			plot_data->load_c100_data_textures ( train_data, mNVGContext, train_data[0].image_w, train_data[0].rgba );
 			
 		}
 		

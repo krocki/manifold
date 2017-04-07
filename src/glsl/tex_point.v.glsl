@@ -15,17 +15,42 @@ out vec2 uv;
 * @Last Modified time: 2017-03-06 11:10:30
 */
 
-
+uniform int coord_type;
 uniform mat4 model;
 uniform mat4 view;
 
 void main() {
 
-	vec4 pos = vec4 ( position.x, position.y, position.z, 1.0 );
-
+	vec3 coords;
+	
+	if ( coord_type == 1 ) {
+	
+		//polar
+		float r = position[0];
+		float theta = position[1];
+		coords = vec3 ( r * cos ( theta ), r * sin ( theta ), position[2] );
+		
+	}
+	else
+		if ( coord_type == 2 ) {
+		
+			//spherical
+			float r = position[0];
+			float theta = position[1];
+			float phi = position[2];
+			
+			coords = vec3 ( r * sin ( phi ) * cos ( theta ), r * sin ( theta ) * sin ( phi ), r * cos ( phi ) );
+			
+		}
+		else {
+		
+			//normal
+			coords = position;
+		}
+		
 	uv = texcoords.xy;
-
-	out_v_color = vec3(color);
-	gl_Position = view * model * pos;
-
+	
+	out_v_color = vec3 ( color );
+	gl_Position = view * model * vec4 ( coords, 1.0 );
+	
 }
