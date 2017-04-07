@@ -2,7 +2,7 @@
 * @Author: kmrocki@us.ibm.com
 * @Date:   2017-03-03 15:06:37
 * @Last Modified by:   Kamil Rocki
-* @Last Modified time: 2017-04-06 14:20:39
+* @Last Modified time: 2017-04-06 18:53:28
 */
 
 #ifndef __LAYERS_H__
@@ -197,10 +197,9 @@ class Linear : public Layer {
 		
 		virtual void kick() {
 		
-			//matrix_randn ( W, 0, ( 1.0f ) / sqrtf ( W.rows() + W.cols() ) );
-			
-			//matrix_randn ( gaussian_noise, 0, 0.01f );
-			//W += gaussian_noise;
+			Matrix gaussian_noise = Matrix ( W.rows(), W.cols() );
+			matrix_randn ( gaussian_noise, 0, ( 0.5f ) / sqrtf ( W.rows() + W.cols() ) );
+			W += gaussian_noise;
 			
 		}
 		
@@ -215,8 +214,8 @@ class Linear : public Layer {
 			mW.noalias() = mW * ( 1.0f - memory_loss ) + dW.cwiseProduct ( dW );
 			mb.noalias() = mb * ( 1.0f - memory_loss ) + db.cwiseProduct ( db );
 			
-			W.noalias() += alpha * dW.cwiseQuotient ( mW.unaryExpr ( std::ptr_fun ( sqrt_eps ) ) );
-			b.noalias() += alpha * db.cwiseQuotient ( mb.unaryExpr ( std::ptr_fun ( sqrt_eps ) ) );
+			W.noalias() = ( 1.0f - decay ) * W + alpha * dW.cwiseQuotient ( mW.unaryExpr ( std::ptr_fun ( sqrt_eps ) ) );
+			b.noalias() = ( 1.0f - decay ) * b + alpha * db.cwiseQuotient ( mb.unaryExpr ( std::ptr_fun ( sqrt_eps ) ) );
 			
 			// 'plain' fixed learning rate update
 			// b.noalias() += alpha * db;
