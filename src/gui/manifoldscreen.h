@@ -14,6 +14,7 @@
 // helpers
 #include <utils.h>
 #include <colors.h>
+#include <compute/functions.h>
 
 #include "aux.h"
 #include "perf.h"
@@ -187,7 +188,7 @@ class GUI : public nanogui::Screen {
 						plot_data->update_nn_matrix_textures ( nn, mNVGContext, GL_RED );
 					}
 
-					plot_data->update_reconstructions ( reconstruction_data, mNVGContext, train_data[0].image_w, train_data[0].rgba );
+					plot_data->update_reconstructions ( reconstruction_data, sample_reconstruction_data, mNVGContext, train_data[0].image_w, train_data[0].rgba );
 
 					local_data_checksum = plot_data->checksum;
 
@@ -259,7 +260,7 @@ class GUI : public nanogui::Screen {
 	void update_data_textures() {
 
 		//plot_data->load_data_textures(train_data, mNVGContext);
-		plot_data->load_c100_data_textures ( train_data, mNVGContext, train_data[0].image_w, train_data[0].rgba );
+		plot_data->load_input_data_textures ( train_data, mNVGContext, train_data[0].image_w, train_data[0].rgba );
 
 	}
 
@@ -427,6 +428,7 @@ class GUI : public nanogui::Screen {
 		mCurrentImage = 0;
 
 		imgPanel->setCallback ( [this, icons, imgPanel] ( int i ) {
+
 			// imageView->bindImage(mImagesData[i].first.texture());
 			mCurrentImage = i;
 			std::string fprefix = icons[i].second;
@@ -489,12 +491,24 @@ class GUI : public nanogui::Screen {
 
 		} ); b->setTooltip ( "pause/unpause" );
 
-		b = new nanogui::ToolButton ( control_buttons, ENTYPO_ICON_CLOUD ); //25B6
+		b = control_buttons->add<nanogui::Button> ( "", ENTYPO_ICON_CLOUD ); //25B6
 		b->setFixedSize ( Eigen::Vector2i ( 80, 20 ) );
 		b->setBackgroundColor ( nanogui::Color ( 0, 160, 190, 65 ) );
-		b->setChangeCallback ( [this] ( bool pushed ) {
+		b->setCallback ( [&]() {
 
-			std::cout << "Generate" << std::endl;
+			std::cout << "Generate start" << std::endl;
+			gen_type dist = STRATIFIED;
+			// gen_type { INDEPENDENT = 0, GRID = 1, STRATIFIED = 2} gen_type;
+
+			size_t generate_point_count = 10000;
+			generate ( std::normal_distribution<> ( 0, 0.02 ),
+			           std::normal_distribution<> ( 0, 0.02 ),
+			           std::normal_distribution<> ( 0, 0.02 ),
+			           plot_data->s_vertices, generate_point_count, dist );
+
+			std::cout << "Generate end" << std::endl;
+
+			plot_data->updated();
 
 		} ); b->setTooltip ( "generate" );
 
@@ -511,8 +525,7 @@ class GUI : public nanogui::Screen {
 		opt_buttons_w = new nanogui::Widget ( window );
 		opt_buttons_w->setLayout ( new nanogui::GroupLayout ( 0, 0, 0, 0 ) );
 		opt_buttons = new nanogui::Widget ( opt_buttons_w );
-		opt_buttons->setLayout ( new nanogui::GridLayout ( nanogui::Orientation::Horizontal, 15, nanogui::Alignment::Middle, 2,
-		                         2 ) );
+		opt_buttons->setLayout ( new nanogui::GridLayout ( nanogui::Orientation::Horizontal, 15, nanogui::Alignment::Middle, 2, 2 ) );
 
 		b = opt_buttons->add<nanogui::Button> ( "SGD" ); b->setFontSize ( 8 );
 		b->setFlags ( nanogui::Button::RadioButton ); b->setFixedSize ( bsize ); b->setBackgroundColor ( ccolor );
@@ -583,12 +596,12 @@ class GUI : public nanogui::Screen {
 		// texPanel->setImages(icons);
 		// mCurrentTex = 0;
 
-		texView = new nanogui::ImageView ( texWindow, plot_data->c100_data_textures.id );
-		texViewRight = new nanogui::ImageView ( texWindowRight, plot_data->c100_data_textures.id );
+		texView = new nanogui::ImageView ( texWindow, plot_data->input_data_textures.id );
+		texViewRight = new nanogui::ImageView ( texWindowRight, plot_data->input_data_textures.id );
 
 		// // Change the active textures.
 		// texPanel->setCallback([this, imageView, texPanel](int i) {
-		// 	imageView->bindImage(plot_data->c100_data_textures.id);
+		// 	imageView->bindImage(plot_data->input_data_textures.id);
 		// 	mCurrentTex = i;
 		// 	cout << "Selected texture " << i << '\n';
 		// });
@@ -605,12 +618,12 @@ class GUI : public nanogui::Screen {
 
 		int idx = 0;
 
-		mCurrentTex = plot_data->c100_data_textures.id;
+		mCurrentTex = plot_data->input_data_textures.id;
 
 		b = views->add<nanogui::Button> ( "", ENTYPO_ICON_DATABASE );
 		b->setFlags ( nanogui::Button::RadioButton ); b->setFixedSize ( bsize ); b->setBackgroundColor ( ccolor );
 		b->setPushed ( true );
-		b->setCallback ( [&]() { std::cout << "T0: " << std::endl; mCurrentTex = plot_data->c100_data_textures.id; texView->bindImage ( mCurrentTex ); } );
+		b->setCallback ( [&]() { std::cout << "T0: " << std::endl; mCurrentTex = plot_data->input_data_textures.id; texView->bindImage ( mCurrentTex ); } );
 
 		b = views->add<nanogui::Button> ( "", ENTYPO_ICON_LOGIN );
 		b->setFlags ( nanogui::Button::RadioButton ); b->setFixedSize ( bsize ); b->setPushed ( false );
@@ -735,7 +748,7 @@ class GUI : public nanogui::Screen {
 
 		// texView->setPixelInfoCallback(
 		// [this, texView](const Eigen::Vector2i & index) -> pair<string, nanogui::Color> {
-		// 	auto& imageData = plot_data->c100_data_textures.id;
+		// 	auto& imageData = plot_data->input_data_textures.id;
 		// 	auto& textureSize = imageView->imageSize();
 		// 	std::string stringData;
 		// 	uint16_t channelSum = 0;

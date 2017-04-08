@@ -2,7 +2,7 @@
 * @Author: kmrocki@us.ibm.com
 * @Date:   2017-03-20 10:11:47
 * @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-04-06 21:41:55
+* @Last Modified time: 2017-04-07 21:06:46
 */
 
 #ifndef __PLOTDATA_H__
@@ -27,8 +27,7 @@ class PlotData {
 	Eigen::MatrixXf e_vertices, e_colors;
 	Eigen::MatrixXf r_vertices;
 	Eigen::MatrixXf p_vertices, p_colors;
-	// Eigen::VectorXf p_labels;
-	// Eigen::MatrixXf p_texcoords;
+	Eigen::MatrixXf s_vertices, s_colors;
 
 	Eigen::Matrix<uint32_t, Eigen::Dynamic, Eigen::Dynamic> c_indices;
 	Eigen::MatrixXf c_vertices, c_colors;
@@ -39,8 +38,9 @@ class PlotData {
 	// using imagesDataType = std::vector<std::pair<int, std::string>>;
 	// imagesDataType textures;
 
-	Texture c100_data_textures;
-	Texture c100_reconstruction_textures;
+	Texture input_data_textures;
+	Texture input_reconstruction_textures;
+	Texture sample_reconstruction_textures;
 
 	//TODO: change to dict
 	std::vector<Texture> nn_matrix_data;
@@ -50,22 +50,24 @@ class PlotData {
 
 	size_t checksum = 0; // or write update time
 
-	void load_c100_data_textures ( std::deque<datapoint> &data, NVGcontext *nvg, size_t im_size, bool rgba = false ) {
+	void load_input_data_textures ( std::deque<datapoint> &data, NVGcontext *nvg, size_t im_size, bool rgba = false ) {
 
 		if ( rgba ) {
-			c100_data_textures = Texture ( data, GL_RGBA, nvg, im_size );
+			input_data_textures = Texture ( data, GL_RGBA, nvg, im_size );
 		} else {
-			c100_data_textures = Texture ( data, GL_RED, nvg, im_size );
+			input_data_textures = Texture ( data, GL_RED, nvg, im_size );
 		}
 
 	}
 
-	void update_reconstructions(std::deque<datapoint> &data, NVGcontext *nvg, size_t im_size, bool rgba = false ) {
+	void update_reconstructions(std::deque<datapoint> &data, std::deque<datapoint> &sample_data, NVGcontext *nvg, size_t im_size, bool rgba = false ) {
 
 		if ( rgba ) {
-			c100_reconstruction_textures = Texture ( data, GL_RGBA, nvg, im_size );
+			input_reconstruction_textures = Texture ( data, GL_RGBA, nvg, im_size );
+			sample_reconstruction_textures = Texture ( sample_data, GL_RGBA, nvg, im_size );
 		} else {
-			c100_reconstruction_textures = Texture ( data, GL_RED, nvg, im_size );
+			input_reconstruction_textures = Texture ( data, GL_RED, nvg, im_size );
+			sample_reconstruction_textures = Texture ( sample_data, GL_RED, nvg, im_size );
 		}
 	}
 
@@ -90,8 +92,10 @@ class PlotData {
 			}
 
 			// reconstructions - output from the top layer
-			if ( net->layers.back() )
+			if ( net->layers.back() ) {
 				make_textures_from_matrices ( nn_matrix_data.back(), net->layers.back()->y, nvg, fmt, SQUARES );
+			}
+
 		} else
 
 			std::cout << "net is null" << std::endl;

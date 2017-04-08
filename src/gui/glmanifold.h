@@ -2,7 +2,7 @@
 * @Author: kmrocki@us.ibm.com
 * @Date:   2017-03-20 10:09:39
 * @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-04-06 22:12:54
+* @Last Modified time: 2017-04-07 21:28:29
 */
 
 #ifndef __GLPLOT_H__
@@ -184,8 +184,8 @@ class Plot : public nanogui::GLCanvas {
 		b = shader_tools->add<nanogui::Button> ( "", ENTYPO_ICON_MONITOR );
 		b->setFlags ( nanogui::Button::ToggleButton );
 		b->setFixedSize ( bsize );
-		b->setPushed ( use_textures );
-		b->setChangeCallback ( [&] ( bool state ) { std::cout << "Textures: " << state << std::endl; use_textures = state;} );
+		b->setPushed ( show_samples );
+		b->setChangeCallback ( [&] ( bool state ) { std::cout << "show samples: " << state << std::endl; show_samples = state;} );
 
 		b = shader_tools->add<nanogui::Button> ( "", ENTYPO_ICON_HAIR_CROSS );
 		b->setFlags ( nanogui::Button::ToggleButton );
@@ -279,6 +279,13 @@ class Plot : public nanogui::GLCanvas {
 		m_pointTexShader = new nanogui::GLShader();
 		m_pointTexShader->initFromFiles ( POINT_TEX_SHADER_NAME, POINT_TEX_VERT_FILE, POINT_TEX_FRAG_FILE,
 		                                  POINT_TEX_GEOM_FILE );
+
+		m_samplePointShader = new nanogui::GLShader();
+		m_samplePointShader->initFromFiles ( POINT_SHADER_NAME, POINT_VERT_FILE, POINT_FRAG_FILE );
+
+		m_samplePointTexShader = new nanogui::GLShader();
+		m_samplePointTexShader->initFromFiles ( POINT_TEX_SHADER_NAME, POINT_TEX_VERT_FILE, POINT_TEX_FRAG_FILE,
+		                                        POINT_TEX_GEOM_FILE );
 
 		m_cubeShader = new nanogui::GLShader();
 		m_cubeShader->initFromFiles ( BOX_SHADER_NAME, BOX_VERT_FILE, BOX_FRAG_FILE, BOX_GEOM_FILE );
@@ -398,11 +405,16 @@ class Plot : public nanogui::GLCanvas {
 			m_pointTexShader->bind();
 			m_pointTexShader->uploadAttrib ( "position", data->p_vertices );
 			m_pointTexShader->uploadAttrib ( "color", data->p_colors );
-			m_pointTexShader->uploadAttrib ( "texcoords", data->c100_data_textures.p_texcoords );
-			// m_pointTexShader->uploadAttrib("texcoords", data->data_textures.p_texcoords);
+			m_pointTexShader->uploadAttrib ( "texcoords", data->input_data_textures.p_texcoords );
 
+			m_samplePointShader->bind();
+			m_samplePointShader->uploadAttrib ( "position", data->s_vertices );
+			m_samplePointShader->uploadAttrib ( "color", data->s_colors );
 
-			// }
+			m_samplePointTexShader->bind();
+			m_samplePointTexShader->uploadAttrib ( "position", data->s_vertices );
+			m_samplePointTexShader->uploadAttrib ( "color", data->s_colors );
+			m_samplePointTexShader->uploadAttrib ( "texcoords", data->sample_reconstruction_textures.p_texcoords );
 
 			m_cubeShader->bind();
 			m_cubeShader->uploadIndices ( data->c_indices );
@@ -601,12 +613,65 @@ class Plot : public nanogui::GLCanvas {
 
 		// m_meshShader->bind();
 		// glActiveTexture ( GL_TEXTURE0 );
-		// glBindTexture ( GL_TEXTURE_2D, data->c100_data_textures.id );
+		// glBindTexture ( GL_TEXTURE_2D, data->input_data_textures.id );
 
 		// m_meshShader->setUniform("mvp", mvp);
 		// m_meshShader->drawIndexed ( GL_TRIANGLES, 0, data->m_indices.cols() );
 
 		// glEnable ( GL_BLEND );
+
+		if (show_samples && data->s_vertices.cols() > 0) {
+
+			glEnable ( GL_PROGRAM_POINT_SIZE );
+			m_samplePointShader->bind();
+			m_samplePointShader->setUniform ( "mvp", data_mvp );
+			m_samplePointShader->setUniform ( "coord_type", coord_type );
+			m_samplePointShader->setUniform ( "pt_size", pt_size );
+			m_samplePointShader->setUniform ( "alpha", alpha );
+
+			m_samplePointShader->drawArray ( GL_POINTS, 0, data->s_vertices.cols() );
+
+			glDisable ( GL_PROGRAM_POINT_SIZE );
+
+			m_samplePointTexShader->bind();
+
+			glActiveTexture ( GL_TEXTURE0 );
+			glBindTexture ( GL_TEXTURE_2D, ( data->sample_reconstruction_textures.id ) );
+
+			float textures_per_dim = data->sample_reconstruction_textures.txs_per_dim;
+
+			//star
+			// glBindTexture ( GL_TEXTURE_2D, ( std::vector<std::pair<int, std::string>> ( data->textures ) [1] ).first );
+			// float textures_per_dim = 1;
+
+			m_samplePointTexShader->setUniform ( "image", 0 );
+			m_samplePointTexShader->setUniform ( "view", view );
+			m_samplePointTexShader->setUniform ( "proj", proj );
+			m_samplePointTexShader->setUniform ( "model", data_model );
+			m_samplePointTexShader->setUniform ( "coord_type", coord_type );
+			m_samplePointTexShader->setUniform ( "alpha", alpha );
+			m_samplePointTexShader->setUniform ( "pt_size", pt_size );
+			m_samplePointTexShader->setUniform ( "apply_label_color", (int) apply_label_color);
+
+			float quad_size = 0.005f;
+			float radius = sqrtf ( 2 * quad_size );
+			float tex_w = 1.0f / ( float ) ( data->sample_reconstruction_textures.txs_per_dim );
+
+			m_samplePointTexShader->setUniform ( "radius", radius );
+			m_samplePointTexShader->setUniform ( "tex_w", tex_w );
+
+			glPointSize ( 1 );
+			glEnable ( GL_DEPTH_TEST );
+
+			glEnable ( GL_BLEND );
+			glBlendFunc ( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
+
+			m_samplePointTexShader->drawArray ( GL_POINTS, 0, data->s_vertices.cols() );
+
+			glDisable ( GL_BLEND );
+			glDisable ( GL_DEPTH_TEST );
+
+		}
 
 		if ( !use_textures ) {
 
@@ -629,11 +694,11 @@ class Plot : public nanogui::GLCanvas {
 
 			glActiveTexture ( GL_TEXTURE0 );
 			if (show_reconstructions)
-				glBindTexture ( GL_TEXTURE_2D, ( data->c100_reconstruction_textures.id ) );
+				glBindTexture ( GL_TEXTURE_2D, ( data->input_reconstruction_textures.id ) );
 			else
-				glBindTexture ( GL_TEXTURE_2D, ( data->c100_data_textures.id ) );
+				glBindTexture ( GL_TEXTURE_2D, ( data->input_data_textures.id ) );
 
-			float textures_per_dim = data->c100_data_textures.txs_per_dim;
+			float textures_per_dim = data->input_data_textures.txs_per_dim;
 
 			//star
 			// glBindTexture ( GL_TEXTURE_2D, ( std::vector<std::pair<int, std::string>> ( data->textures ) [1] ).first );
@@ -651,7 +716,7 @@ class Plot : public nanogui::GLCanvas {
 
 			float quad_size = 0.005f;
 			float radius = sqrtf ( 2 * quad_size );
-			float tex_w = 1.0f / ( float ) ( data->c100_data_textures.txs_per_dim );
+			float tex_w = 1.0f / ( float ) ( data->input_data_textures.txs_per_dim );
 
 			m_pointTexShader->setUniform ( "radius", radius );
 			m_pointTexShader->setUniform ( "tex_w", tex_w );
@@ -818,6 +883,8 @@ class Plot : public nanogui::GLCanvas {
 
 		delete m_pointShader;
 		delete m_pointTexShader;
+		delete m_samplePointShader;
+		delete m_samplePointTexShader;
 		delete m_cubeShader;
 		delete m_camShader;
 		delete m_rayShader;
@@ -848,6 +915,8 @@ class Plot : public nanogui::GLCanvas {
 	// shaders
 	nanogui::GLShader *m_pointShader = nullptr;
 	nanogui::GLShader *m_pointTexShader = nullptr;
+	nanogui::GLShader *m_samplePointShader = nullptr;
+	nanogui::GLShader *m_samplePointTexShader = nullptr;
 	nanogui::GLShader *m_cubeShader = nullptr;
 	nanogui::GLShader *m_camShader = nullptr;
 	nanogui::GLShader *m_rayShader = nullptr;
@@ -874,6 +943,7 @@ class Plot : public nanogui::GLCanvas {
 	bool show_reconstructions = false;
 	bool apply_label_color = false;
 	bool show_rays = true;
+	bool show_samples = false;
 	int coord_type = 0;
 	float pt_size = 2.0f;
 	float alpha = 0.7f;

@@ -2,7 +2,7 @@
 * @Author: kmrocki
 * @Date:   2016-02-24 15:28:10
 * @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-04-07 12:27:56
+* @Last Modified time: 2017-04-07 21:49:03
 */
 
 #ifndef __NN_H__
@@ -58,17 +58,36 @@ class NN {
 
 	Eigen::VectorXi random_numbers;
 
-	Matrix batch;
+	Matrix batch, sample_batch;
 	Matrix targets;
 	Matrix encoding;
 	Matrix codes, codes_colors;
-	Eigen::MatrixXi codes_idxs;
+	Eigen::MatrixXi codes_idxs, sample_idx;
 
 	float epoch_progress;
 
 	int code_layer_no = 1;
 
 	std::mutex params;
+
+	void forward (int min_layer, const Matrix &input_data) {
+
+		//copy inputs to the lowest point in the network
+		layers[min_layer]->x = input_data;
+
+		//compute forward activations
+		for ( size_t i = min_layer; i < layers.size(); i++ ) {
+
+			//y = f(x)
+			layers[i]->forward();
+
+			//x(next layer) = y(current layer)
+			if ( i + 1 < layers.size() )
+				layers[i + 1]->x = layers[i]->y;
+
+		}
+
+	}
 
 	void forward ( const Matrix &input_data, int max_layer = -1 ) {
 
@@ -100,8 +119,11 @@ class NN {
 		for ( int i = layers.size() - 1; i >= 0; i-- ) {
 
 			layers[i]->resetGrads();
-			// std::cout << "layer " << i << std::endl;
-			// layers[i]->sparsify();
+
+			// sparsify dy grads
+			//if ( i == 0 ) layers[i]->sparsify();
+			// if ( i == ( layers.size() - 2 ) ) layers[i]->sparsify();
+
 			layers[i]->backward();
 
 			//dy(previous layer) = dx(current layer)
@@ -118,9 +140,6 @@ class NN {
 		//update all layers according to gradients
 		for ( size_t i = 0; i < layers.size(); i++ ) {
 
-			// if ( i == 0 ) layers[i]->sparsify();
-			// if ( i == ( layers.size() - 2 ) ) layers[i]->sparsify();
-
 			layers[i]->applyGrads ( alpha, decay );
 
 		}
@@ -135,6 +154,11 @@ class NN {
 		random_numbers.resize ( batch_size );
 		batch.resize ( data[0].x.rows(), batch_size );
 		// size_t dims = layers[code_layer_no]->y.rows();
+
+		while ( pause ) {
+			usleep ( 10000 );
+			if ( step || quit ) { step = false; break; }
+		}
 
 		if ( !quit ) {
 			if ( ntype == AE || ntype == DAE ) {
@@ -223,19 +247,14 @@ class NN {
 				//apply changes
 				update ( learning_rate, decay );
 
-
-
 				tocf();
 				toc();
-
-				while ( pause ) {
-					usleep ( 10000 );
-					if ( step || quit ) { step = false; break; }
-				}
 
 				epoch_progress = ( ( float ) ii ) / ( float ) iterations;
 				printf ( "\t%.1f%%\r", epoch_progress * 100.0 );
 				fflush ( stdout );
+
+				if ( quit ) break;
 
 			}
 		}
@@ -286,6 +305,37 @@ class NN {
 		return 0.0;
 	}
 
+	void testcode ( const Eigen::MatrixXf& s_vertices, std::deque<datapoint> &reconstruction_data ) {
+
+		if ( !quit ) {
+
+			size_t dims = layers[code_layer_no]->y.rows();
+
+			sample_idx.resize ( 1, s_vertices.cols() );
+			reconstruction_data.resize(s_vertices.cols());
+
+			Eigen::VectorXi numbers ( batch_size );
+
+			sample_batch.resize ( dims, batch_size );
+
+			for ( size_t ii = 0; ii < s_vertices.cols(); ii += batch_size ) {
+
+				linspace ( numbers, ii, ii + batch_size );
+				make_batch ( sample_batch, s_vertices, numbers );
+
+				forward (code_layer_no, sample_batch);
+
+				for (int b = 0; b < batch_size; b++) {
+
+					reconstruction_data[ii + b].x = layers.back()->y.col(b);
+
+				}
+
+			}
+
+		}
+	}
+
 	void testcode ( const std::deque<datapoint> &data, std::deque<datapoint> &reconstruction_data ) {
 
 		if ( !quit ) {
@@ -312,7 +362,7 @@ class NN {
 
 				make_targets ( targets, encoding, data, numbers );
 
-				forward ( batch);
+				forward (batch);
 
 				codes.block ( 0, ii, dims, batch_size ) = layers[code_layer_no]->y;
 				codes_colors.block ( 0, ii, 1, batch_size ) = targets;

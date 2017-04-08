@@ -2,7 +2,7 @@
 * @Author: Kamil Rocki
 * @Date:   2017-02-28 11:25:34
 * @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-03-31 22:05:58
+* @Last Modified time: 2017-04-07 16:31:26
 */
 
 #include <thread>
@@ -20,6 +20,7 @@ std::shared_ptr<NN> nn;
 
 std::deque<datapoint> train_data;
 std::deque<datapoint> test_data;
+std::deque<datapoint> reconstruction_data;
 
 //GUI
 #include "gui/manifoldscreen.h"
@@ -28,8 +29,6 @@ std::deque<datapoint> test_data;
 std::shared_ptr<GUI> screen;
 
 int compute() {
-
-	size_t point_count = 50000;
 
 	PlotData *gl_data = screen->plot_data;
 
@@ -45,12 +44,13 @@ int compute() {
 	nn->otype = SGD;
 	nn->pause = true;
 
+	size_t generate_point_count = 10000;
 	generate ( std::normal_distribution<> ( 0, 0.35 ),
 	           std::normal_distribution<> ( 0, 0.35 ),
 	           std::normal_distribution<> ( 0, 0.35 ),
-	           gl_data->p_vertices, point_count, STRATIFIED );
+	           gl_data->s_vertices, generate_point_count, GRID );
 
-	func3::set ( {0.0f, 1.0f, 0.0f}, gl_data->p_colors, point_count );
+	func3::set ( {0.0f, 1.0f, 0.0f}, gl_data->s_colors, generate_point_count );
 
 	gl_data->updated();
 

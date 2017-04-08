@@ -2,7 +2,7 @@
 * @Author: Kamil Rocki
 * @Date:   2017-02-28 11:25:34
 * @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-04-07 12:29:01
+* @Last Modified time: 2017-04-07 21:49:11
 */
 
 #include <thread>
@@ -21,6 +21,7 @@ std::shared_ptr<NN> nn;
 
 std::deque<datapoint> train_data;
 std::deque<datapoint> reconstruction_data;
+std::deque<datapoint> sample_reconstruction_data;
 std::deque<datapoint> test_data;
 
 //GUI
@@ -39,16 +40,24 @@ int compute() {
 	// NN stuff
 	double learning_rate = 1e-3;
 	float decay = 0;
-	const size_t batch_size = 25;
+	const size_t batch_size = 16;
 	const int input_width = static_cast<int> ( train_data[0].x.size() );
 	assert ( input_width > 0 );
 
 	size_t e = 0;
 
-	nn = std::shared_ptr<NN> ( new NN ( batch_size, decay, learning_rate, DAE, { input_width, 64, 64, 64, 3, 64, 64, 64, input_width } ) );
+	nn = std::shared_ptr<NN> ( new NN ( batch_size, decay, learning_rate, AE, { input_width, 64, 64, 3, 64, 64, input_width } ) );
 
 	nn->otype = SGD;
 	nn->pause = true;
+
+	size_t generate_point_count = 10000;
+	generate ( std::normal_distribution<> ( 0, 0.1 ),
+	           std::normal_distribution<> ( 0, 0.1 ),
+	           std::normal_distribution<> ( 0, 0.1 ),
+	           gl_data->s_vertices, generate_point_count, GRID );
+
+	func3::set ( {0.0f, 1.0f, 0.0f}, gl_data->s_colors, generate_point_count );
 
 	//bind graph data
 	if ( screen ) {
@@ -58,13 +67,15 @@ int compute() {
 	}
 
 	// size_t iters = train_data.size() / batch_size;
-	size_t iters = 5000;
+	size_t iters = 3000;
 
 	/* work until main window is open */
 	while ( screen->getVisible() ) {
 
 		// drawing
 		nn->testcode ( train_data, reconstruction_data );
+		nn->testcode ( gl_data->s_vertices, sample_reconstruction_data );
+
 		gl_data->p_vertices = nn->codes;
 
 		// convert labels to colors, TODO: move somewhere else
