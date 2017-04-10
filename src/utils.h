@@ -1,8 +1,8 @@
 /*
 * @Author: kmrocki@us.ibm.com
 * @Date:   2017-03-03 15:22:47
-* @Last Modified by:   kmrocki
-* @Last Modified time: 2017-04-04 18:23:51
+* @Last Modified by:   kmrocki@us.ibm.com
+* @Last Modified time: 2017-04-09 21:11:18
 */
 
 #ifndef __UTIL_MAIN_H__
@@ -57,6 +57,18 @@ std::string string_format(const std::string fmt_str, ...) {
 			break;
 	}
 	return std::string(formatted.get());
+}
+
+std::vector<std::string> split(std::string in) {
+	std::vector<std::string> strings;
+	std::istringstream f(in);
+	std::string s;
+	while (getline(f, s, ' ')) {
+		std::cout << s << std::endl;
+		strings.push_back(s);
+	}
+
+	return strings;
 }
 
 // rands

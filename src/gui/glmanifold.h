@@ -2,7 +2,7 @@
 * @Author: kmrocki@us.ibm.com
 * @Date:   2017-03-20 10:09:39
 * @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-04-07 21:28:29
+* @Last Modified time: 2017-04-07 21:56:43
 */
 
 #ifndef __GLPLOT_H__
@@ -208,8 +208,8 @@ class Plot : public nanogui::GLCanvas {
 		b = shader_tools->add<nanogui::Button> ( "", ENTYPO_ICON_MOUSE );
 		b->setFlags ( nanogui::Button::ToggleButton );
 		b->setFixedSize ( bsize );
-		b->setPushed ( mousemotion_enabled );
-		b->setChangeCallback ( [&] ( bool state ) { std::cout << "Mouse: " << state << std::endl; mousemotion_enabled = state;} );
+		b->setPushed ( show_data_points );
+		b->setChangeCallback ( [&] ( bool state ) { std::cout << "show datapoints: " << state << std::endl; show_data_points = state;} );
 
 
 		nanogui::Widget *sliders = new nanogui::Widget ( tools );
@@ -675,18 +675,21 @@ class Plot : public nanogui::GLCanvas {
 
 		if ( !use_textures ) {
 
-			glEnable ( GL_PROGRAM_POINT_SIZE );
-			m_pointShader->bind();
-			m_pointShader->setUniform ( "mvp", data_mvp );
-			m_pointShader->setUniform ( "coord_type", coord_type );
-			m_pointShader->setUniform ( "pt_size", pt_size );
-			m_pointShader->setUniform ( "alpha", alpha );
+			if (show_data_points) {
 
-			m_pointShader->drawArray ( GL_POINTS, 0, data->p_vertices.cols() );
+				glEnable ( GL_PROGRAM_POINT_SIZE );
+				m_pointShader->bind();
+				m_pointShader->setUniform ( "mvp", data_mvp );
+				m_pointShader->setUniform ( "coord_type", coord_type );
+				m_pointShader->setUniform ( "pt_size", pt_size );
+				m_pointShader->setUniform ( "alpha", alpha );
 
-			glDisable ( GL_PROGRAM_POINT_SIZE );
-			glDisable ( GL_BLEND );
-			glEnable ( GL_DEPTH_TEST );
+				m_pointShader->drawArray ( GL_POINTS, 0, data->p_vertices.cols() );
+
+				glDisable ( GL_PROGRAM_POINT_SIZE );
+				glDisable ( GL_BLEND );
+				glEnable ( GL_DEPTH_TEST );
+			}
 
 		} else {
 
@@ -938,6 +941,7 @@ class Plot : public nanogui::GLCanvas {
 
 	nanogui::Arcball m_arcball;
 
+	bool show_data_points = true;
 	bool ortho = false;
 	bool use_textures = false;
 	bool show_reconstructions = false;

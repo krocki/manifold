@@ -2,7 +2,7 @@
 * @Author: Kamil Rocki
 * @Date:   2017-02-28 11:25:34
 * @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-04-07 21:49:11
+* @Last Modified time: 2017-04-10 09:42:40
 */
 
 #include <thread>
@@ -67,7 +67,7 @@ int compute() {
 	}
 
 	// size_t iters = train_data.size() / batch_size;
-	size_t iters = 3000;
+	size_t iters = 1000;
 
 	/* work until main window is open */
 	while ( screen->getVisible() ) {

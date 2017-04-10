@@ -2,7 +2,7 @@
 * @Author: kmrocki@us.ibm.com
 * @Date:   2017-03-03 15:06:37
 * @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-04-07 21:46:36
+* @Last Modified time: 2017-04-10 09:42:49
 */
 
 #ifndef __LAYERS_H__
@@ -10,6 +10,55 @@
 
 #include <nn/nn_utils.h>
 #include <nn/opt.h>
+
+// template <class A>
+// void process_one_type() {
+// 	std::cout << typeid(A).name() << ' ';
+// }
+
+
+// template<class ... Layers>
+// class ComplexLayer {
+
+//   public:
+// 	ComplexLayer(size_t inputs) {
+
+// 		int _[] = {0, (process_one_type<Layers>(), 0)...};
+// 		(void)_;
+// 		std::cout << '\n';
+
+// 	};
+// 	~ComplexLayer() = default;
+
+
+// };
+
+// template<class ... Args> void layer_combo(Args ... args) {
+
+// 	int dummy[] = { 0, ( (void) bar(std::forward<Args>(args)), 0) ... };
+// }
+
+// ComplexLayer<Sigmoid, Linear>(64)
+// ComplexLayer<Sigmoid, Linear>(3)
+// ComplexLayer<Sigmoid, Linear>(64)
+// ComplexLayer<Sigmoid>(input_width)
+
+// 	layer<input_width, Dropout, Linear>,
+// 	layer<64, Sigmoid, Linear>,
+// 	layer<3, Sigmoid, Linear>,
+// 	layer<64, Sigmoid, Linear>,
+// 	layer<input_width, Sigmoid>
+// };
+
+// auto net = {ComplexLayer<Dropout, Linear>(input_width)};
+// std::cout << typeid(net).name() << ' ';
+
+// ({size_t inputs, std::initializer_list<Layer> layers})
+
+// std::string net_definition = "x 784 dropout(0.5) linsigm(64) linsigm(3) linsigm(64) linsigm(784) y";
+// std::vector<std::string> tokens = split(net_definition);
+// for (int i = 0; i < tokens.size(); i++)
+// 	std::cout << tokens[i]  << std::endl;
 
 //abstract
 class Layer {
@@ -449,27 +498,27 @@ class Dropout : public Layer {
 	const float keep_ratio;
 	Matrix dropout_mask;
 
-	void forward ( bool test = false ) {
+	void forward () {
 
-		if ( test ) // skip at test time
+		// if ( test ) // skip at test time
 
-			y = x;
+		y = x;
 
-		else {
+		// else {
 
-			Matrix rands = Matrix::Zero ( y.rows(), y.cols() );
-			matrix_rand ( rands, 0.0f, 1.0f );
+		Matrix rands = Matrix::Zero ( y.rows(), y.cols() );
+		matrix_rand ( rands, 0.0f, 1.0f );
 
-			//dropout mask - 1s - preserved elements
-			dropout_mask = ( rands.array() < keep_ratio ).cast <float> ();
+		//dropout mask - 1s - preserved elements
+		dropout_mask = ( rands.array() < keep_ratio ).cast <float> ();
 
-			// y = y .* dropout_mask, discard elements where mask is 0
-			y.array() = x.array() * dropout_mask.array();
+		// y = y .* dropout_mask, discard elements where mask is 0
+		y.array() = x.array() * dropout_mask.array();
 
-			// normalize, so that we don't have to do anything at test time
-			y /= keep_ratio;
+		// normalize, so that we don't have to do anything at test time
+		y /= keep_ratio;
 
-		}
+		// }
 	}
 
 	void backward() {
