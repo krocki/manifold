@@ -2,7 +2,7 @@
 * @Author: Kamil Rocki
 * @Date:   2017-02-28 11:25:34
 * @Last Modified by:   Kamil Rocki
-* @Last Modified time: 2017-04-09 21:18:15
+* @Last Modified time: 2017-04-10 09:54:46
 */
 
 #include <thread>
@@ -46,7 +46,7 @@ int compute() {
 	
 	size_t e = 0;
 	
-	nn = std::shared_ptr<NN> ( new NN ( batch_size, decay, learning_rate, AE, { input_width, 256, 64, 32, 16, 3, 16, 32, 64, 256, input_width } ) );
+	nn = std::shared_ptr<NN> ( new NN ( batch_size, decay, learning_rate, AE, { input_width, 64, 3, 64, input_width } ) );
 	
 	nn->otype = SGD;
 	nn->pause = true;
@@ -67,7 +67,7 @@ int compute() {
 	}
 	
 	// size_t iters = train_data.size() / batch_size;
-	size_t iters = 100000;
+	size_t iters = 1000;
 	
 	/* work until main window is open */
 	while ( screen->getVisible() ) {
