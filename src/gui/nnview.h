@@ -2,7 +2,7 @@
 * @Author: kmrocki@us.ibm.com
 * @Date:   2017-03-20 10:09:39
 * @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-04-11 13:37:37
+* @Last Modified time: 2017-04-11 15:01:25
 */
 
 #ifndef __NNVIEW_H__
@@ -227,6 +227,7 @@ class NNView : public nanogui::Window {
 			// }
 
 			performLayout ( nvg );
+			setVisible(false);
 		}
 		// 		nanogui::Window *lay =  root->add<nanogui::Window> ( std::to_string ( i ) + ": " + net->layers[i]->name + ", x: "  +
 		// 								std::to_string ( net->layers[i]->x.rows() ) + ":" +  std::to_string ( net->layers[i]->x.cols() ) + ", y: "  +

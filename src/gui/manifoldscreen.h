@@ -124,7 +124,7 @@ class GUI : public nanogui::Screen {
 		reconstruction_data.resize(train_data.size());
 		// TODO
 		sample_reconstruction_data.resize(10000);
-		for (int i = 0; i < sample_reconstruction_data.size(); i++) sample_reconstruction_data[i].x.resize(train_data.x.size());
+		for (int i = 0; i < sample_reconstruction_data.size(); i++) sample_reconstruction_data[i].x.resize(train_data[0].x.size());
 
 
 		update_data_textures();

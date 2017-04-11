@@ -30,8 +30,9 @@ all:
 	# $(CC) -o nbody ./src/nbody.cc  $(INCLUDES) $(CFLAGS) $(LFLAGS)
 	# $(CC) -o fplot ./src/fplot.cc $(INCLUDES) $(CFLAGS) $(LFLAGS)
 	# $(CC) -o rand ./src/rand.cc $(INCLUDES) $(CFLAGS) $(LFLAGS)
-	$(CC) -o manifold ./src/manifold.cc $(INCLUDES) $(CFLAGS) $(LFLAGS)
+	# $(CC) -o manifold ./src/manifold.cc $(INCLUDES) $(CFLAGS) $(LFLAGS)
 	# $(CC) -o manifold_rand ./src/manifold_rand.cc $(INCLUDES) $(CFLAGS) $(LFLAGS)
+	$(CC) -o gan ./src/gan.cc $(INCLUDES) $(CFLAGS) $(LFLAGS)
 
 # rand:
 # 	$(CC) -o rand ./src/rand.cc $(INCLUDES) $(CFLAGS) $(LFLAGS)

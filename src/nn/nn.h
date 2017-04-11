@@ -2,7 +2,7 @@
 * @Author: kmrocki
 * @Date:   2016-02-24 15:28:10
 * @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-04-11 13:39:48
+* @Last Modified time: 2017-04-11 15:01:43
 */
 
 #ifndef __NN_H__
@@ -44,7 +44,7 @@ class NN {
 
 	bool use_code_sigmoid = false;
 	bool use_dropout = false;
-	bool collect_stats_enabled = true;
+	bool collect_stats_enabled = false;
 
 	bool clock = false;
 	bool quit = false;

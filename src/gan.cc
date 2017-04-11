@@ -2,7 +2,7 @@
 * @Author: Kamil Rocki
 * @Date:   2017-02-28 11:25:34
 * @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-04-11 13:48:23
+* @Last Modified time: 2017-04-11 14:49:59
 */
 
 #include <thread>
@@ -17,7 +17,7 @@
 #include <io/import.h>
 #include <nn/gan.h>
 
-std::shared_ptr<GAN_NN> nn;
+std::shared_ptr<NN> nn;
 
 std::deque<datapoint> train_data;
 std::deque<datapoint> reconstruction_data;

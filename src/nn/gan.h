@@ -1,8 +1,8 @@
 /*
 * @Author: kmrocki
-* @Date:   2017-04-11 15:28:10
+* @Date:   2016-02-24 15:28:10
 * @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-04-11 13:47:26
+* @Last Modified time: 2017-04-11 14:49:52
 */
 
 #ifndef __GAN_NN_H__
@@ -19,7 +19,19 @@
 
 #include <nanogui/serializer/core.h>
 
-class GAN_NN {
+// TODO:
+// Sparse
+// KL instead of rec
+// cross entropy for AE
+// VAE
+// Normal noise
+// Semantic hashing
+// ladder network
+// resnet/ highway
+
+typedef enum network_type { MLP = 0, AE = 1, DAE = 2 } network_type;
+
+class NN {
 
   public:
 
