@@ -2,7 +2,7 @@
 * @Author: kmrocki@us.ibm.com
 * @Date:   2017-03-20 10:11:47
 * @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-04-11 10:15:52
+* @Last Modified time: 2017-04-11 14:42:49
 */
 
 #ifndef __PLOTDATA_H__
@@ -63,9 +63,9 @@ class PlotData {
 	void load_input_data_textures ( std::deque<datapoint> &data, NVGcontext *nvg, size_t im_size, bool rgba = false ) {
 
 		if ( rgba ) {
-			input_data_textures = Texture ( data, GL_RGBA, nvg, im_size );
+			input_data_textures.load ( data, GL_RGBA, nvg, im_size );
 		} else {
-			input_data_textures = Texture ( data, GL_RED, nvg, im_size );
+			input_data_textures.load ( data, GL_RED, nvg, im_size );
 		}
 
 	}
@@ -73,11 +73,11 @@ class PlotData {
 	void update_reconstructions(std::deque<datapoint> &data, std::deque<datapoint> &sample_data, NVGcontext *nvg, size_t im_size, bool rgba = false ) {
 
 		if ( rgba ) {
-			input_reconstruction_textures = Texture ( data, GL_RGBA, nvg, im_size );
-			sample_reconstruction_textures = Texture ( sample_data, GL_RGBA, nvg, im_size );
+			input_reconstruction_textures.load ( data, GL_RGBA, nvg, im_size );
+			sample_reconstruction_textures.load ( sample_data, GL_RGBA, nvg, im_size );
 		} else {
-			input_reconstruction_textures = Texture ( data, GL_RED, nvg, im_size );
-			sample_reconstruction_textures = Texture ( sample_data, GL_RED, nvg, im_size );
+			input_reconstruction_textures.load ( data, GL_RED, nvg, im_size );
+			sample_reconstruction_textures.load ( sample_data, GL_RED, nvg, im_size );
 		}
 	}
 
@@ -93,8 +93,6 @@ class PlotData {
 			nn_weight_data_dW.resize ( net->layers.size() );
 
 			nn_matrices.resize(net->layers.size());
-
-
 
 			for ( size_t i = 0; i < net->layers.size(); i++ )
 				if ( net->layers[i] ) {

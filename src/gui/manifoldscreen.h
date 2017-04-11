@@ -122,6 +122,10 @@ class GUI : public nanogui::Screen {
 		             "data/mnist/train-labels-idx1-ubyte" );
 
 		reconstruction_data.resize(train_data.size());
+		// TODO
+		sample_reconstruction_data.resize(10000);
+		for (int i = 0; i < sample_reconstruction_data.size(); i++) sample_reconstruction_data[i].x.resize(train_data.x.size());
+
 
 		update_data_textures();
 
@@ -641,27 +645,27 @@ class GUI : public nanogui::Screen {
 		b->setBackgroundColor ( ccolor );
 		b->setCallback ( [&]() { std::cout << "T2: " << std::endl; mCurrentTex = plot_data->nn_matrix_data_y.back().id; texView->bindImage ( mCurrentTex );} );
 
-		b = views->add<nanogui::Button> ( "", ENTYPO_ICON_PROGRESS_0 );
+		b = views->add<nanogui::Button> ( "", ENTYPO_ICON_CLOUD );
 		b->setFlags ( nanogui::Button::RadioButton ); b->setFixedSize ( bsize ); b->setBackgroundColor ( ccolor );
 		b->setPushed ( mCurrentTex == idx++ );
-		b->setCallback ( [&]() { std::cout << "T3: " << std::endl; mCurrentTex = plot_data->nn_weight_data[0].id; texView->bindImage ( mCurrentTex );} );
+		b->setCallback ( [&]() { std::cout << "T3: " << std::endl; std::cout << plot_data->sample_reconstruction_textures.id << std::endl; mCurrentTex = plot_data->sample_reconstruction_textures.id; texView->bindImage ( mCurrentTex );} );
 
-		b = views->add<nanogui::Button> ( "", ENTYPO_ICON_PROGRESS_1 );
+		b = views->add<nanogui::Button> ( "", ENTYPO_ICON_PROGRESS_0 );
 		b->setFlags ( nanogui::Button::RadioButton ); b->setFixedSize ( bsize ); b->setPushed ( mCurrentTex == idx++ );
 		b->setBackgroundColor ( ccolor );
 		b->setCallback ( [&]() { std::cout << "T4: " << std::endl; mCurrentTex = 4;} );
 
-		b = views->add<nanogui::Button> ( "", ENTYPO_ICON_PROGRESS_2 );
+		b = views->add<nanogui::Button> ( "", ENTYPO_ICON_PROGRESS_1 );
 		b->setFlags ( nanogui::Button::RadioButton ); b->setFixedSize ( bsize ); b->setPushed ( mCurrentTex == idx++ );
 		b->setBackgroundColor ( ccolor );
 		b->setCallback ( [&]() { std::cout << "T5: " << std::endl; mCurrentTex = 5;} );
 
-		b = views->add<nanogui::Button> ( "", ENTYPO_ICON_PROGRESS_3 );
+		b = views->add<nanogui::Button> ( "", ENTYPO_ICON_PROGRESS_2 );
 		b->setFlags ( nanogui::Button::RadioButton ); b->setFixedSize ( bsize ); b->setPushed ( mCurrentTex == idx++ );
 		b->setBackgroundColor ( ccolor );
 		b->setCallback ( [&]() { std::cout << "T6: " << std::endl; mCurrentTex = 6;} );
 
-		b = views->add<nanogui::Button> ( "", ENTYPO_ICON_KEYBOARD );
+		b = views->add<nanogui::Button> ( "", ENTYPO_ICON_PROGRESS_3 );
 		b->setFlags ( nanogui::Button::RadioButton ); b->setFixedSize ( bsize ); b->setPushed ( mCurrentTex == idx++ );
 		b->setBackgroundColor ( ccolor );
 		b->setCallback ( [&]() { std::cout << "T7: " << std::endl; mCurrentTex = 7;} );
