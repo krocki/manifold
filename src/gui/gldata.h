@@ -2,7 +2,7 @@
 * @Author: kmrocki@us.ibm.com
 * @Date:   2017-03-20 10:11:47
 * @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-04-07 21:06:46
+* @Last Modified time: 2017-04-11 10:15:52
 */
 
 #ifndef __PLOTDATA_H__
@@ -42,9 +42,19 @@ class PlotData {
 	Texture input_reconstruction_textures;
 	Texture sample_reconstruction_textures;
 
+	std::vector<std::pair<int, std::string>> icons;
+
 	//TODO: change to dict
-	std::vector<Texture> nn_matrix_data;
+	std::vector<Texture> nn_matrix_data_x;
+	std::vector<Texture> nn_matrix_data_y;
 	std::vector<Texture> nn_weight_data;
+	std::vector<Texture> nn_matrix_data_dx;
+	std::vector<Texture> nn_matrix_data_dy;
+	std::vector<Texture> nn_weight_data_dW;
+
+	std::vector<std::vector<std::pair<int, std::string>>> nn_matrices;
+
+	NVGcontext *nvg;
 
 	void updated() { checksum++; }
 
@@ -75,26 +85,44 @@ class PlotData {
 
 		if ( net ) {
 
-			nn_matrix_data.resize ( net->layers.size() );
+			nn_matrix_data_x.resize ( net->layers.size() );
+			nn_matrix_data_y.resize ( net->layers.size() );
 			nn_weight_data.resize ( net->layers.size() );
+			nn_matrix_data_dx.resize ( net->layers.size() );
+			nn_matrix_data_dy.resize ( net->layers.size() );
+			nn_weight_data_dW.resize ( net->layers.size() );
 
-			// for ( size_t i = 0; i < net.layers.size(); i++ ) {
+			nn_matrices.resize(net->layers.size());
 
 
-			// }
 
+			for ( size_t i = 0; i < net->layers.size(); i++ )
+				if ( net->layers[i] ) {
 
-			if ( net->layers[0] ) {
-				// inputs to the lowermost layer
-				make_textures_from_matrices ( nn_matrix_data[0], net->layers[0]->x, nvg, fmt, SQUARES );
-				// weights layer 0
-				make_textures_from_matrices ( nn_weight_data[0], ( ( Linear * ) net->layers[0] )->W, nvg, fmt, SQUARES, true );
-			}
+					make_textures_from_matrices ( nn_matrix_data_x[i], net->layers[i]->x, nvg, fmt, SQUARES );
+					make_textures_from_matrices ( nn_matrix_data_y[i], net->layers[i]->y, nvg, fmt, SQUARES );
+					make_textures_from_matrices ( nn_matrix_data_dx[i], net->layers[i]->dx, nvg, fmt, SQUARES );
+					make_textures_from_matrices ( nn_matrix_data_dy[i], net->layers[i]->dy, nvg, fmt, SQUARES );
+
+					nn_matrices[i].clear();
+					nn_matrices[i].push_back(std::make_pair(nn_matrix_data_x[i].id, "x"));
+					nn_matrices[i].push_back(std::make_pair(nn_matrix_data_dx[i].id, "x"));
+					nn_matrices[i].push_back(std::make_pair(nn_matrix_data_y[i].id, "y"));
+					nn_matrices[i].push_back(std::make_pair(nn_matrix_data_dy[i].id, "dy"));
+
+					if (net->layers[i]->name == "linear") {
+						make_textures_from_matrices ( nn_weight_data[i], ( ( Linear * ) net->layers[i] )->W, nvg, fmt, SQUARES, true );
+						make_textures_from_matrices ( nn_weight_data_dW[i], ( ( Linear * ) net->layers[i] )->dW, nvg, fmt, SQUARES, true );
+						nn_matrices[i].push_back(std::make_pair(nn_weight_data[i].id, "W"));
+						nn_matrices[i].push_back(std::make_pair(nn_weight_data_dW[i].id, "dW"));
+
+					}
+				}
 
 			// reconstructions - output from the top layer
-			if ( net->layers.back() ) {
-				make_textures_from_matrices ( nn_matrix_data.back(), net->layers.back()->y, nvg, fmt, SQUARES );
-			}
+			// if ( net->layers.back() ) {
+			// 	make_textures_from_matrices ( nn_matrix_data.back(), net->layers.back()->y, nvg, fmt, SQUARES );
+			// }
 
 		} else
 

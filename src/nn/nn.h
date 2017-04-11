@@ -2,7 +2,7 @@
 * @Author: kmrocki
 * @Date:   2016-02-24 15:28:10
 * @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-04-07 21:49:03
+* @Last Modified time: 2017-04-11 11:36:11
 */
 
 #ifndef __NN_H__
@@ -44,6 +44,7 @@ class NN {
 
 	bool use_code_sigmoid = false;
 	bool use_dropout = false;
+	bool collect_stats_enabled = true;
 
 	bool clock = false;
 	bool quit = false;
@@ -148,6 +149,12 @@ class NN {
 
 	}
 
+	void collect_statistics ( ) {
+
+		for ( size_t l = 0; l < layers.size(); l++ )
+			layers[l]->collect_statistics ( );
+	}
+
 	void train ( const std::deque<datapoint> &data, size_t iterations ) {
 
 		size_t classes = 10;
@@ -242,6 +249,8 @@ class NN {
 					// perturb net randomly
 					// kick();
 
+					if ( collect_stats_enabled )
+						collect_statistics();
 				}
 
 				//apply changes
@@ -445,7 +454,7 @@ class NN {
 				// if (use_code_sigmoid &&  int ( layers.size() ) == code_layer_no )
 				// 	layers.push_back ( new Sigmoid ( layer_sizes[l + 1], layer_sizes[l + 1], batch_size ) );
 				// else {
-				layers.push_back ( new ELU ( layer_sizes[l + 1], layer_sizes[l + 1], batch_size ) );
+				layers.push_back ( new Sigmoid ( layer_sizes[l + 1], layer_sizes[l + 1], batch_size ) );
 
 				// }
 

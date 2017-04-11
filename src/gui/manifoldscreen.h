@@ -24,6 +24,7 @@
 #include <gui/gldata.h>
 #include <gui/glmanifold.h>
 #include <gui/glplothelper.h>
+#include <gui/nnview.h>
 
 #include <gl/tex.h>
 
@@ -133,6 +134,9 @@ class GUI : public nanogui::Screen {
 		/* widgets */
 		makeWidgets();
 
+		nnview = new NNView ( this, mNVGContext, plot_data, large_image_view, large_tex_view );
+		nnview->setFixedSize({DEF_WIDTH, 400});
+
 		performLayout();
 
 		resizeEvent ( {DEF_WIDTH, DEF_HEIGHT} );
@@ -189,6 +193,8 @@ class GUI : public nanogui::Screen {
 					}
 
 					plot_data->update_reconstructions ( reconstruction_data, sample_reconstruction_data, mNVGContext, train_data[0].image_w, train_data[0].rgba );
+
+					nnview->update_matrices();
 
 					local_data_checksum = plot_data->checksum;
 
@@ -401,7 +407,7 @@ class GUI : public nanogui::Screen {
 		nanogui::Button *b;
 		nanogui::Widget *control_buttons;
 
-		std::vector<pair<int, std::string>> icons = nanogui::loadImageDirectory ( mNVGContext, "saved" );
+		plot_data->icons = nanogui::loadImageDirectory ( mNVGContext, "saved" );
 		string resourcesFolderPath ( "./" );
 
 		control_buttons = new nanogui::Widget ( window );
@@ -421,17 +427,17 @@ class GUI : public nanogui::Screen {
 		nanogui::Popup *popup = imagePanelBtn->popup();
 		nanogui::VScrollPanel *vscroll = new nanogui::VScrollPanel ( popup );
 		nanogui::ImagePanel *imgPanel = new nanogui::ImagePanel ( vscroll );
-		imgPanel->setImages ( icons );
+		imgPanel->setImages ( plot_data->icons );
 		popup->setFixedSize ( Eigen::Vector2i ( 265, 160 ) );
 		imagePanelBtn->setTooltip ( "load" );
 
 		mCurrentImage = 0;
 
-		imgPanel->setCallback ( [this, icons, imgPanel] ( int i ) {
+		imgPanel->setCallback ( [this, imgPanel] ( int i ) {
 
 			// imageView->bindImage(mImagesData[i].first.texture());
 			mCurrentImage = i;
-			std::string fprefix = icons[i].second;
+			std::string fprefix = plot_data->icons[i].second;
 			std::cout << "Loading " << fprefix +  + ".nn.bin" << '\n';
 			nanogui::Serializer s ( std::string ( fprefix + ".nn.bin" ).c_str(), false );
 			nn->load ( s );
@@ -586,9 +592,9 @@ class GUI : public nanogui::Screen {
 		b->setFixedSize ( bsize ); b->setBackgroundColor ( ccolor );
 		b->setCallback ( [&]() { std::cout << "kick" << std::endl; nn->kick(); } );
 
-		b = opt_buttons->add<nanogui::Button> ( "", ENTYPO_ICON_FLASH );
+		b = opt_buttons->add<nanogui::Button> ( "", ENTYPO_ICON_BAR_GRAPH );
 		b->setFixedSize ( bsize ); b->setBackgroundColor ( ccolor );
-		b->setCallback ( [&]() { std::cout << "kick" << std::endl; nn->kick(); } );
+		b->setCallback ( [&]() { nn->collect_stats_enabled = !nn->collect_stats_enabled; nnview->setVisible(nn->collect_stats_enabled); } );
 
 		// Set the first texture
 
@@ -628,12 +634,12 @@ class GUI : public nanogui::Screen {
 		b = views->add<nanogui::Button> ( "", ENTYPO_ICON_LOGIN );
 		b->setFlags ( nanogui::Button::RadioButton ); b->setFixedSize ( bsize ); b->setPushed ( false );
 		b->setBackgroundColor ( ccolor );
-		b->setCallback ( [&]() { std::cout << "T1: " << std::endl; mCurrentTex = plot_data->nn_matrix_data[0].id; texView->bindImage ( mCurrentTex );} );
+		b->setCallback ( [&]() { std::cout << "T1: " << std::endl; mCurrentTex = plot_data->nn_matrix_data_x[0].id; texView->bindImage ( mCurrentTex );} );
 
 		b = views->add<nanogui::Button> ( "", ENTYPO_ICON_LOGOUT );
 		b->setFlags ( nanogui::Button::RadioButton ); b->setFixedSize ( bsize ); b->setPushed ( mCurrentTex == idx++ );
 		b->setBackgroundColor ( ccolor );
-		b->setCallback ( [&]() { std::cout << "T2: " << std::endl; mCurrentTex = plot_data->nn_matrix_data.back().id; texView->bindImage ( mCurrentTex );} );
+		b->setCallback ( [&]() { std::cout << "T2: " << std::endl; mCurrentTex = plot_data->nn_matrix_data_y.back().id; texView->bindImage ( mCurrentTex );} );
 
 		b = views->add<nanogui::Button> ( "", ENTYPO_ICON_PROGRESS_0 );
 		b->setFlags ( nanogui::Button::RadioButton ); b->setFixedSize ( bsize ); b->setBackgroundColor ( ccolor );
@@ -809,6 +815,51 @@ class GUI : public nanogui::Screen {
 		legend->values().resize ( 10 );
 		legend->values() << 1, 1, 1, 1, 1, 1, 1, 1, 1, 1;
 
+		large_image_view = new nanogui::Window(this, "");
+		large_image_view->setFixedSize({670, 700});
+
+		large_image_view->setPosition({400, 25});
+
+		nanogui::Widget* large_w_buttons = new nanogui::Widget ( large_image_view );
+		large_w_buttons->setLayout ( new nanogui::GridLayout ( nanogui::Orientation::Horizontal, 4, nanogui::Alignment::Middle, 2, 2 ) );
+
+		b = large_w_buttons->add<nanogui::Button> ( "X" ); b->setFontSize ( 12 );
+		b->setFixedSize ( {20, 20} );
+		b->setBackgroundColor ( nanogui::Color ( 192, 0, 0, 65 ) );
+		b->setCallback ( [this] {
+			large_image_view->setVisible(false);
+		} ); b->setTooltip ( "close" );
+
+		b = large_w_buttons->add<nanogui::Button> ( "", ENTYPO_ICON_LAYOUT );
+		b->setFixedSize ( {20, 20} );
+		b->setBackgroundColor ( nanogui::Color ( 192, 160, 0, 65 ) );
+
+		b->setCallback ( [this] {
+			large_image_view->setVisible(false);
+		} ); b->setTooltip ( "close" );
+
+		b = large_w_buttons->add<nanogui::Button> ( "", ENTYPO_ICON_EXPORT );
+		b->setFixedSize ( {20, 20} );
+		b->setBackgroundColor ( nanogui::Color ( 192, 160, 0, 65 ) );
+
+		b->setCallback ( [this] {
+			large_image_view->setVisible(false);
+		} ); b->setTooltip ( "close" );
+
+		b = large_w_buttons->add<nanogui::Button> ( "", ENTYPO_ICON_RESIZE_FULL );
+		b->setFixedSize ( {20, 20} );
+		b->setBackgroundColor ( nanogui::Color ( 192, 160, 0, 65 ) );
+		b->setCallback ( [this] {
+			large_image_view->setVisible(false);
+		} ); b->setTooltip ( "close" );
+
+		large_image_view->setVisible(false);
+		large_tex_view = new nanogui::ImageView ( large_image_view, plot_data->input_data_textures.id );
+		large_tex_view->setFixedSize({660, 660});
+		large_tex_view->setPosition({5, 35});
+		large_w_buttons->setPosition({5, 5});
+		large_w_buttons->setFixedSize({120, 30});
+
 		/* widgets end */
 
 
@@ -820,12 +871,14 @@ class GUI : public nanogui::Screen {
 	PlotData *plot_data;
 	nanogui::Window *root;
 	nanogui::Window *window;
+	nanogui::Window *large_image_view;
 	nanogui::Window *graphs;
 	nanogui::Window *controls, *texWindow, *texButtons, *texWindowRight;
 	nanogui::Graph *graph_loss;
 	nanogui::Graph *graph_fps, *graph_cpu, *graph_flops, *graph_bytes;
-	nanogui::ImageView *texView, *texViewRight;
+	nanogui::ImageView *texView, *texViewRight, *large_tex_view;
 	nanogui::ProgressBar *mProgress;
+	NNView* nnview = nullptr;
 
 	int completed_frames = 0;
 
