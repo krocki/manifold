@@ -594,7 +594,7 @@ class GUI : public nanogui::Screen {
 
 		b = opt_buttons->add<nanogui::Button> ( "", ENTYPO_ICON_BAR_GRAPH );
 		b->setFixedSize ( bsize ); b->setBackgroundColor ( ccolor );
-		b->setCallback ( [&]() { nn->collect_stats_enabled = !nn->collect_stats_enabled; nnview->setVisible(nn->collect_stats_enabled); } );
+		b->setCallback ( [&]() { nn->collect_stats_enabled = !nn->collect_stats_enabled; nnview->setVisible(nn->collect_stats_enabled); nnview->requestFocus();} );
 
 		// Set the first texture
 
