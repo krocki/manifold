@@ -2,7 +2,7 @@
 * @Author: kmrocki
 * @Date:   2016-02-24 15:28:10
 * @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-04-11 11:36:11
+* @Last Modified time: 2017-04-11 13:39:48
 */
 
 #ifndef __NN_H__
@@ -235,7 +235,7 @@ class NN {
 
 				current_loss = current_loss < 0 ? err : 0.99 * current_loss + 0.01 * err;
 
-				if ( ii % 50 == 0 ) {
+				if ( ii % 250 == 0 ) {
 
 					clock = true;
 					//update graph data
@@ -454,7 +454,7 @@ class NN {
 				// if (use_code_sigmoid &&  int ( layers.size() ) == code_layer_no )
 				// 	layers.push_back ( new Sigmoid ( layer_sizes[l + 1], layer_sizes[l + 1], batch_size ) );
 				// else {
-				layers.push_back ( new Sigmoid ( layer_sizes[l + 1], layer_sizes[l + 1], batch_size ) );
+				layers.push_back ( new ELU ( layer_sizes[l + 1], layer_sizes[l + 1], batch_size ) );
 
 				// }
 

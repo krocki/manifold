@@ -2,7 +2,7 @@
 * @Author: Kamil Rocki
 * @Date:   2017-02-28 11:25:34
 * @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-04-11 11:35:59
+* @Last Modified time: 2017-04-11 13:39:17
 */
 
 #include <thread>
@@ -40,13 +40,13 @@ int compute() {
 	// NN stuff
 	double learning_rate = 1e-3;
 	float decay = 0;
-	const size_t batch_size = 25;
+	const size_t batch_size = 16;
 	const int input_width = static_cast<int> ( train_data[0].x.size() );
 	assert ( input_width > 0 );
 
 	size_t e = 0;
 
-	nn = std::shared_ptr<NN> ( new NN ( batch_size, decay, learning_rate, AE, { input_width, 256, 3, 256, input_width } ) );
+	nn = std::shared_ptr<NN> ( new NN ( batch_size, decay, learning_rate, AE, { input_width, 64, 32, 16, 3, 16, 32, 64, input_width } ) );
 
 	nn->otype = SGD;
 	nn->pause = true;

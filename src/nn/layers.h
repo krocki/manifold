@@ -2,7 +2,7 @@
 * @Author: kmrocki@us.ibm.com
 * @Date:   2017-03-03 15:06:37
 * @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-04-11 10:12:54
+* @Last Modified time: 2017-04-11 13:12:53
 */
 
 #ifndef __LAYERS_H__
@@ -165,10 +165,54 @@ class Layer {
 
 		}
 
+		if ( x_hist_activity ) {
+
+			histogram(x, x_hist_activity);
+
+		}
+
+		if ( y_hist_activity ) {
+
+			histogram(y, y_hist_activity);
+
+		}
+
+		if ( dx_avg_activity ) {
+
+			dx_avg_activity->head ( dx_avg_activity->size() - 1 ) = dx_avg_activity->tail ( dx_avg_activity->size() - 1 );
+			dx_avg_activity->tail ( 1 ) ( 0 ) = dx.mean();
+
+		}
+
+		if ( dy_avg_activity ) {
+
+			dy_avg_activity->head ( dy_avg_activity->size() - 1 ) = dy_avg_activity->tail ( dy_avg_activity->size() - 1 );
+			dy_avg_activity->tail ( 1 ) ( 0 ) = dy.mean();
+
+		}
+
+		if ( dx_hist_activity ) {
+
+			histogram(dx, dx_hist_activity);
+
+		}
+
+		if ( dy_hist_activity ) {
+
+			histogram(dy, dy_hist_activity);
+
+		}
+
 	}
 
 	Eigen::VectorXf *x_avg_activity = nullptr;
 	Eigen::VectorXf *y_avg_activity = nullptr;
+	Eigen::VectorXf *x_hist_activity = nullptr;
+	Eigen::VectorXf *y_hist_activity = nullptr;
+	Eigen::VectorXf *dx_avg_activity = nullptr;
+	Eigen::VectorXf *dy_avg_activity = nullptr;
+	Eigen::VectorXf *dx_hist_activity = nullptr;
+	Eigen::VectorXf *dy_hist_activity = nullptr;
 
 	//}
 

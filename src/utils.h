@@ -2,7 +2,7 @@
 * @Author: kmrocki@us.ibm.com
 * @Date:   2017-03-03 15:22:47
 * @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-04-09 21:11:18
+* @Last Modified time: 2017-04-11 12:54:39
 */
 
 #ifndef __UTIL_MAIN_H__
@@ -99,6 +99,52 @@ Eigen::Quaternionf rotate(const Eigen::Vector3f &angle, const Eigen::Vector3f &f
 	return yaw * pitch * roll;
 }
 
+void histogram(Eigen::MatrixXf& m, Eigen::VectorXf* h) {
+
+	h->setZero();
+
+	// float _min_ = m.minCoeff();
+	// float _max_ = m.maxCoeff();
+
+	// float bin_size = (_max_ - _min_ / (float)h->size());
+
+	// std::cout << bin_size;
+
+	float bin_size = 0.2f;
+	float min_val = -1.0f;
+
+	// x - 0.8
+	// - 0.8 - 0.6
+	// - 0.6 - 0.4
+	// - 0.4 - 0.2
+	// - 0.2 - 0.0
+	// 0.0 0.2
+	// 0.2 0.4
+	// 0.4 0.6
+	// 0.6 0.8
+	// 0.8 -
+
+	// std::cout << min_val << std::endl;
+
+	for (size_t ii = 0; ii < m.size(); ii++) {
+
+		float val = m(ii);
+		int bin_id = (val - min_val) / bin_size;
+		if (bin_id > (h->size() - 1)) bin_id = h->size() - 1;
+		if (bin_id < 0) bin_id = 0;
+		h->operator()(bin_id) += 1;
+
+	}
+
+	float _max_hist_ = h->maxCoeff();
+
+	for (size_t ii = 0; ii < h->size(); ii++) {
+
+		h->operator()(ii) /= _max_hist_;
+
+	}
+
+}
 void checkNaNInf(Eigen::MatrixXf &m) {
 
 	m = m.unaryExpr([](float elem) { // changed type of parameter

@@ -2,7 +2,7 @@
 * @Author: kmrocki@us.ibm.com
 * @Date:   2017-03-20 10:09:39
 * @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-04-11 11:23:01
+* @Last Modified time: 2017-04-11 13:37:37
 */
 
 #ifndef __NNVIEW_H__
@@ -67,42 +67,115 @@ class NNView : public nanogui::Window {
 		if ( net ) {
 
 			wwww =  new nanogui::Window ( this, "" );
-			wwww->setLayout( new nanogui::GridLayout ( nanogui::Orientation::Horizontal, 8, nanogui::Alignment::Middle,
+			wwww->setLayout( new nanogui::GridLayout ( nanogui::Orientation::Horizontal, net->layers.size(), nanogui::Alignment::Middle,
 			                 3, 3 ));
-
-			// nanogui::Widget *www = new nanogui::Widget ( this );
-			// www->setLayout(new nanogui::BoxLayout());
 
 
 			// labels
 			for ( int i = 0; i < net->layers.size(); i++ ) {
 
-				new nanogui::Label ( wwww, std::to_string ( i ) + ": " + net->layers[i]->name + ", x: "  + 								std::to_string ( net->layers[i]->x.rows() ) + ":" +  std::to_string ( net->layers[i]->x.cols() ) + ", y: "  +								std::to_string ( net->layers[i]->y.rows() ) + ":" + std::to_string ( net->layers[i]->y.cols() ), "sans-bold", 9);
+				nanogui::Label* l = new nanogui::Label ( wwww, std::to_string ( i ) + ": " + net->layers[i]->name + ", x: "  + 								std::to_string ( net->layers[i]->x.rows() ) + ":" +  std::to_string ( net->layers[i]->x.cols() ) + ", y: "  +								std::to_string ( net->layers[i]->y.rows() ) + ":" + std::to_string ( net->layers[i]->y.cols() ), "sans-bold", 9);
+				l->setFixedSize({ ( ( size() [0] - 30 )  / (net->layers.size()) ) - 10, 20});
 
 			}
 
+
+
 			for ( int i = 0; i < net->layers.size(); i++ ) {
-				avg_inputs.push_back ( new nanogui::Graph ( wwww, "" ) );
+				nanogui::Widget *gw = new nanogui::Widget ( wwww );
+				gw->setLayout(new nanogui::GridLayout ( nanogui::Orientation::Horizontal, 2, nanogui::Alignment::Middle,
+				                                        0, 0 ));
+				avg_inputs.push_back ( new nanogui::Graph ( gw, "" ) );
 				avg_inputs[i]->setBackgroundColor ( nanogui::Color ( 32, 32, 32, 128 ) );
 				avg_inputs[i]->setGraphColor ( nanogui::Color ( 255, 255, 255, 128 ) );
 				avg_inputs[i]->setFooter ( "avg x" );
-				avg_inputs[i]->setFixedSize ( { ( ( size() [0] - 60 )  / net->layers.size() ) - 10, 40} );
+				avg_inputs[i]->setFixedSize ( { ( ( size() [0] - 60 )  / (net->layers.size() * 2) ) - 10, 30} );
 				avg_inputs[i]->values_ptr()->resize ( 500 );
 				avg_inputs[i]->values_ptr()->setZero();
 				net->layers[i]->x_avg_activity = avg_inputs[i]->values_ptr();
 
+				hist_inputs.push_back ( new nanogui::Graph ( gw, "", nanogui::GraphType::GRAPH_COLORBARS ) );
+				hist_inputs[i]->setBackgroundColor ( nanogui::Color ( 32, 32, 32, 128 ) );
+				hist_inputs[i]->setGraphColor ( nanogui::Color ( 255, 255, 255, 128 ) );
+				// hist_inputs[i]->setFooter ( "hist x" );
+				hist_inputs[i]->setFixedSize ( { ( ( size() [0] - 60 )  / (net->layers.size() * 2) ) - 10, 30} );
+				hist_inputs[i]->values_ptr()->resize ( 10 );
+				hist_inputs[i]->values_ptr()->setZero();
+				net->layers[i]->x_hist_activity = hist_inputs[i]->values_ptr();
+
+
 			}
 
 			for ( int i = 0; i < net->layers.size(); i++ ) {
-
-				avg_outputs.push_back ( new nanogui::Graph ( wwww, "" ) );
+				nanogui::Widget *gw = new nanogui::Widget ( wwww );
+				gw->setLayout(new nanogui::GridLayout ( nanogui::Orientation::Horizontal, 2, nanogui::Alignment::Middle,
+				                                        0, 0 ));
+				avg_outputs.push_back ( new nanogui::Graph ( gw, "" ) );
 				avg_outputs[i]->setBackgroundColor ( nanogui::Color ( 32, 32, 32, 128 ) );
 				avg_outputs[i]->setGraphColor ( nanogui::Color ( 192, 128, 0, 128 ) );
 				avg_outputs[i]->setFooter ( "avg y" );
-				avg_outputs[i]->setFixedSize ( { ( ( size() [0] - 60 )  / net->layers.size() ) - 10, 40} );
+				avg_outputs[i]->setFixedSize ( { ( ( size() [0] - 60 )  / (net->layers.size() * 2) ) - 10, 30} );
 				avg_outputs[i]->values_ptr()->resize ( 500 );
 				avg_outputs[i]->values_ptr()->setZero();
 				net->layers[i]->y_avg_activity = avg_outputs[i]->values_ptr();
+
+				hist_outputs.push_back ( new nanogui::Graph ( gw, "", nanogui::GraphType::GRAPH_COLORBARS ) );
+				hist_outputs[i]->setBackgroundColor ( nanogui::Color ( 32, 32, 32, 128 ) );
+				hist_outputs[i]->setGraphColor ( nanogui::Color ( 255, 255, 255, 128 ) );
+				// hist_outputs[i]->setFooter ( "hist x" );
+				hist_outputs[i]->setFixedSize ( { ( ( size() [0] - 60 )  / (net->layers.size() * 2) ) - 10, 30} );
+				hist_outputs[i]->values_ptr()->resize ( 10 );
+				hist_outputs[i]->values_ptr()->setZero();
+				net->layers[i]->y_hist_activity = hist_outputs[i]->values_ptr();
+
+			}
+
+			for ( int i = 0; i < net->layers.size(); i++ ) {
+				nanogui::Widget *gw = new nanogui::Widget ( wwww );
+				gw->setLayout(new nanogui::GridLayout ( nanogui::Orientation::Horizontal, 2, nanogui::Alignment::Middle,
+				                                        0, 0 ));
+				avg_dinputs.push_back ( new nanogui::Graph ( gw, "" ) );
+				avg_dinputs[i]->setBackgroundColor ( nanogui::Color ( 32, 32, 32, 128 ) );
+				avg_dinputs[i]->setGraphColor ( nanogui::Color ( 255, 255, 255, 128 ) );
+				avg_dinputs[i]->setFooter ( "avg dx" );
+				avg_dinputs[i]->setFixedSize ( { ( ( size() [0] - 60 )  / (net->layers.size() * 2) ) - 10, 30} );
+				avg_dinputs[i]->values_ptr()->resize ( 500 );
+				avg_dinputs[i]->values_ptr()->setZero();
+				net->layers[i]->dx_avg_activity = avg_dinputs[i]->values_ptr();
+
+				hist_dinputs.push_back ( new nanogui::Graph ( gw, "", nanogui::GraphType::GRAPH_COLORBARS ) );
+				hist_dinputs[i]->setBackgroundColor ( nanogui::Color ( 32, 32, 32, 128 ) );
+				hist_dinputs[i]->setGraphColor ( nanogui::Color ( 255, 255, 255, 128 ) );
+				// hist_inputs[i]->setFooter ( "hist x" );
+				hist_dinputs[i]->setFixedSize ( { ( ( size() [0] - 60 )  / (net->layers.size() * 2) ) - 10, 30} );
+				hist_dinputs[i]->values_ptr()->resize ( 10 );
+				hist_dinputs[i]->values_ptr()->setZero();
+				net->layers[i]->dx_hist_activity = hist_dinputs[i]->values_ptr();
+
+
+			}
+
+			for ( int i = 0; i < net->layers.size(); i++ ) {
+				nanogui::Widget *gw = new nanogui::Widget ( wwww );
+				gw->setLayout(new nanogui::GridLayout ( nanogui::Orientation::Horizontal, 2, nanogui::Alignment::Middle,
+				                                        0, 0 ));
+				avg_doutputs.push_back ( new nanogui::Graph ( gw, "" ) );
+				avg_doutputs[i]->setBackgroundColor ( nanogui::Color ( 32, 32, 32, 128 ) );
+				avg_doutputs[i]->setGraphColor ( nanogui::Color ( 192, 128, 0, 128 ) );
+				avg_doutputs[i]->setFooter ( "avg dy" );
+				avg_doutputs[i]->setFixedSize ( { ( ( size() [0] - 60 )  / (net->layers.size() * 2) ) - 10, 30} );
+				avg_doutputs[i]->values_ptr()->resize ( 500 );
+				avg_doutputs[i]->values_ptr()->setZero();
+				net->layers[i]->dy_avg_activity = avg_doutputs[i]->values_ptr();
+
+				hist_doutputs.push_back ( new nanogui::Graph ( gw, "", nanogui::GraphType::GRAPH_COLORBARS ) );
+				hist_doutputs[i]->setBackgroundColor ( nanogui::Color ( 32, 32, 32, 128 ) );
+				hist_doutputs[i]->setGraphColor ( nanogui::Color ( 255, 255, 255, 128 ) );
+				// hist_outputs[i]->setFooter ( "hist x" );
+				hist_doutputs[i]->setFixedSize ( { ( ( size() [0] - 60 )  / (net->layers.size() * 2) ) - 10, 30} );
+				hist_doutputs[i]->values_ptr()->resize ( 10 );
+				hist_doutputs[i]->values_ptr()->setZero();
+				net->layers[i]->dy_hist_activity = hist_doutputs[i]->values_ptr();
 
 			}
 
@@ -110,8 +183,8 @@ class NNView : public nanogui::Window {
 
 				iw.push_back(new nanogui::Widget ( wwww ));
 				iw[i]->setLayout ( new nanogui::BoxLayout() );
-				iw[i]->setFixedSize({140, 300});
-				imgPanel.push_back(new nanogui::ImagePanel ( iw[i], 65, 3, 3 ));
+				iw[i]->setFixedSize({ ( ( size() [0] - 30 )  / (net->layers.size()) ) - 10, 300});
+				imgPanel.push_back(new nanogui::ImagePanel ( iw[i], ( ( size() [0] - 50 )  / (net->layers.size() * 2) ) - 10, 3, 3 ));
 
 			}
 
@@ -229,7 +302,8 @@ class NNView : public nanogui::Window {
 	std::vector<nanogui::Window *> layers_windows;
 	std::vector<nanogui::Widget *> iw;
 	std::vector<nanogui::ImagePanel *> imgPanel;
-	std::vector<nanogui::Graph *> avg_outputs, avg_inputs;
+	std::vector<nanogui::Graph *> avg_outputs, avg_inputs, hist_outputs, hist_inputs;
+	std::vector<nanogui::Graph *> avg_doutputs, avg_dinputs, hist_doutputs, hist_dinputs;
 
 	NVGcontext *nvg = nullptr;
 	PlotData *plot_data = nullptr;
