@@ -2,7 +2,7 @@
 * @Author: kmrocki
 * @Date:   2016-02-24 15:28:10
 * @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-04-11 14:49:52
+* @Last Modified time: 2017-04-11 15:51:44
 */
 
 #ifndef __GAN_NN_H__
@@ -44,7 +44,7 @@ class NN {
 
 	bool use_code_sigmoid = false;
 	bool use_dropout = false;
-	bool collect_stats_enabled = true;
+	bool collect_stats_enabled = false;
 
 	bool clock = false;
 	bool quit = false;
@@ -67,7 +67,7 @@ class NN {
 
 	float epoch_progress;
 
-	int code_layer_no = 1;
+	int code_layer_no = 0;
 
 	std::mutex params;
 
@@ -155,12 +155,8 @@ class NN {
 			layers[l]->collect_statistics ( );
 	}
 
-	void train ( const std::deque<datapoint> &data, size_t iterations ) {
 
-		size_t classes = 10;
-		random_numbers.resize ( batch_size );
-		batch.resize ( data[0].x.rows(), batch_size );
-		// size_t dims = layers[code_layer_no]->y.rows();
+	void train(const Eigen::MatrixXf& s_vertices, std::deque<datapoint> &reconstruction_data) {
 
 		while ( pause ) {
 			usleep ( 10000 );
@@ -168,150 +164,46 @@ class NN {
 		}
 
 		if ( !quit ) {
-			if ( ntype == AE || ntype == DAE ) {
 
-				// codes.resize ( dims, iterations * batch_size );
-				// codes_colors.resize ( 1, iterations * batch_size );
+			size_t dims = layers[code_layer_no]->x.rows();
 
-				// targets.resize ( 1, batch_size );
-				// encoding.resize ( 1, 10 );
-				// encoding << 0, 1, 2, 3, 4, 5, 6, 7, 8, 9;
+			sample_idx.resize ( 1, s_vertices.cols() );
+			reconstruction_data.resize(s_vertices.cols());
 
-			} else {
+			Eigen::VectorXi numbers ( batch_size );
 
-				targets.resize ( classes, batch_size );
-				encoding = Matrix::Identity ( classes, classes );
+			sample_batch.resize ( dims, batch_size );
 
-			}
+			size_t iterations = s_vertices.cols() / batch_size;
 
-			for ( size_t ii = 0; ii < iterations; ii++ ) {
+			for ( size_t ii = 0; ii < s_vertices.cols(); ii += batch_size ) {
 
-				tic();
-
-				matrix_randi ( random_numbers, 0, data.size() - 1 );
-
-				// [784 x batch_size]
-				make_batch ( batch, data, random_numbers );
-
-				if ( ntype == MLP ) make_targets ( targets, encoding, data, random_numbers );
+				linspace ( numbers, ii, ii + batch_size );
+				make_batch ( sample_batch, s_vertices, numbers );
 
 				ticf();
+				tic();
 
-				//forward activations
-				if ( ntype == DAE ) {
+				forward (code_layer_no, sample_batch);
 
-					/* Denoising */
-					Matrix mask ( batch.rows(), batch.cols() );
-					random_binary_mask ( mask );
-					Matrix corrupted_batch ( batch.rows(), batch.cols() );
-					corrupted_batch.array() = batch.array() * mask.array();
-					forward ( corrupted_batch );
-
-				} else
-
-					forward ( batch );
-
-				double err;
-
-				//backprogagation
-				if ( ntype == AE || ntype == DAE ) {
-
-					// codes.block ( 0, ii * batch_size, dims, batch_size ) = layers[code_layer_no]->y;
-					// codes_colors.block ( 0, ii * batch_size, 1, batch_size ) = targets;
-
-					err = mse ( layers[layers.size() - 1]->y, batch ) / ( float ) batch_size;
-
-					// reconstruct
-					backward ( batch - layers[layers.size() - 1]->y );
-
-
-				} else {
-
-					err = cross_entropy ( layers[layers.size() - 1]->y, targets );
-
-					backward ( targets );
-
-				}
-
-				current_loss = current_loss < 0 ? err : 0.99 * current_loss + 0.01 * err;
+				tocf();
+				toc();
 
 				if ( ii % 250 == 0 ) {
 
 					clock = true;
-					//update graph data
-					if ( loss_data ) {
-
-						loss_data->head ( loss_data->size() - 1 ) = loss_data->tail ( loss_data->size() - 1 );
-						loss_data->tail ( 1 ) ( 0 ) = current_loss;
-
-					}
-
-					// perturb net randomly
-					// kick();
 
 					if ( collect_stats_enabled )
 						collect_statistics();
 				}
 
-				//apply changes
-				update ( learning_rate, decay );
-
-				tocf();
-				toc();
-
 				epoch_progress = ( ( float ) ii ) / ( float ) iterations;
-				printf ( "\t%.1f%%\r", epoch_progress * 100.0 );
-				fflush ( stdout );
 
 				if ( quit ) break;
-
 			}
-		}
-	}
 
-
-	double test ( const std::deque<datapoint> &data ) {
-
-		while ( pause ) {
-			usleep ( 10000 );
-			if ( step || quit ) { step = false; break; }
 		}
 
-		if ( !quit ) {
-
-			if ( ntype == AE || ntype == DAE )
-
-				return current_loss;
-
-			else {
-
-				Eigen::VectorXi numbers ( batch_size );
-				size_t classes = 10;
-				size_t correct = 0;
-
-				batch.resize ( data[0].x.rows(), batch_size );
-				targets.resize ( classes, batch_size );
-				encoding = Matrix::Identity ( classes, classes );
-
-				for ( size_t ii = 0; ii < data.size(); ii += batch_size ) {
-
-					linspace ( numbers, ii, ii + batch_size );
-
-					make_batch ( batch, data, numbers );
-					make_targets ( targets, encoding, data, numbers );
-
-					forward ( batch );
-
-					correct += count_correct_predictions ( layers[layers.size() - 1]->y, targets );
-
-
-				}
-
-				return ( double ) correct / ( double ) ( data.size() );
-			}
-		}
-
-		return 0.0;
 	}
 
 	void testcode ( const Eigen::MatrixXf& s_vertices, std::deque<datapoint> &reconstruction_data ) {
@@ -345,49 +237,6 @@ class NN {
 		}
 	}
 
-	void testcode ( const std::deque<datapoint> &data, std::deque<datapoint> &reconstruction_data ) {
-
-		if ( !quit ) {
-
-			size_t dims = layers[code_layer_no]->y.rows();
-
-			codes.resize ( dims, data.size() );
-			codes_colors.resize ( 1, data.size() );
-			codes_idxs.resize ( 1, data.size() );
-
-			Eigen::VectorXi numbers ( batch_size );
-
-			batch.resize ( data[0].x.rows(), batch_size );
-			targets.resize ( 1, batch_size );
-			encoding.resize ( 1, 10 );
-			encoding << 0, 1, 2, 3, 4, 5, 6, 7, 8, 9;
-
-			for ( size_t ii = 0; ii < data.size(); ii += batch_size ) {
-
-				linspace ( numbers, ii, ii + batch_size );
-				make_batch ( batch, data, numbers );
-
-				if ( ntype == DAE ) batch /= 2.0f;
-
-				make_targets ( targets, encoding, data, numbers );
-
-				forward (batch);
-
-				codes.block ( 0, ii, dims, batch_size ) = layers[code_layer_no]->y;
-				codes_colors.block ( 0, ii, 1, batch_size ) = targets;
-				codes_idxs.block ( 0, ii, 1, batch_size ) = numbers.transpose();
-
-				for (int b = 0; b < batch_size; b++) {
-
-					reconstruction_data[ii + b].x = layers.back()->y.col(b);
-
-				}
-
-			}
-
-		}
-	}
-
 	NN ( size_t minibatch_size, float _decay = 0.0f, float _learning_rate = 1e-4, network_type type = MLP,
 	     std::vector<int> _layer_sizes = {} ) :
 		batch_size ( minibatch_size ), decay ( _decay ), learning_rate ( _learning_rate ), ntype ( type ) {
@@ -396,13 +245,7 @@ class NN {
 
 		otype = SGD;
 
-		//dropout
-		// if (use_dropout)
-		// 	code_layer_no = 3 * ( layer_sizes.size() - 1 ) / 2 - 2;
-		// else
-		code_layer_no = 2 * ( layer_sizes.size() - 1 ) / 2 - 1;
-
-		std::cout << code_layer_no << std::endl;
+		code_layer_no = 0;
 
 		init_net();
 
@@ -445,24 +288,13 @@ class NN {
 		for ( size_t l = 0; l < layer_sizes.size() - 1; l++ ) {
 
 			layers.push_back ( new Linear ( layer_sizes[l], layer_sizes[l + 1], batch_size ) );
-			// layers.back()->adjust_sparsity = false;
 
 			if ( ( l + 1 ) == ( layer_sizes.size() - 1 ) )
 				layers.push_back ( new Sigmoid ( layer_sizes[l + 1], layer_sizes[l + 1], batch_size ) );
 			else {
 
-				// if (use_code_sigmoid &&  int ( layers.size() ) == code_layer_no )
-				// 	layers.push_back ( new Sigmoid ( layer_sizes[l + 1], layer_sizes[l + 1], batch_size ) );
-				// else {
-				layers.push_back ( new ELU ( layer_sizes[l + 1], layer_sizes[l + 1], batch_size ) );
+				layers.push_back ( new ReLU ( layer_sizes[l + 1], layer_sizes[l + 1], batch_size ) );
 
-				// }
-
-				//dropout
-				// if (use_dropout) {
-				// 	if ( int ( layers.size() - 1 ) != code_layer_no )
-				// 		layers.push_back ( new Dropout ( layer_sizes[l + 1], layer_sizes[l + 1], batch_size, 1.0f ) );
-				// }
 			}
 
 		}

@@ -2,7 +2,7 @@
 * @Author: kmrocki@us.ibm.com
 * @Date:   2017-03-20 10:11:47
 * @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-04-11 14:42:49
+* @Last Modified time: 2017-04-11 20:29:45
 */
 
 #ifndef __PLOTDATA_H__
@@ -45,14 +45,14 @@ class PlotData {
 	std::vector<std::pair<int, std::string>> icons;
 
 	//TODO: change to dict
-	std::vector<Texture> nn_matrix_data_x;
-	std::vector<Texture> nn_matrix_data_y;
-	std::vector<Texture> nn_weight_data;
-	std::vector<Texture> nn_matrix_data_dx;
-	std::vector<Texture> nn_matrix_data_dy;
-	std::vector<Texture> nn_weight_data_dW;
+	std::vector<Texture> nn_matrix_data_x, disc_matrix_data_x;
+	std::vector<Texture> nn_matrix_data_y, disc_matrix_data_y;
+	std::vector<Texture> nn_weight_data, disc_weight_data;
+	std::vector<Texture> nn_matrix_data_dx, disc_matrix_data_dx;
+	std::vector<Texture> nn_matrix_data_dy, disc_matrix_data_dy;
+	std::vector<Texture> nn_weight_data_dW, disc_weight_data_dW;
 
-	std::vector<std::vector<std::pair<int, std::string>>> nn_matrices;
+	std::vector<std::vector<std::pair<int, std::string>>> nn_matrices, disc_matrices;
 
 	NVGcontext *nvg;
 
@@ -81,6 +81,7 @@ class PlotData {
 		}
 	}
 
+	//TODO: combine all
 	void update_nn_matrix_textures ( std::shared_ptr<NN> &net, NVGcontext *nvg, GLint fmt ) {
 
 		if ( net ) {
@@ -127,15 +128,61 @@ class PlotData {
 			std::cout << "net is null" << std::endl;
 	}
 
+	void update_disc_matrix_textures ( std::shared_ptr<NN> &disc, NVGcontext *nvg, GLint fmt ) {
+
+		if ( disc ) {
+
+			disc_matrix_data_x.resize ( disc->layers.size() );
+			disc_matrix_data_y.resize ( disc->layers.size() );
+			disc_weight_data.resize ( disc->layers.size() );
+			disc_matrix_data_dx.resize ( disc->layers.size() );
+			disc_matrix_data_dy.resize ( disc->layers.size() );
+			disc_weight_data_dW.resize ( disc->layers.size() );
+
+			disc_matrices.resize(disc->layers.size());
+
+			for ( size_t i = 0; i < disc->layers.size(); i++ )
+				if ( disc->layers[i] ) {
+
+					make_textures_from_matrices ( disc_matrix_data_x[i], disc->layers[i]->x, nvg, fmt, SQUARES );
+					make_textures_from_matrices ( disc_matrix_data_y[i], disc->layers[i]->y, nvg, fmt, SQUARES );
+					make_textures_from_matrices ( disc_matrix_data_dx[i], disc->layers[i]->dx, nvg, fmt, SQUARES );
+					make_textures_from_matrices ( disc_matrix_data_dy[i], disc->layers[i]->dy, nvg, fmt, SQUARES );
+
+					disc_matrices[i].clear();
+					disc_matrices[i].push_back(std::make_pair(disc_matrix_data_x[i].id, "x"));
+					disc_matrices[i].push_back(std::make_pair(disc_matrix_data_dx[i].id, "x"));
+					disc_matrices[i].push_back(std::make_pair(disc_matrix_data_y[i].id, "y"));
+					disc_matrices[i].push_back(std::make_pair(disc_matrix_data_dy[i].id, "dy"));
+
+					if (disc->layers[i]->name == "linear") {
+						make_textures_from_matrices ( disc_weight_data[i], ( ( Linear * ) disc->layers[i] )->W, nvg, fmt, SQUARES, true );
+						make_textures_from_matrices ( disc_weight_data_dW[i], ( ( Linear * ) disc->layers[i] )->dW, nvg, fmt, SQUARES, true );
+						disc_matrices[i].push_back(std::make_pair(disc_weight_data[i].id, "W"));
+						disc_matrices[i].push_back(std::make_pair(disc_weight_data_dW[i].id, "dW"));
+
+					}
+				}
+
+			// reconstructions - output from the top layer
+			// if ( net->layers.back() ) {
+			// 	make_textures_from_matrices ( nn_matrix_data.back(), net->layers.back()->y, nvg, fmt, SQUARES );
+			// }
+
+		} else
+
+			std::cout << "disc is null" << std::endl;
+	}
+
 	void make_textures_from_matrices ( Texture &t, Eigen::MatrixXf &m, NVGcontext *nvg, GLint fmt = GL_RED,
 	                                   matrix_layout layout = SQUARES, bool transpose = false ) {
 
 		if ( m.size() > 0 ) {
-			std::cout << "make_textures_from_matrices start" << std::endl;
+			// std::cout << "make_textures_from_matrices start" << std::endl;
 
 			if ( layout == SQUARES ) {
 
-				std::cout << "loading tex" << std::endl;
+				// std::cout << "loading tex" << std::endl;
 				// m is (vec length x batch size)
 				if ( fmt == GL_RGBA )
 					t.update_from_matrix ( m, fmt, nvg, transpose ? sqrt ( m.cols() / 3 ) : sqrt ( m.rows() / 3 ), transpose );
@@ -147,7 +194,7 @@ class PlotData {
 				// flat
 			}
 
-			std::cout << "make_textures_from_matrices end" << std::endl;
+			// std::cout << "make_textures_from_matrices end" << std::endl;
 		}
 	}
 

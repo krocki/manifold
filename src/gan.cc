@@ -2,7 +2,7 @@
 * @Author: Kamil Rocki
 * @Date:   2017-02-28 11:25:34
 * @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-04-11 14:49:59
+* @Last Modified time: 2017-04-11 20:18:03
 */
 
 #include <thread>
@@ -18,6 +18,7 @@
 #include <nn/gan.h>
 
 std::shared_ptr<NN> nn;
+std::shared_ptr<NN> discriminator;
 
 std::deque<datapoint> train_data;
 std::deque<datapoint> reconstruction_data;
@@ -25,7 +26,7 @@ std::deque<datapoint> sample_reconstruction_data;
 std::deque<datapoint> test_data;
 
 //GUI
-#include "gui/manifoldscreen.h"
+#include "gui/ganscreen.h"
 #include <compute/functions.h>
 
 std::shared_ptr<GUI> screen;
@@ -40,16 +41,19 @@ int compute() {
 	// NN stuff
 	double learning_rate = 1e-3;
 	float decay = 0;
-	const size_t batch_size = 16;
+	const size_t batch_size = 100;
 	const int input_width = static_cast<int> ( train_data[0].x.size() );
 	assert ( input_width > 0 );
 
 	size_t e = 0;
 
-	nn = std::shared_ptr<NN> ( new NN ( batch_size, decay, learning_rate, AE, { input_width, 64, 3, 64, input_width } ) );
+	nn = std::shared_ptr<NN> ( new NN ( batch_size, decay, learning_rate, AE, {3, 16, 32, input_width } ) );
+	discriminator = std::shared_ptr<NN> ( new NN ( batch_size, decay, learning_rate, MLP, {input_width, 32, 1 } ) );
 
 	nn->otype = SGD;
 	nn->pause = true;
+	discriminator->otype = SGD;
+	discriminator->pause = true;
 
 	size_t generate_point_count = 10000;
 	generate ( std::uniform_real_distribution<> ( 0, 1 ),
@@ -61,7 +65,7 @@ int compute() {
 
 	if ( screen )
 		if ( screen->nnview ) {
-			screen->nnview->setnet ( nn );
+			screen->nnview->setnets ( nn, discriminator );
 		}
 
 	//bind graph data
@@ -71,34 +75,12 @@ int compute() {
 
 	}
 
-	// size_t iters = train_data.size() / batch_size;
-	size_t iters = 10000;
-
 	/* work until main window is open */
 	while ( screen->getVisible() ) {
 
-		// drawing
-		nn->testcode ( train_data, reconstruction_data );
-		nn->testcode ( gl_data->s_vertices, sample_reconstruction_data );
-
-		gl_data->p_vertices = nn->codes;
-
-		// convert labels to colors, TODO: move somewhere else
-		gl_data->p_colors.resize ( 3, nn->codes_colors.cols() );
-		for ( int k = 0; k < nn->codes_colors.cols(); k++ ) {
-			nanogui::Color c = nanogui::parula_lut[ ( int ) nn->codes_colors ( 0, k )];
-			gl_data->p_colors.col ( k ) = Eigen::Vector3f ( c[0], c[1], c[2] );
-		}
+		nn->train ( gl_data->s_vertices, sample_reconstruction_data );
 
 		gl_data->updated();
-		nn->train ( train_data, iters );
-		gl_data->updated();
-
-		std::cout << return_current_time_and_date() << std::endl;
-		std::string fprefix = "snapshot_last";
-		printf ( "Epoch %3lu: Loss: %.2f\n", ++e, ( float ) nn->test ( test_data ) );
-		nanogui::Serializer s ( std::string ( "./saved/" + fprefix + ".nn.bin" ).c_str(), true );
-		nn->save ( s );
 
 		usleep ( 100 );
 

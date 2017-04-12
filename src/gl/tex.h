@@ -2,7 +2,7 @@
 * @Author: kmrocki@us.ibm.com
 * @Date:   2017-03-06 13:20:16
 * @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-04-11 14:34:32
+* @Last Modified time: 2017-04-11 15:52:53
 */
 #ifndef _GL_TEX_
 #define _GL_TEX_
@@ -212,6 +212,7 @@ class Texture {
 
 	Texture() {
 
+		id = 0;
 		// glGenTextures(1, &id);
 		// glBindTexture(GL_TEXTURE_2D, id);
 	}
