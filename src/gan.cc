@@ -2,7 +2,7 @@
 * @Author: Kamil Rocki
 * @Date:   2017-02-28 11:25:34
 * @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-04-11 20:18:03
+* @Last Modified time: 2017-04-12 09:37:29
 */
 
 #include <thread>
@@ -79,6 +79,8 @@ int compute() {
 	while ( screen->getVisible() ) {
 
 		nn->train ( gl_data->s_vertices, sample_reconstruction_data );
+
+		std::cout << nn->layers.back()->y.rows() << ", " << nn->layers.back()->y.cols() << std::endl;
 
 		gl_data->updated();
 

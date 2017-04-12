@@ -2,7 +2,7 @@
 * @Author: kmrocki@us.ibm.com
 * @Date:   2017-03-03 15:06:37
 * @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-04-11 13:12:53
+* @Last Modified time: 2017-04-12 09:27:48
 */
 
 #ifndef __LAYERS_H__
@@ -10,55 +10,6 @@
 
 #include <nn/nn_utils.h>
 #include <nn/opt.h>
-
-// template <class A>
-// void process_one_type() {
-// 	std::cout << typeid(A).name() << ' ';
-// }
-
-
-// template<class ... Layers>
-// class ComplexLayer {
-
-//   public:
-// 	ComplexLayer(size_t inputs) {
-
-// 		int _[] = {0, (process_one_type<Layers>(), 0)...};
-// 		(void)_;
-// 		std::cout << '\n';
-
-// 	};
-// 	~ComplexLayer() = default;
-
-
-// };
-
-// template<class ... Args> void layer_combo(Args ... args) {
-
-// 	int dummy[] = { 0, ( (void) bar(std::forward<Args>(args)), 0) ... };
-// }
-
-// ComplexLayer<Sigmoid, Linear>(64)
-// ComplexLayer<Sigmoid, Linear>(3)
-// ComplexLayer<Sigmoid, Linear>(64)
-// ComplexLayer<Sigmoid>(input_width)
-
-// 	layer<input_width, Dropout, Linear>,
-// 	layer<64, Sigmoid, Linear>,
-// 	layer<3, Sigmoid, Linear>,
-// 	layer<64, Sigmoid, Linear>,
-// 	layer<input_width, Sigmoid>
-// };
-
-// auto net = {ComplexLayer<Dropout, Linear>(input_width)};
-// std::cout << typeid(net).name() << ' ';
-
-// ({size_t inputs, std::initializer_list<Layer> layers})
-
-// std::string net_definition = "x 784 dropout(0.5) linsigm(64) linsigm(3) linsigm(64) linsigm(784) y";
-// std::vector<std::string> tokens = split(net_definition);
-// for (int i = 0; i < tokens.size(); i++)
-// 	std::cout << tokens[i]  << std::endl;
 
 //abstract
 class Layer {
@@ -598,5 +549,54 @@ class Dropout : public Layer {
 	~Dropout() {};
 
 };
+
+// template <class A>
+// void process_one_type() {
+// 	std::cout << typeid(A).name() << ' ';
+// }
+
+
+// template<class ... Layers>
+// class ComplexLayer {
+
+//   public:
+// 	ComplexLayer(size_t inputs) {
+
+// 		int _[] = {0, (process_one_type<Layers>(), 0)...};
+// 		(void)_;
+// 		std::cout << '\n';
+
+// 	};
+// 	~ComplexLayer() = default;
+
+
+// };
+
+// template<class ... Args> void layer_combo(Args ... args) {
+
+// 	int dummy[] = { 0, ( (void) bar(std::forward<Args>(args)), 0) ... };
+// }
+
+// ComplexLayer<Sigmoid, Linear>(64)
+// ComplexLayer<Sigmoid, Linear>(3)
+// ComplexLayer<Sigmoid, Linear>(64)
+// ComplexLayer<Sigmoid>(input_width)
+
+// 	layer<input_width, Dropout, Linear>,
+// 	layer<64, Sigmoid, Linear>,
+// 	layer<3, Sigmoid, Linear>,
+// 	layer<64, Sigmoid, Linear>,
+// 	layer<input_width, Sigmoid>
+// };
+
+// auto net = {ComplexLayer<Dropout, Linear>(input_width)};
+// std::cout << typeid(net).name() << ' ';
+
+// ({size_t inputs, std::initializer_list<Layer> layers})
+
+// std::string net_definition = "x 784 dropout(0.5) linsigm(64) linsigm(3) linsigm(64) linsigm(784) y";
+// std::vector<std::string> tokens = split(net_definition);
+// for (int i = 0; i < tokens.size(); i++)
+// 	std::cout << tokens[i]  << std::endl;
 
 #endif
