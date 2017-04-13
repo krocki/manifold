@@ -2,7 +2,7 @@
 * @Author: kmrocki@us.ibm.com
 * @Date:   2017-03-20 10:09:39
 * @Last Modified by:   Kamil Rocki
-* @Last Modified time: 2017-04-12 17:05:02
+* @Last Modified time: 2017-04-12 19:54:25
 */
 
 #ifndef __NNVIEW_H__
@@ -99,7 +99,7 @@ class NNView : public nanogui::Window {
 			dummy_vector[0] = std::make_pair ( plot_data->gan_generator_data_textures.id, "generator data" );
 			dummy_vector[1] = std::make_pair ( plot_data->gan_real_data_textures.id, "real images" );
 			dummy_vector[2] = std::make_pair ( plot_data->gan_mixed_data_textures.id, "mixed images" );
-			dummy_vector[3] = std::make_pair ( plot_data->gan_generator_dy_textures.id, "generator dy" );
+			// dummy_vector[3] = std::make_pair ( plot_data->gan_generator_dy_textures.id, "generator dy" );
 			
 			gan_data_panel->setImages ( dummy_vector );
 			

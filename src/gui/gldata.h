@@ -2,7 +2,7 @@
 * @Author: kmrocki@us.ibm.com
 * @Date:   2017-03-20 10:11:47
 * @Last Modified by:   Kamil Rocki
-* @Last Modified time: 2017-04-12 17:04:29
+* @Last Modified time: 2017-04-12 19:54:11
 */
 
 #ifndef __PLOTDATA_H__
@@ -97,9 +97,9 @@ class PlotData {
 			
 			if ( gan_train_data.generator_dy.x.size() > 0 ) {
 			
-				make_textures_from_matrices ( gan_generator_dy_textures, gan_train_data.generator_dy.x, nvg,
-											  gan_train_data.rgba ? GL_RGBA : GL_RED, SQUARES, false, true );
-											  
+				// make_textures_from_matrices ( gan_generator_dy_textures, gan_train_data.generator_dy.x, nvg,
+				// 							  gan_train_data.rgba ? GL_RGBA : GL_RED, SQUARES, false, true );
+				
 			}
 		}
 		

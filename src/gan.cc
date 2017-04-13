@@ -2,7 +2,7 @@
 * @Author: Kamil Rocki
 * @Date:   2017-02-28 11:25:34
 * @Last Modified by:   Kamil Rocki
-* @Last Modified time: 2017-04-12 19:48:53
+* @Last Modified time: 2017-04-12 20:01:17
 */
 
 #include <thread>
@@ -68,7 +68,7 @@ int compute() {
 	// NN stuff
 	double learning_rate = 1e-4;
 	float decay = 0;
-	const size_t batch_size = 25;
+	const size_t batch_size = 100;
 	const int input_width = static_cast<int> ( train_data[0].x.size() );
 	assert ( input_width > 0 );
 	
@@ -110,7 +110,6 @@ int compute() {
 		generate ( std::uniform_real_distribution<> ( 0, 1 ), std::uniform_real_distribution<> ( 0, 1 ),
 				   std::uniform_real_distribution<> ( 0, 1 ), gan_train_data.noise.x, batch_size, INDEPENDENT );
 				   
-		std::cout << gan_train_data.noise.x.rows() << ", " << gan_train_data.noise.x.cols() << std::endl;
 		nn->forward ( gan_train_data.noise.x );
 		
 		//generated data
@@ -118,57 +117,60 @@ int compute() {
 		gan_train_data.gen.y.resize ( 1, gan_train_data.gen.x.cols() );
 		gan_train_data.gen.y.setZero(); // set labels to 0 - images which came from generator
 		
-		// //real data
-		// gan_train_data.real.x.resize ( gan_train_data.gen.x.rows(), gan_train_data.gen.x.cols() );
-		// gan_train_data.real.y.resize ( 1, gan_train_data.gen.x.cols() );
-		// gan_train_data.training_set_indices.resize ( batch_size );
-		// matrix_randi ( gan_train_data.training_set_indices, 0, train_data.size() - 1 );
-		// make_batch ( gan_train_data.real.x, train_data, gan_train_data.training_set_indices );
-		// gan_train_data.real.y.setOnes();
+		//real data
+		gan_train_data.real.x.resize ( gan_train_data.gen.x.rows(), gan_train_data.gen.x.cols() );
+		gan_train_data.real.y.resize ( 1, gan_train_data.gen.x.cols() );
+		gan_train_data.training_set_indices.resize ( batch_size );
+		matrix_randi ( gan_train_data.training_set_indices, 0, train_data.size() - 1 );
+		make_batch ( gan_train_data.real.x, train_data, gan_train_data.training_set_indices );
+		gan_train_data.real.y.setOnes();
 		
-		// //mix
-		// gan_train_data.mix_indices.resize ( batch_size );
-		// matrix_randi ( gan_train_data.mix_indices, 0, 1 );
-		// gan_train_data.mixed.x = gan_train_data.gen.x;
-		// gan_train_data.mixed.y = gan_train_data.gen.y;
-		// mix ( gan_train_data.mixed.x, gan_train_data.real.x, gan_train_data.mix_indices );
-		// mix ( gan_train_data.mixed.y, gan_train_data.real.y, gan_train_data.mix_indices );
+		//mix
+		gan_train_data.mix_indices.resize ( batch_size );
+		matrix_randi ( gan_train_data.mix_indices, 0, 1 );
+		gan_train_data.mixed.x = gan_train_data.gen.x;
+		gan_train_data.mixed.y = gan_train_data.gen.y;
+		mix ( gan_train_data.mixed.x, gan_train_data.real.x, gan_train_data.mix_indices );
+		mix ( gan_train_data.mixed.y, gan_train_data.real.y, gan_train_data.mix_indices );
 		
-		// // discriminator forward pass
-		// discriminator->forward ( gan_train_data.mixed.x );
+		// discriminator forward pass
+		discriminator->forward ( gan_train_data.mixed.x );
 		
-		// // loss
+		// loss
+		discriminator_loss = cross_entropy ( discriminator->layers.back()->y, gan_train_data.mixed.y );
+		smooth_discriminator_loss = smooth_discriminator_loss < 0 ? discriminator_loss : 0.99 * smooth_discriminator_loss + 0.01
+									* discriminator_loss;
+									
+		//update graph data
+		if ( iters % 10 == 0 && discriminator->loss_data ) {
 		
-		// discriminator_loss = cross_entropy ( discriminator->layers.back()->y, gan_train_data.mixed.y );
-		// smooth_discriminator_loss = smooth_discriminator_loss < 0 ? discriminator_loss : 0.99 * smooth_discriminator_loss + 0.01
-		// 							* discriminator_loss;
+			discriminator->loss_data->head ( discriminator->loss_data->size() - 1 ) = discriminator->loss_data->tail (
+																						  discriminator->loss_data->size() - 1 );
+			discriminator->loss_data->tail ( 1 ) ( 0 ) = smooth_discriminator_loss;
+			
+		}
 		
-		// //update graph data
-		// if ( iters % 10 == 0 && discriminator->loss_data ) {
+		// discriminator backward pass
+		discriminator->backward ( gan_train_data.mixed.y - discriminator->layers.back()->y );
 		
-		// 	discriminator->loss_data->head ( discriminator->loss_data->size() - 1 ) = discriminator->loss_data->tail (
-		// 																				  discriminator->loss_data->size() - 1 );
-		// 	discriminator->loss_data->tail ( 1 ) ( 0 ) = smooth_discriminator_loss;
+		gan_train_data.generator_dy.x = discriminator->layers[0]->dx;
+		gan_train_data.mix_indices.array() = 1.0f - gan_train_data.mix_indices.array();
+		// gan_train_data.generator_dy.x.colwise() *= gan_train_data.mix_indices.col ( 0 );
 		
-		// }
+		std::cout << gan_train_data.generator_dy.x.rows() << ", " << gan_train_data.generator_dy.x.cols() << std::endl;
+		std::cout << gan_train_data.mix_indices.rows() << ", " << gan_train_data.mix_indices.cols() << std::endl;
 		
-		// // discriminator backward pass
-		// discriminator->backward ( gan_train_data.mixed.y - discriminator->layers.back()->y );
+		// update discriminator weights
+		discriminator->update ( learning_rate, decay );
 		
-		// gan_train_data.generator_dy.x = discriminator->layers[0]->dx;
-		// // gan_train_data.generator_dy.x.colwise() *= 1 - ( gan_train_data.mix_indices );
+		iters++;
+		if ( iters % 100 == 0 ) {
 		
-		// // update discriminator weights
-		// discriminator->update ( learning_rate, decay );
-		
-		// iters++;
-		// if ( iters % 100 == 0 ) {
-		
-		// 	discriminator->clock = true;
-		// 	gl_data->updated();
-		// 	nn->collect_statistics();
-		// 	discriminator->collect_statistics();
-		// }
+			discriminator->clock = true;
+			gl_data->updated();
+			nn->collect_statistics();
+			discriminator->collect_statistics();
+		}
 		
 		usleep ( 100 );
 		
