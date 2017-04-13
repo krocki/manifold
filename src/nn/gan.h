@@ -2,7 +2,7 @@
 * @Author: kmrocki
 * @Date:   2016-02-24 15:28:10
 * @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-04-12 22:08:05
+* @Last Modified time: 2017-04-13 13:19:49
 */
 
 #ifndef __GAN_NN_H__
@@ -38,7 +38,7 @@ class NN {
 	std::vector<int> layer_sizes;
 	std::deque<Layer *> layers;
 	float current_loss = -0.01f;
-	Eigen::VectorXf *loss_data;
+	Eigen::VectorXf *loss_data, *real_acc_data, *fake_acc_data;
 
 	float learning_rate;
 

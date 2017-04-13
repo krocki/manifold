@@ -261,15 +261,15 @@ class GUI : public nanogui::Screen {
 
 		completed_frames++;
 
-		if ( nn ) {
-			if ( nn->clock ) {
-				nn->clock = false;
-				update_graph ( graph_loss, nn->current_loss );
-				update_graph ( graph_cpu, cpu_util, 1000.0f, "ms" );
-				update_graph ( graph_flops, cpu_flops, 1.0f, "GF/s" );
-				update_graph ( graph_bytes, cpu_reads, 1.0f, "MB/s" );
-			}
-		}
+		// if ( nn ) {
+		// 	if ( nn->clock ) {
+		// 		nn->clock = false;
+		// 		update_graph ( graph_loss, nn->current_loss );
+		// 		update_graph ( graph_cpu, cpu_util, 1000.0f, "ms" );
+		// 		update_graph ( graph_flops, cpu_flops, 1.0f, "GF/s" );
+		// 		update_graph ( graph_bytes, cpu_reads, 1.0f, "MB/s" );
+		// 	}
+		// }
 
 	};
 
@@ -810,11 +810,25 @@ class GUI : public nanogui::Screen {
 		graphs->setLayout ( layout );
 
 		graph_loss = new nanogui::Graph ( graphs, "" );
-		graph_loss->setFooter ( "loss" );
+		graph_loss->setFooter ( "g loss" );
 		graph_loss->setGraphColor ( nanogui::Color ( 128, 128, 128, 255 ) );
 		graph_loss->setBackgroundColor ( nanogui::Color ( 0, 0, 0, 32 ) );
 		graph_loss->values().resize ( 500 );
 		graph_loss->values().setZero();
+
+		graph_fake_acc = new nanogui::Graph ( graphs, "" );
+		graph_fake_acc->setFooter ( "d fake loss" );
+		graph_fake_acc->setGraphColor ( nanogui::Color ( 128, 192, 0, 255 ) );
+		graph_fake_acc->setBackgroundColor ( nanogui::Color ( 0, 0, 0, 64 ) );
+		graph_fake_acc->values().resize ( 500 );
+		graph_fake_acc->values().setZero();
+
+		graph_real_acc = new nanogui::Graph ( graphs, "" );
+		graph_real_acc->setFooter ( "d real loss" );
+		graph_real_acc->setGraphColor ( nanogui::Color ( 192, 64, 0, 255 ) );
+		graph_real_acc->setBackgroundColor ( nanogui::Color ( 0, 0, 0, 64 ) );
+		graph_real_acc->values().resize ( 500 );
+		graph_real_acc->values().setZero();
 
 		graph_cpu = new nanogui::Graph ( graphs, "" );
 		graph_cpu->setFooter ( "cpu ms per iter" );
@@ -912,7 +926,7 @@ class GUI : public nanogui::Screen {
 	nanogui::Window *large_image_view;
 	nanogui::Window *graphs;
 	nanogui::Window *controls, *texWindow, *texButtons, *texWindowRight;
-	nanogui::Graph *graph_loss;
+	nanogui::Graph *graph_loss, *graph_fake_acc, *graph_real_acc;
 	nanogui::Graph *graph_fps, *graph_cpu, *graph_flops, *graph_bytes;
 	nanogui::ImageView *texView, *texViewRight, *large_tex_view;
 	nanogui::ProgressBar *mProgress;
