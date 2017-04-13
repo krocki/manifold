@@ -2,7 +2,7 @@
 * @Author: Kamil Rocki
 * @Date:   2017-02-28 11:25:34
 * @Last Modified by:   Kamil Rocki
-* @Last Modified time: 2017-04-12 20:03:44
+* @Last Modified time: 2017-04-12 20:07:57
 */
 
 #include <thread>
@@ -155,10 +155,13 @@ int compute() {
 		
 		gan_train_data.generator_dy.x = discriminator->layers[0]->dx;
 		// gan_train_data.mix_indices.array() = 1.0f - gan_train_data.mix_indices.array();
-		// gan_train_data.generator_dy.x = gan_train_data.mix_indices.replicate ( 784, 1 );
-		
-		std::cout << gan_train_data.generator_dy.x.rows() << ", " << gan_train_data.generator_dy.x.cols() << std::endl;
-		std::cout << gan_train_data.mix_indices.rows() << ", " << gan_train_data.mix_indices.cols() << std::endl;
+		gan_train_data.generator_dy.x = gan_train_data.mix_indices.transpose().replicate ( 784,
+																						   1 ).cast<float>();
+																						   
+		// std::cout << gan_train_data.generator_dy.x.rows() << ", " << gan_train_data.generator_dy.x.cols() << std::endl;
+		// std::cout << gan_train_data.mix_indices.transpose().replicate ( 784,
+		// 																1 ).rows() << ", " << gan_train_data.mix_indices.transpose().replicate ( 784, 1 ).cols() <<
+		// 		  std::endl;
 		
 		// update discriminator weights
 		discriminator->update ( learning_rate, decay );
