@@ -2,7 +2,7 @@
 * @Author: Kamil Rocki
 * @Date:   2017-02-28 11:25:34
 * @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-04-12 23:37:42
+* @Last Modified time: 2017-04-13 07:53:16
 */
 
 #include <thread>
@@ -74,8 +74,8 @@ int compute() {
 
 	size_t e = 0;
 
-	nn = std::shared_ptr<NN> ( new NN ( batch_size, decay, learning_rate, AE, {3, 100, input_width } ) );
-	discriminator = std::shared_ptr<NN> ( new NN ( batch_size, decay, learning_rate, MLP, {input_width, 100, 1} ) );
+	nn = std::shared_ptr<NN> ( new NN ( batch_size, decay, learning_rate, AE, {3, 64, input_width } ) );
+	discriminator = std::shared_ptr<NN> ( new NN ( batch_size, decay, learning_rate, MLP, {input_width, 64, 1} ) );
 
 	nn->otype = SGD;
 	nn->pause = true;
@@ -112,8 +112,8 @@ int compute() {
 		// generate ( std::uniform_real_distribution<> ( 0, 1 ), std::uniform_real_distribution<> ( 0, 1 ),
 		//            std::uniform_real_distribution<> ( 0, 1 ), gan_train_data.noise.x, batch_size, INDEPENDENT );
 
-		generate ( std::normal_distribution<> ( 0, 15 ), std::normal_distribution<> ( 0, 15 ),
-		           std::normal_distribution<> ( 0, 15 ), gan_train_data.noise.x, batch_size, INDEPENDENT );
+		generate ( std::normal_distribution<> ( 0, 1 ), std::normal_distribution<> ( 0, 1 ),
+		           std::normal_distribution<> ( 0, 1 ), gan_train_data.noise.x, batch_size, INDEPENDENT );
 
 
 

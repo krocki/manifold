@@ -2,7 +2,7 @@
 * @Author: kmrocki@us.ibm.com
 * @Date:   2017-03-06 13:20:16
 * @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-04-12 20:36:57
+* @Last Modified time: 2017-04-13 08:37:14
 */
 #ifndef _GL_TEX_
 #define _GL_TEX_
@@ -201,6 +201,8 @@ class Texture {
 	size_t txs_per_dim;
 	size_t total_textures;
 
+	bool save_png = false;
+
 	// variable number of textures packed
 	Eigen::MatrixXf p_vertices;
 	Eigen::VectorXf p_colors;
@@ -289,7 +291,8 @@ class Texture {
 				id = ( GLuint ) nvgCreateImageRGBA ( nvg, sqr_dim * image_size, sqr_dim * image_size, NVG_IMAGE_NEAREST,
 				                                     ( unsigned char * ) rgba_image.data() );
 
-
+			if (save_png)
+				stbi_write_png(string_format("tex/%04d_" + return_current_time_and_date ( "%y%m%d_%H%M%S") + ".png"  , id).c_str(), sqr_dim * image_size, sqr_dim * image_size, 4, rgba_image.data(), sqr_dim * image_size * 4);
 
 		}
 
@@ -354,7 +357,8 @@ class Texture {
 				id = ( GLuint ) nvgCreateImageRGBA ( nvg, sqr_dim * image_size, sqr_dim * image_size, NVG_IMAGE_NEAREST,
 				                                     ( unsigned char * ) rgba_image.data() );
 
-
+			if (save_png)
+				stbi_write_png(string_format("tex/%04d_" + return_current_time_and_date ( "%y%m%d_%H%M%S") + ".png"  , id).c_str(), sqr_dim * image_size, sqr_dim * image_size, 4, rgba_image.data(), sqr_dim * image_size * 4);
 
 		}
 
@@ -427,6 +431,8 @@ class Texture {
 				                                     ( unsigned char * ) rgba_image.data() );
 			}
 
+			if (save_png)
+				stbi_write_png(string_format("tex/%04d_" + return_current_time_and_date ( "%y%m%d_%H%M%S") + ".png"  , id).c_str(), sqr_dim * image_size, sqr_dim * image_size, 4, rgba_image.data(), sqr_dim * image_size * 4);
 
 		} else {
 
@@ -494,7 +500,8 @@ class Texture {
 				                                     ( unsigned char * ) rgba_image.data() );
 			}
 
-
+			if (save_png)
+				stbi_write_png(string_format("tex/%04d_" + return_current_time_and_date ( "%y%m%d_%H%M%S") + ".png"  , id).c_str(), sqr_dim * image_size, sqr_dim * image_size, 4, rgba_image.data(), sqr_dim * image_size * 4);
 		}
 
 		allocated = true;

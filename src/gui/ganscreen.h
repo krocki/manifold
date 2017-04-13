@@ -470,8 +470,10 @@ class GUI : public nanogui::Screen {
 			mCurrentImage = i;
 			std::string fprefix = plot_data->icons[i].second;
 			std::cout << "Loading " << fprefix +  + ".nn.bin" << '\n';
-			nanogui::Serializer s ( std::string ( fprefix + ".nn.bin" ).c_str(), false );
-			nn->load ( s );
+			nanogui::Serializer g ( std::string ( "g_" + fprefix + ".nn.bin" ).c_str(), false );
+			nanogui::Serializer d ( std::string ( "d_" + fprefix + ".nn.bin" ).c_str(), false );
+			nn->load ( g );
+			discriminator->load ( d );
 			std::cout << "Done." << '\n';
 			// nn->testcode ( train_data, reconstruction_data );
 			// plot_data->updated();
@@ -512,8 +514,10 @@ class GUI : public nanogui::Screen {
 			std::string fprefix = textBox->value();
 			std::cout << textBox->value() << std::endl;
 			saveScreenShotCropped ( false, std::string ( "./saved/" + fprefix + ".png" ).c_str() );
-			nanogui::Serializer s ( std::string ( "./saved/" + fprefix + ".nn.bin" ).c_str(), true );
-			nn->save ( s );
+			nanogui::Serializer g ( std::string ( "./saved/g_" + fprefix + ".nn.bin" ).c_str(), true );
+			nanogui::Serializer d ( std::string ( "./saved/d_" + fprefix + ".nn.bin" ).c_str(), true );
+			nn->save ( g );
+			discriminator->save ( d );
 
 		} ); b->setTooltip ( "save" );
 
@@ -897,6 +901,7 @@ class GUI : public nanogui::Screen {
 
 
 	}
+
 
 	~GUI() { /* free resources */ }
 

@@ -2,7 +2,7 @@
 * @Author: kmrocki@us.ibm.com
 * @Date:   2017-03-20 10:11:47
 * @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-04-12 20:35:59
+* @Last Modified time: 2017-04-13 08:35:30
 */
 
 #ifndef __PLOTDATA_H__
@@ -21,7 +21,15 @@ class PlotData {
 
   public:
 
-	PlotData() {};
+	PlotData() {
+
+		gan_generator_data_textures.save_png = true;
+		gan_real_data_textures.save_png = true;
+		gan_mixed_data_textures.save_png = true;
+		gan_generator_dy_textures.save_png = true;
+
+	};
+
 	~PlotData() {};
 
 	Eigen::MatrixXf e_vertices, e_colors;
