@@ -2,7 +2,7 @@
 * @Author: Kamil Rocki
 * @Date:   2017-02-28 11:25:34
 * @Last Modified by:   Kamil Rocki
-* @Last Modified time: 2017-04-12 20:01:17
+* @Last Modified time: 2017-04-12 20:03:44
 */
 
 #include <thread>
@@ -154,8 +154,8 @@ int compute() {
 		discriminator->backward ( gan_train_data.mixed.y - discriminator->layers.back()->y );
 		
 		gan_train_data.generator_dy.x = discriminator->layers[0]->dx;
-		gan_train_data.mix_indices.array() = 1.0f - gan_train_data.mix_indices.array();
-		// gan_train_data.generator_dy.x.colwise() *= gan_train_data.mix_indices.col ( 0 );
+		// gan_train_data.mix_indices.array() = 1.0f - gan_train_data.mix_indices.array();
+		// gan_train_data.generator_dy.x = gan_train_data.mix_indices.replicate ( 784, 1 );
 		
 		std::cout << gan_train_data.generator_dy.x.rows() << ", " << gan_train_data.generator_dy.x.cols() << std::endl;
 		std::cout << gan_train_data.mix_indices.rows() << ", " << gan_train_data.mix_indices.cols() << std::endl;
