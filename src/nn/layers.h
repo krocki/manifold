@@ -2,7 +2,7 @@
 * @Author: kmrocki@us.ibm.com
 * @Date:   2017-03-03 15:06:37
 * @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-04-13 16:21:09
+* @Last Modified time: 2017-04-13 21:15:58
 */
 
 #ifndef __LAYERS_H__
@@ -70,6 +70,16 @@ class Layer {
 
 		return true;
 	}
+
+	/*      -- penalties (L1 and L2):
+	      if opt.coefL1 ~= 0 or opt.coefL2 ~= 0 then
+	        local norm,sign= torch.norm,torch.sign
+	        -- Loss:
+	        f = f + opt.coefL1 * norm(parameters_D,1)
+	        f = f + opt.coefL2 * norm(parameters_D,2)^2/2
+	        -- Gradients:
+	        gradParameters_D:add( sign(parameters_D):mul(opt.coefL1) + parameters_D:clone():mul(opt.coefL2) )
+	      end*/
 
 	virtual void sparsify ( float sparsity_penalty = 0.005f, float sparsity_target = 0.1f ) {
 
@@ -369,7 +379,7 @@ class Linear : public Layer {
 
 		//adagrad
 
-		float memory_loss = 1e-4f;
+		float memory_loss = 1e-2f;
 
 		mW.noalias() = mW * ( 1.0f - memory_loss ) + dW.cwiseProduct ( dW );
 		mb.noalias() = mb * ( 1.0f - memory_loss ) + db.cwiseProduct ( db );
