@@ -2,7 +2,7 @@
 * @Author: Kamil Rocki
 * @Date:   2017-02-28 11:25:34
 * @Last Modified by:   Kamil Rocki
-* @Last Modified time: 2017-04-14 10:19:33
+* @Last Modified time: 2017-04-14 13:34:10
 */
 
 #include <thread>
@@ -74,17 +74,17 @@ int compute() {
 	PlotData *gl_data = screen->plot_data;
 	
 	// NN stuff
-	double learning_rate = 1e-4;
-	float decay = 0;
-	const size_t batch_size = 100;
+	double learning_rate = 1e-3;
+	float decay = 1e-6;
+	const size_t batch_size = 256;
 	const int input_width = static_cast<int> ( train_data[0].x.size() );
 	assert ( input_width > 0 );
 	
 	size_t e = 0;
 	
-	size_t code_dims = 8;
+	size_t code_dims = 64;
 	
-	nn = std::shared_ptr<NN> ( new NN ( batch_size, decay, learning_rate, AE, {static_cast<int> ( code_dims ), 256, input_width },
+	nn = std::shared_ptr<NN> ( new NN ( batch_size, decay, learning_rate, AE, {static_cast<int> ( code_dims ), 64, input_width },
 										SIGMOID ) );
 	discriminator = std::shared_ptr<NN> ( new NN ( batch_size, decay, learning_rate, MLP, {input_width, 64, 1},
 												   SIGMOID ) );
@@ -134,7 +134,7 @@ int compute() {
 		// generate ( std::normal_distribution<> ( 0, 1 ), std::normal_distribution<> ( 0, 1 ),
 		// 		   std::normal_distribution<> ( 0, 1 ), gan_train_data.noise.x, batch_size, INDEPENDENT );
 		
-		generate_ndims ( code_dims, normal_distribution<> ( 0, 1 ), gan_train_data.noise.x, batch_size, INDEPENDENT );
+		generate_ndims ( code_dims, normal_distribution<> ( 0, 10 ), gan_train_data.noise.x, batch_size, INDEPENDENT );
 		
 		
 		// generate_stratified (
