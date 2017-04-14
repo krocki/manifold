@@ -2,7 +2,7 @@
 * @Author: kmrocki@us.ibm.com
 * @Date:   2017-03-20 10:11:47
 * @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-04-13 08:35:30
+* @Last Modified time: 2017-04-13 22:31:47
 */
 
 #ifndef __PLOTDATA_H__
@@ -161,9 +161,9 @@ class PlotData {
 					nn_matrices[i].push_back ( std::make_pair ( nn_matrix_data_dy[i].id, "dy" ) );
 
 					if ( net->layers[i]->name == "linear" ) {
-						make_textures_from_matrices ( nn_weight_data[i], ( ( Linear * ) net->layers[i] )->W, nvg, fmt, SQUARES, true, true );
-						make_textures_from_matrices ( nn_weight_data_dW[i], ( ( Linear * ) net->layers[i] )->dW, nvg, fmt, SQUARES, true,
-						                              true );
+
+						make_textures_from_matrices ( nn_weight_data[i], ( ( Linear * ) net->layers[i] )->W, nvg, fmt, SQUARES, i == 0, true );
+						make_textures_from_matrices ( nn_weight_data_dW[i], ( ( Linear * ) net->layers[i] )->dW, nvg, fmt, SQUARES, i == 0, true );
 						nn_matrices[i].push_back ( std::make_pair ( nn_weight_data[i].id, "W" ) );
 						nn_matrices[i].push_back ( std::make_pair ( nn_weight_data_dW[i].id, "dW" ) );
 
