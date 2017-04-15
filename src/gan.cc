@@ -2,7 +2,7 @@
 * @Author: Kamil Rocki
 * @Date:   2017-02-28 11:25:34
 * @Last Modified by:   Kamil Rocki
-* @Last Modified time: 2017-04-14 13:34:10
+* @Last Modified time: 2017-04-14 13:39:38
 */
 
 #include <thread>
@@ -75,14 +75,14 @@ int compute() {
 	
 	// NN stuff
 	double learning_rate = 1e-3;
-	float decay = 1e-6;
+	float decay = 0.0f;
 	const size_t batch_size = 256;
 	const int input_width = static_cast<int> ( train_data[0].x.size() );
 	assert ( input_width > 0 );
 	
 	size_t e = 0;
 	
-	size_t code_dims = 64;
+	size_t code_dims = 3;
 	
 	nn = std::shared_ptr<NN> ( new NN ( batch_size, decay, learning_rate, AE, {static_cast<int> ( code_dims ), 64, input_width },
 										SIGMOID ) );
@@ -134,8 +134,8 @@ int compute() {
 		// generate ( std::normal_distribution<> ( 0, 1 ), std::normal_distribution<> ( 0, 1 ),
 		// 		   std::normal_distribution<> ( 0, 1 ), gan_train_data.noise.x, batch_size, INDEPENDENT );
 		
-		generate_ndims ( code_dims, normal_distribution<> ( 0, 10 ), gan_train_data.noise.x, batch_size, INDEPENDENT );
-		
+		// generate_ndims ( code_dims, normal_distribution<> ( 0, 10 ), gan_train_data.noise.x, batch_size, INDEPENDENT );
+		generate_ndims ( code_dims, uniform_real_distribution<> ( -5, 5 ), gan_train_data.noise.x, batch_size, INDEPENDENT );
 		
 		// generate_stratified (
 		
