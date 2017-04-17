@@ -2,7 +2,7 @@
 * @Author: kmrocki@us.ibm.com
 * @Date:   2017-03-03 15:06:37
 * @Last Modified by:   Kamil Rocki
-* @Last Modified time: 2017-04-14 12:50:09
+* @Last Modified time: 2017-04-16 19:45:42
 */
 
 #ifndef __LAYERS_H__

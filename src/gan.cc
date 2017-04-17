@@ -2,7 +2,7 @@
 * @Author: Kamil Rocki
 * @Date:   2017-02-28 11:25:34
 * @Last Modified by:   Kamil Rocki
-* @Last Modified time: 2017-04-16 10:27:20
+* @Last Modified time: 2017-04-17 12:14:49
 */
 
 #include <thread>
@@ -74,21 +74,19 @@ int compute() {
 	PlotData *gl_data = screen->plot_data;
 	
 	// NN stuff
-	double learning_rate = 1e-3;
-	float decay = 1e-6f;
+	double learning_rate = 1e-3f;
+	float decay = 1e-5f;
 	const size_t batch_size = 256;
 	const int input_width = static_cast<int> ( train_data[0].x.size() );
 	assert ( input_width > 0 );
 	
 	size_t e = 0;
 	
-	size_t code_dims = 3;
+	size_t code_dims = 64;
 	
-	nn = std::shared_ptr<NN> ( new NN ( batch_size, decay, learning_rate, AE, {static_cast<int> ( code_dims ), 256, input_width },
-										SIGMOID ) );
-	discriminator = std::shared_ptr<NN> ( new NN ( batch_size, decay, learning_rate, MLP, {input_width, 256, 1},
-												   SIGMOID ) );
-												   
+	nn = std::shared_ptr<NN> ( new NN ( batch_size, decay, learning_rate, AE, {static_cast<int> ( code_dims ), 64, input_width }, SIGMOID ) );
+	discriminator = std::shared_ptr<NN> ( new NN ( batch_size, decay, learning_rate, MLP, {input_width, 64, 1}, SIGMOID ) );
+	
 	nn->otype = SGD;
 	nn->pause = false;
 	discriminator->otype = SGD;
