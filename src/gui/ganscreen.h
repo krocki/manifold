@@ -22,14 +22,14 @@
 
 // app-specific GUI code
 #include <gui/gldata.h>
-#include <gui/glmanifold.h>
+#include <gui/glganplot.h>
 #include <gui/glplothelper.h>
 #include <gui/nnview.h>
 
 #include <gl/tex.h>
 
-#define DEF_WIDTH 1800
-#define DEF_HEIGHT 1120
+#define DEF_WIDTH 1830
+#define DEF_HEIGHT 1720
 #define SCREEN_NAME "GAN"
 #define RESIZABLE true
 #define FULLSCREEN false
@@ -77,33 +77,36 @@ class GUI : public nanogui::Screen {
 			
 			std::string t = return_current_time_and_date ( "%y%m%d_%H%M%S" );
 			
-			// plots.push_back ( new Plot ( root, "forward", {DEF_WIDTH / 3, DEF_WIDTH / 3}, 0, plot_data, true, true, true, false,
-			//                              mGLFWWindow, mNVGContext, 80.0f, { -15.2f, -15.8f, -15.0f}, { 0.63, 1.895f, 0.0f}, {box_size * 2, box_size * 2, box_size * 2},
-			//                              false, 0, string_format ( "%s_plot0", t.c_str() ) ) );
-			// // plots.push_back(new Plot ( root, "forward", {DEF_WIDTH / 3, DEF_WIDTH / 3}, 0, plot_data, true, true, true, false, mGLFWWindow, mNVGContext, 6.0f, { -5.0f, -8.0f, -1.0f}, { 0.0f, 0.0f, 0.0f}, {box_size * 2, box_size * 2, box_size * 2}, false, 0, string_format ( "%s_plot0", t.c_str())));
+			plots.push_back ( new Plot ( root, "forward", {DEF_WIDTH / 3, DEF_WIDTH / 3}, 0, plot_data, true, true, true, false,
+										 mGLFWWindow, mNVGContext, 80.0f, { -15.2f, -15.8f, -15.0f}, { 0.63, 1.895f, 0.0f}, {box_size * 2, box_size * 2, box_size * 2},
+										 false, 0, string_format ( "%s_plot0", t.c_str() ) ) );
+			// plots.push_back(new Plot ( root, "forward", {DEF_WIDTH / 3, DEF_WIDTH / 3}, 0, plot_data, true, true, true, false, mGLFWWindow, mNVGContext, 6.0f, { -5.0f, -8.0f, -1.0f}, { 0.0f, 0.0f, 0.0f}, {box_size * 2, box_size * 2, box_size * 2}, false, 0, string_format ( "%s_plot0", t.c_str())));
 			
-			// plots.push_back ( new Plot ( root, "top frustum", {DEF_WIDTH / 3, DEF_WIDTH / 3}, 1, plot_data, true, false, false,
-			//                              true, mGLFWWindow, mNVGContext, 66.0f, {0.0f, 35.0f, 0.0f}, {0.0f, 0.0f, -M_PI / 4.0f}, {box_size * 2, box_size * 2, box_size * 2},
-			//                              false, 0, string_format ( "%s_plot_top", t.c_str() ) ) );
+			plots.push_back ( new Plot ( root, "top frustum", {DEF_WIDTH / 3, DEF_WIDTH / 3}, 1, plot_data, true, false, false,
+										 true, mGLFWWindow, mNVGContext, 66.0f, {0.0f, 35.0f, 0.0f}, {0.0f, 0.0f, -M_PI / 4.0f}, {box_size * 2, box_size * 2, box_size * 2},
+										 false, 0, string_format ( "%s_plot_top", t.c_str() ) ) );
+										 
+			plots.push_back ( new Plot ( root, "front ortho", {DEF_WIDTH / 3, DEF_WIDTH / 3}, 2, plot_data, true, false, false,
+										 false, mGLFWWindow, mNVGContext, 40.0f, {0.0f, 0.0f, 11.0f}, {0.0f, 0.0f, 0.0f}, {box_size * 2, box_size * 2, box_size * 2},
+										 true, 0, string_format ( "%s_plot_ortho", t.c_str() ) ) );
+										 
+			int number_of_cameras = plots.size();
 			
-			// plots.push_back ( new Plot ( root, "front ortho", {DEF_WIDTH / 3, DEF_WIDTH / 3}, 2, plot_data, true, false, false,
-			//                              false, mGLFWWindow, mNVGContext, 40.0f, {0.0f, 0.0f, 11.0f}, {0.0f, 0.0f, 0.0f}, {box_size * 2, box_size * 2, box_size * 2},
-			//                              true, 0, string_format ( "%s_plot_ortho", t.c_str() ) ) );
+			plot_data->e_vertices.resize ( 3, 2 * number_of_cameras );
+			plot_data->r_vertices.resize ( 3, 2 * number_of_cameras );
+			plot_data->e_colors.resize ( 3, 2 * number_of_cameras );
 			
-			// int number_of_cameras = plots.size();
+			plot_data->e_colors.col ( 0 ) << 1, 0, 0; plot_data->e_colors.col ( 1 ) << 1, 0, 0;
+			plot_data->e_colors.col ( 2 ) << 0, 1, 0; plot_data->e_colors.col ( 3 ) << 0, 1, 0;
+			plot_data->e_colors.col ( 4 ) << 0, 0, 1; plot_data->e_colors.col ( 5 ) << 0, 0, 1;
 			
-			// plot_data->e_vertices.resize ( 3, 2 * number_of_cameras );
-			// plot_data->r_vertices.resize ( 3, 2 * number_of_cameras );
-			// plot_data->e_colors.resize ( 3, 2 * number_of_cameras );
-			
-			// plot_data->e_colors.col ( 0 ) << 1, 0, 0; plot_data->e_colors.col ( 1 ) << 1, 0, 0;
-			// plot_data->e_colors.col ( 2 ) << 0, 1, 0; plot_data->e_colors.col ( 3 ) << 0, 1, 0;
-			// plot_data->e_colors.col ( 4 ) << 0, 0, 1; plot_data->e_colors.col ( 5 ) << 0, 0, 1;
-			
-			// // share shader data
-			// for ( int i = 0; i < number_of_cameras; i++ )
-			// 	plots[i]->master_pointShader = plots[0]->m_pointShader;
-			
+			// share shader data
+			for ( int i = 0; i < number_of_cameras; i++ )
+				plots[i]->master_pointShader = plots[0]->m_pointShader;
+				
+			for ( int i = 0; i < plots.size(); i++ )
+				plots[i]->show_reconstructions = true;
+				
 			// DATA
 			// train_data = MNISTImporter::importFromFile ( "data/mnist/train-images-idx3-ubyte", "data/mnist/train-labels-idx1-ubyte" );
 			// test_data = MNISTImporter::importFromFile ( "data/mnist/t10k-images-idx3-ubyte", "data/mnist/t10k-labels-idx1-ubyte" );
@@ -140,8 +143,8 @@ class GUI : public nanogui::Screen {
 			makeWidgets();
 			
 			nnview = new NNView ( this, mNVGContext, plot_data, large_image_view, large_tex_view );
-			nnview->setFixedSize ( {1350, 760} );
-			nnview->setPosition ( {3, 3} );
+			nnview->setFixedSize ( {1350, 740} );
+			nnview->setPosition ( {3, 616} );
 			
 			performLayout();
 			
@@ -202,9 +205,8 @@ class GUI : public nanogui::Screen {
 						}
 						
 						plot_data->update_gan_train_data ( gan_train_data, mNVGContext );
-						plot_data->update_reconstructions ( reconstruction_data, sample_reconstruction_data, mNVGContext, train_data[0].image_w,
-															train_data[0].rgba );
-															
+						plot_data->gan_update_reconstructions ( nn, mNVGContext, train_data[0].image_w, train_data[0].rgba );
+						
 						nnview->update_matrices();
 						
 						local_data_checksum = plot_data->checksum;
@@ -291,11 +293,11 @@ class GUI : public nanogui::Screen {
 			
 			// performLayout();
 			
-			window->setPosition ( Eigen::Vector2i ( 1370, 500 ) );
-			graphs->setPosition ( Eigen::Vector2i ( 5, 770 ) );
-			texButtons->setPosition ( Eigen::Vector2i ( 1370, 5 ) );
-			texWindow->setPosition ( Eigen::Vector2i ( 1450, 150 ) );
-			texWindowRight->setPosition ( Eigen::Vector2i ( 1370, 100 ) );
+			window->setPosition ( Eigen::Vector2i ( 1370, 1100 ) );
+			graphs->setPosition ( Eigen::Vector2i ( 5, 1370 ) );
+			texButtons->setPosition ( Eigen::Vector2i ( 1370, 605 ) );
+			texWindow->setPosition ( Eigen::Vector2i ( 1450, 750 ) );
+			texWindowRight->setPosition ( Eigen::Vector2i ( 1370, 700 ) );
 			
 			// // needs to be called 2nd time
 			// performLayout();
