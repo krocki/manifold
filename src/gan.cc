@@ -2,7 +2,7 @@
 * @Author: Kamil Rocki
 * @Date:   2017-02-28 11:25:34
 * @Last Modified by:   Kamil Rocki
-* @Last Modified time: 2017-04-17 21:01:45
+* @Last Modified time: 2017-04-17 22:35:09
 */
 
 #include <thread>
@@ -84,8 +84,8 @@ int compute() {
 	
 	size_t code_dims = 3;
 	
-	nn = std::shared_ptr<NN> ( new NN ( batch_size, decay, learning_rate, AE, {static_cast<int> ( code_dims ), 100, 100, input_width }, RELU ) );
-	discriminator = std::shared_ptr<NN> ( new NN ( batch_size, decay, learning_rate, MLP, {input_width, 100, 100, 1}, RELU ) );
+	nn = std::shared_ptr<NN> ( new NN ( batch_size, decay, learning_rate, AE, {static_cast<int> ( code_dims ), 64, 64, input_width }, RELU ) );
+	discriminator = std::shared_ptr<NN> ( new NN ( batch_size, decay, learning_rate, MLP, {input_width, 64, 64, 1}, RELU ) );
 	
 	nn->otype = SGD;
 	nn->pause = false;
@@ -141,20 +141,20 @@ int compute() {
 		
 		// generate_ndims ( code_dims, normal_distribution<> ( 0, 1 ), gan_train_data.noise.x, batch_size, INDEPENDENT );
 		
-		// generate_ndims ( code_dims, std::unifl_distribution<> ( 10, 5 ), gan_train_data.noise.x, batch_size, INDEPENDENT );
-		generate_stratified (
+		generate_ndims ( code_dims, std::normal_distribution<> ( 10, 5 ), gan_train_data.noise.x, batch_size, INDEPENDENT );
+		// generate_stratified (
 		
-			std::uniform_real_distribution<> ( 0, 20 ),
-			std::uniform_real_distribution<> ( 0, 20 ),
-			std::uniform_real_distribution<> ( 0, 20 ),
-			
-			std::normal_distribution<> ( 0, 0.4 ),
-			std::normal_distribution<> ( 0, 0.4 ),
-			std::normal_distribution<> ( 0, 0.4 ),
-			
-			gan_train_data.noise.x, batch_size
-			
-		);
+		// 	std::uniform_real_distribution<> ( 0, 20 ),
+		// 	std::uniform_real_distribution<> ( 0, 20 ),
+		// 	std::uniform_real_distribution<> ( 0, 20 ),
+		
+		// 	std::normal_distribution<> ( 0, 0.2 ),
+		// 	std::normal_distribution<> ( 0, 0.2 ),
+		// 	std::normal_distribution<> ( 0, 0.2 ),
+		
+		// 	gan_train_data.noise.x, batch_size
+		
+		// );
 		
 		nn->forward ( gan_train_data.noise.x );
 		gl_data->p_vertices.block ( 0, batch_size * batch_iter, 3, batch_size ) = gan_train_data.noise.x;
