@@ -2,7 +2,7 @@
 * @Author: kmrocki
 * @Date:   2016-02-24 15:28:10
 * @Last Modified by:   Kamil Rocki
-* @Last Modified time: 2017-04-13 17:28:31
+* @Last Modified time: 2017-04-18 14:03:12
 */
 
 #ifndef __GAN_NN_H__
@@ -51,7 +51,7 @@ class NN {
 		std::vector<int> layer_sizes;
 		std::deque<Layer *> layers;
 		float current_loss = -0.01f;
-		Eigen::VectorXf *loss_data, *real_acc_data, *fake_acc_data;
+		Eigen::VectorXf *loss_data, *real_acc_data, *fake_acc_data, *w_norm_data, *dw_norm_data, *mw_norm_data;
 		
 		float learning_rate;
 		
@@ -168,6 +168,38 @@ class NN {
 				layers[l]->collect_statistics ( );
 		}
 		
+		float get_total_w_norm ( ) {
+		
+		
+			float s = 0.0f;
+			for ( size_t l = 0; l < layers.size(); l++ )
+				s += layers[l]->w_norm();
+				
+			return s;
+			
+		}
+		
+		float get_total_dw_norm ( ) {
+		
+		
+			float s = 0.0f;
+			for ( size_t l = 0; l < layers.size(); l++ )
+				s += layers[l]->dw_norm();
+				
+			return s;
+			
+		}
+		
+		float get_total_mw_norm ( ) {
+		
+		
+			float s = 0.0f;
+			for ( size_t l = 0; l < layers.size(); l++ )
+				s += layers[l]->mw_norm();
+				
+			return s;
+			
+		}
 		
 		void train ( const Eigen::MatrixXf &s_vertices, std::deque<datapoint> &reconstruction_data ) {
 		

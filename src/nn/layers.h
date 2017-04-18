@@ -2,7 +2,7 @@
 * @Author: kmrocki@us.ibm.com
 * @Date:   2017-03-03 15:06:37
 * @Last Modified by:   Kamil Rocki
-* @Last Modified time: 2017-04-16 19:45:42
+* @Last Modified time: 2017-04-18 16:04:25
 */
 
 #ifndef __LAYERS_H__
@@ -80,6 +80,10 @@ class Layer {
 		        -- Gradients:
 		        gradParameters_D:add( sign(parameters_D):mul(opt.coefL1) + parameters_D:clone():mul(opt.coefL2) )
 		      end*/
+		
+		virtual float w_norm( ) { return 0.0f; }
+		virtual float dw_norm() { return 0.0f; }
+		virtual float mw_norm() { return 0.0f; }
 		
 		virtual void sparsify ( float sparsity_penalty = 0.005f, float sparsity_target = 0.1f ) {
 		
@@ -196,6 +200,17 @@ class Linear : public Layer {
 		Matrix mW;
 		Matrix mb;
 		
+		// ADAM
+		Matrix vW;
+		Matrix vb;
+		Matrix eW;
+		Matrix eb;
+		float t = 0.0f;
+		
+		float current_dw_norm = 0.0f;
+		float current_w_norm = 0.0f;
+		float current_mw_norm = 0.0f;
+		
 		// Matrix gaussian_noise;
 		// bool add_gaussian_noise = false;
 		// float bias_leakage = 0.0000001f;
@@ -247,16 +262,55 @@ class Linear : public Layer {
 			dW = Matrix::Zero ( W.rows(), W.cols() );
 			db = Vector::Zero ( b.rows() );
 			
+			// ADAM
+			vW = Matrix::Zero ( W.rows(), W.cols() );
+			vb = Vector::Zero ( b.rows() );
+			eW = Matrix::Zero ( W.rows(), W.cols() );
+			eb = Vector::Zero ( b.rows() );
+			
 			//matrix_rand ( W, -range, range );
 			// matrix_randn ( W, 0, 0.001f );
 			matrix_randn ( W, 0, ( 1.0f ) / sqrtf ( W.rows() + W.cols() ) );
 			
 		};
 		
+		virtual void collect_statistics() {
+		
+			Layer::collect_statistics();
+			current_w_norm = W.norm();
+			current_dw_norm = dW.norm();
+			current_mw_norm = mW.norm();
+			
+		}
+		virtual float w_norm() {
+		
+			return current_w_norm;
+			
+		}
+		
+		virtual float dw_norm() {
+		
+			return current_dw_norm;
+			
+		}
+		
+		virtual float mw_norm() {
+		
+			return current_dw_norm;
+			
+		}
+		
 		virtual void reset() {
 		
-		
-		
+			matrix_randn ( W, 0, ( 1.0f ) / sqrtf ( W.rows() + W.cols() ) );
+			mW = Matrix::Zero ( W.rows(), W.cols() );
+			mb = Vector::Zero ( b.rows() );
+			vW = Matrix::Zero ( W.rows(), W.cols() );
+			vb = Vector::Zero ( b.rows() );
+			eW = Matrix::Zero ( W.rows(), W.cols() );
+			eb = Vector::Zero ( b.rows() );
+			
+			resetGrads();
 		}
 		
 		void resetGrads() {
@@ -276,116 +330,51 @@ class Linear : public Layer {
 		
 		virtual void layer_info() { std:: cout << name << ": " << W.rows() << ", " << W.cols() << std::endl; }
 		
-		//TODO: RMS Prop
-		/*
-			function rmsprop(opfunc, x, config, state)
-		    -- (0) get/update state
-		    local config = config or {}
-		    local state = state or config
-		    local lr = config.learningRate or 1e-2
-		    local alpha = config.alpha or 0.9
-		    local epsilon = config.epsilon or 1e-8
+		void adam ( float alpha, float decay = 0 ) {
 		
-		    -- (1) evaluate f(x) and df/dx
-		    local fx, dfdx = opfunc(x)
-		    if config.optimize == true then
-		        -- (2) initialize mean square values and square gradient storage
-		        if not state.m then
-		          state.m = torch.Tensor():typeAs(x):resizeAs(dfdx):zero()
-		          state.tmp = torch.Tensor():typeAs(x):resizeAs(dfdx)
-		        end
+			// ADAM
+			float lr = 0.001f;
+			float beta1 = 0.9f;
+			float beta2 = 0.999f;
+			float epsilon = 1e-8f;
+			
+			mW = mW * beta1 + ( 1 - beta1 ) * dW;
+			vW = vW * beta2 + ( 1 - beta2 ) * dW.cwiseProduct ( dW );
+			eW = vW.unaryExpr ( std::ptr_fun ( sqrtf ) ).array() + epsilon;
+			mb = mb * beta1 + ( 1 - beta1 ) * db;
+			vb = vb * beta2 + ( 1 - beta2 ) * db.cwiseProduct ( db );
+			eb = vb.unaryExpr ( std::ptr_fun ( sqrtf ) ).array() + epsilon;
+			
+			t = t + 1.0f;
+			float biasCorrection1 = 1.0f - powf ( beta1, t );
+			float biasCorrection2 = 1.0f - powf ( beta2, t );
+			
+			W.noalias() = ( 1.0f - decay ) * W;
+			b.noalias() = ( 1.0f - decay ) * b;
+			
+			W = W.array() + lr * ( sqrtf ( biasCorrection2 ) * mW.array() ) / ( eW.array() * biasCorrection1 ).array();
+			b = b.array() + lr * ( sqrtf ( biasCorrection2 ) * mb.array() ) / ( eb.array() * biasCorrection1 ).array();
+			
+		}
 		
-		        -- (3) calculate new (leaky) mean squared values
-		        state.m:mul(alpha)
-		        state.m:addcmul(1.0-alpha, dfdx, dfdx)
+		void rmsprop ( float alpha, float decay = 0 ) {
 		
-		        -- (4) perform update
-		        state.tmp:sqrt(state.m):add(epsilon)
-		        -- only opdate when optimize is true
-		
-		
-			if config.numUpdates < 10 then
-			      io.write(" ", lr/50.0, " ")
-			      x:addcdiv(-lr/50.0, dfdx, state.tmp)
-			elseif config.numUpdates < 30 then
-			    io.write(" ", lr/5.0, " ")
-			    x:addcdiv(-lr /5.0, dfdx, state.tmp)
-			else
-			  io.write(" ", lr, " ")
-			  x:addcdiv(-lr, dfdx, state.tmp)
-			end
-		    end
-		    config.numUpdates = config.numUpdates +1
-		
-		
-		    -- return x*, f(x) before optimization
-		    return x, {fx}
-		end*/
-		
-		
-		/*function adam(opfunc, x, config, state)
-		    --print('ADAM')
-		    -- (0) get/update state
-		    local config = config or {}
-		    local state = state or config
-		    local lr = config.learningRate or 0.001
-		
-		    local beta1 = config.beta1 or 0.9
-		    local beta2 = config.beta2 or 0.999
-		    local epsilon = config.epsilon or 1e-8
-		
-		    -- (1) evaluate f(x) and df/dx
-		    local fx, dfdx = opfunc(x)
-		    if config.optimize == true then
-			    -- Initialization
-			    state.t = state.t or 0
-			    -- Exponential moving average of gradient values
-			    state.m = state.m or x.new(dfdx:size()):zero()
-			    -- Exponential moving average of squared gradient values
-			    state.v = state.v or x.new(dfdx:size()):zero()
-			    -- A tmp tensor to hold the sqrt(v) + epsilon
-			    state.denom = state.denom or x.new(dfdx:size()):zero()
-		
-			    state.t = state.t + 1
-		
-			    -- Decay the first and second moment running average coefficient
-			    state.m:mul(beta1):add(1-beta1, dfdx)
-			    state.v:mul(beta2):addcmul(1-beta2, dfdx, dfdx)
-		
-			    state.denom:copy(state.v):sqrt():add(epsilon)
-		
-			    local biasCorrection1 = 1 - beta1^state.t
-			    local biasCorrection2 = 1 - beta2^state.t
-		
-				local fac = 1
-				if config.numUpdates < 10 then
-				    fac = 50.0
-				elseif config.numUpdates < 30 then
-				    fac = 5.0
-				else
-				    fac = 1.0
-				end
-				io.write(" ", lr/fac, " ")
-		        local stepSize = (lr/fac) * math.sqrt(biasCorrection2)/biasCorrection1
-			    -- (2) update x
-			    x:addcdiv(-stepSize, state.m, state.denom)
-		    end
-		    config.numUpdates = config.numUpdates +1
-		    -- return x*, f(x) before optimization
-		    return x, {fx}
-		end
-		*/
-		void applyGrads ( float alpha, float decay = 0 ) {
-		
-			//adagrad
+			//rmsprop
 			
 			float memory_loss = 1e-1f;
 			
 			mW.noalias() = mW * ( 1.0f - memory_loss ) + dW.cwiseProduct ( dW );
 			mb.noalias() = mb * ( 1.0f - memory_loss ) + db.cwiseProduct ( db );
 			
-			W.noalias() = ( 1.0f - decay ) * W + alpha * dW.cwiseQuotient ( mW.unaryExpr ( std::ptr_fun ( sqrt_eps ) ) );
-			b.noalias() = ( 1.0f - decay ) * b + alpha * db.cwiseQuotient ( mb.unaryExpr ( std::ptr_fun ( sqrt_eps ) ) );
+			W.noalias() = ( 1.0f - decay ) * W;
+			b.noalias() = ( 1.0f - decay ) * b;
+			t = t + 1.0f;
+			
+			// W.noalias() = ( 1.0f - decay ) * W + alpha * dW.cwiseQuotient ( mW.unaryExpr ( std::ptr_fun ( sqrt_eps ) ) );
+			// b.noalias() = ( 1.0f - decay ) * b + alpha * db.cwiseQuotient ( mb.unaryExpr ( std::ptr_fun ( sqrt_eps ) ) );
+			W.noalias() = W + ( alpha ) * dW.cwiseQuotient ( mW.unaryExpr ( std::ptr_fun ( sqrt_eps ) ) );
+			b.noalias() = b + ( alpha ) * db.cwiseQuotient ( mb.unaryExpr ( std::ptr_fun ( sqrt_eps ) ) );
+			
 			
 			// 'plain' fixed learning rate update
 			// b.noalias() += alpha * db;
@@ -396,15 +385,41 @@ class Linear : public Layer {
 			
 		}
 		
-		// void applyGrads ( opt_type otype, float alpha, float decay = 0.0f ) {
+		void adagrad ( float alpha, float decay = 0 ) {
 		
-		// 	if (otype == SGD) sgd ( alpha, decay );
-		// 	else if (otype == SGD_MOMENTUM) sgd_momentum ( alpha, decay );
-		// 	else if (otype == ADAGRAD) adagrad ( alpha, decay );
-		// 	else if (otype == ADADELTA) pseudo_adadelta ( alpha, decay );
+			float epsilon = 1e-8f;
+			
+			mW.noalias() = mW + dW.cwiseProduct ( dW );
+			mb.noalias() = mb + db.cwiseProduct ( db );
+			
+			W.noalias() = ( 1.0f - decay ) * W;
+			b.noalias() = ( 1.0f - decay ) * b;
+			
+			t = t + 1.0f;
+			W.noalias() = W + ( alpha ) * dW.cwiseQuotient ( mW.unaryExpr ( std::ptr_fun ( sqrt_eps ) ) );
+			b.noalias() = b + ( alpha ) * db.cwiseQuotient ( mb.unaryExpr ( std::ptr_fun ( sqrt_eps ) ) );
+			
+		}
 		
-		// 	b.array() += bias_leakage;
-		// }
+		void sgd ( float alpha, float decay = 0 ) {
+		
+		
+			W.noalias() = ( 1.0f - decay ) * W;
+			b.noalias() = ( 1.0f - decay ) * b;
+			
+			b += alpha * db;
+			W += alpha * dW;
+			
+		}
+		
+		void applyGrads ( float alpha, float decay = 0.0f ) {
+		
+			//sgd ( alpha, decay );
+			//adagrad ( alpha, decay );
+			rmsprop ( alpha, decay );
+			//adam ( alpha, decay );
+			
+		}
 		
 		// // sgd
 		// void sgd ( float alpha, float decay = 0.0f ) {
