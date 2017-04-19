@@ -2,7 +2,7 @@
 * @Author: Kamil Rocki
 * @Date:   2017-02-28 11:25:34
 * @Last Modified by:   Kamil Rocki
-* @Last Modified time: 2017-04-18 16:07:09
+* @Last Modified time: 2017-04-18 17:28:09
 */
 
 #include <thread>
@@ -74,7 +74,7 @@ int compute() {
 	PlotData *gl_data = screen->plot_data;
 	
 	// NN stuff
-	double learning_rate = 1e-4f;
+	double learning_rate = 1e-3f;
 	float decay = 1e-6f;
 	const size_t batch_size = 64;
 	const int input_width = static_cast<int> ( train_data[0].x.size() );
@@ -84,8 +84,8 @@ int compute() {
 	
 	size_t code_dims = 3;
 	
-	nn = std::shared_ptr<NN> ( new NN ( batch_size, decay, learning_rate, AE, {static_cast<int> ( code_dims ), 100, input_width }, SIGMOID ) );
-	discriminator = std::shared_ptr<NN> ( new NN ( batch_size, decay, learning_rate, MLP, {input_width, 100, 1}, SIGMOID ) );
+	nn = std::shared_ptr<NN> ( new NN ( batch_size, decay, learning_rate, AE, {static_cast<int> ( code_dims ), 100, input_width }, RELU ) );
+	discriminator = std::shared_ptr<NN> ( new NN ( batch_size, decay, learning_rate, MLP, {input_width, 100, 1}, RELU ) );
 	
 	nn->otype = SGD;
 	nn->pause = false;
@@ -108,7 +108,7 @@ int compute() {
 			   std::uniform_real_distribution<> ( -40, 40 ),
 			   gl_data->s_vertices, generate_point_count, INDEPENDENT );
 			   
-	func3::set ( {0.0f, 1.0f, 0.0f}, gl_data->s_colors, generate_point_count );
+	func3::set ( {1.0f, 1.0f, 1.0f}, gl_data->s_colors, generate_point_count );
 	
 	if ( screen )
 		if ( screen->nnview )

@@ -13,6 +13,7 @@ out vec4 out_color;
 uniform float alpha;
 uniform int blend_mode;
 uniform int colormap;
+uniform int discretize;
 
 void main() {
 
@@ -20,10 +21,11 @@ void main() {
 	if ( blend_mode == 1 ) { // GL_ONE, GL_ONE
 		// out_color = vec4 ( frag_color * alpha, intensity );
 		out_color = vec4 ( frag_color * alpha, intensity ); //hueGradient(float t)
-	} else {
-
-		out_color = apply_colormap(frag_color, colormap, alpha);
-
+		
 	}
-
+	else
+	
+		out_color = apply_colormap ( frag_color, colormap, alpha, discretize );
+		
+		
 }

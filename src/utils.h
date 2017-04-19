@@ -2,7 +2,7 @@
 * @Author: kmrocki@us.ibm.com
 * @Date:   2017-03-03 15:22:47
 * @Last Modified by:   Kamil Rocki
-* @Last Modified time: 2017-04-13 17:23:01
+* @Last Modified time: 2017-04-18 17:11:37
 */
 
 #ifndef __UTIL_MAIN_H__
@@ -159,5 +159,6 @@ void checkNaNInf ( Eigen::MatrixXf &m ) {
 	} );
 	
 }
+
 
 #endif

@@ -202,11 +202,24 @@ vec3 viridis ( float x, int discretize ) {
 	return viridis_quintic ( x );
 }
 
-vec4 apply_colormap ( vec3 val, int colormap, float alpha ) {
+vec4 apply_colormap ( vec3 val, int colormap, float alpha, int discretize ) {
 
-	int discretize = 1;
+	switch ( colormap ) {
 	
-	if ( colormap == COLORMAP_GRAY )
+		case COLORMAP_GRAY: return vec4 ( gray ( val.r, discretize ), alpha );
+		case COLORMAP_JET: return vec4 ( jet ( val.r, discretize ), alpha );
+		case COLORMAP_PARULA: return vec4 ( parula ( val.r, discretize ), alpha );
+		case COLORMAP_VIRIDIS: return vec4 ( viridis ( val.r, discretize ), alpha );
+		case COLORMAP_RGB: return vec4 ( spectrum ( val.r, discretize ), alpha );
+		case COLORMAP_HAXBY: return vec4 ( haxby ( val.r, discretize ), alpha );
+		case COLORMAP_SEISMIC: return vec4 ( seismic ( val.r, discretize ), alpha );
+	}
+	
+	return vec4 ( val, alpha );
+	
+}
+
+/*	if ( colormap == COLORMAP_GRAY )
 		return vec4 ( gray ( val.r, discretize ), alpha );
 	else
 		if ( colormap == COLORMAP_JET )
@@ -230,5 +243,5 @@ vec4 apply_colormap ( vec3 val, int colormap, float alpha ) {
 								if ( colormap == COLORMAP_SEISMIC )
 									return vec4 ( seismic ( val.r, discretize ), alpha );
 								else
-									return vec4 ( val, alpha );
-}
+									return vec4 ( val, alpha );*/
+// }

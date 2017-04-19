@@ -2,7 +2,7 @@
 * @Author: kmrocki@us.ibm.com
 * @Date:   2017-03-03 15:06:37
 * @Last Modified by:   Kamil Rocki
-* @Last Modified time: 2017-04-18 16:04:25
+* @Last Modified time: 2017-04-18 17:16:09
 */
 
 #ifndef __LAYERS_H__
@@ -194,8 +194,8 @@ class Linear : public Layer {
 		Matrix W;
 		Matrix b;
 		
-		Matrix dW;
-		Matrix db;
+		Matrix dW, d2W;
+		Matrix db, d2b;
 		
 		Matrix mW;
 		Matrix mb;
@@ -261,6 +261,8 @@ class Linear : public Layer {
 			mb = Vector::Zero ( b.rows() );
 			dW = Matrix::Zero ( W.rows(), W.cols() );
 			db = Vector::Zero ( b.rows() );
+			d2W = Matrix::Zero ( W.rows(), W.cols() );
+			d2b = Vector::Zero ( b.rows() );
 			
 			// ADAM
 			vW = Matrix::Zero ( W.rows(), W.cols() );
@@ -361,10 +363,15 @@ class Linear : public Layer {
 		
 			//rmsprop
 			
-			float memory_loss = 1e-1f;
+			float memory_loss = 1e-2f;
 			
-			mW.noalias() = mW * ( 1.0f - memory_loss ) + dW.cwiseProduct ( dW );
-			mb.noalias() = mb * ( 1.0f - memory_loss ) + db.cwiseProduct ( db );
+			d2W = dW.cwiseProduct ( dW );
+			d2b = db.cwiseProduct ( db );
+			checkNaNInf ( d2W );
+			checkNaNInf ( d2b );
+			
+			mW.noalias() = mW * ( 1.0f - memory_loss ) + d2W;
+			mb.noalias() = mb * ( 1.0f - memory_loss ) + d2b;
 			
 			W.noalias() = ( 1.0f - decay ) * W;
 			b.noalias() = ( 1.0f - decay ) * b;
@@ -372,8 +379,13 @@ class Linear : public Layer {
 			
 			// W.noalias() = ( 1.0f - decay ) * W + alpha * dW.cwiseQuotient ( mW.unaryExpr ( std::ptr_fun ( sqrt_eps ) ) );
 			// b.noalias() = ( 1.0f - decay ) * b + alpha * db.cwiseQuotient ( mb.unaryExpr ( std::ptr_fun ( sqrt_eps ) ) );
-			W.noalias() = W + ( alpha ) * dW.cwiseQuotient ( mW.unaryExpr ( std::ptr_fun ( sqrt_eps ) ) );
-			b.noalias() = b + ( alpha ) * db.cwiseQuotient ( mb.unaryExpr ( std::ptr_fun ( sqrt_eps ) ) );
+			d2W = dW.cwiseQuotient ( mW.unaryExpr ( std::ptr_fun ( sqrt_eps ) ) );
+			d2b = db.cwiseQuotient ( mb.unaryExpr ( std::ptr_fun ( sqrt_eps ) ) );
+			checkNaNInf ( d2W );
+			checkNaNInf ( d2b );
+			
+			W.noalias() = W + ( alpha ) * d2W;
+			b.noalias() = b + ( alpha ) * d2b;
 			
 			
 			// 'plain' fixed learning rate update
@@ -388,21 +400,29 @@ class Linear : public Layer {
 		void adagrad ( float alpha, float decay = 0 ) {
 		
 			float epsilon = 1e-8f;
+			d2W = dW.cwiseProduct ( dW );
+			d2b = db.cwiseProduct ( db );
+			checkNaNInf ( d2W );
+			checkNaNInf ( d2b );
 			
-			mW.noalias() = mW + dW.cwiseProduct ( dW );
-			mb.noalias() = mb + db.cwiseProduct ( db );
+			mW.noalias() = mW + d2W;
+			mb.noalias() = mb + d2b;
 			
 			W.noalias() = ( 1.0f - decay ) * W;
 			b.noalias() = ( 1.0f - decay ) * b;
 			
 			t = t + 1.0f;
-			W.noalias() = W + ( alpha ) * dW.cwiseQuotient ( mW.unaryExpr ( std::ptr_fun ( sqrt_eps ) ) );
-			b.noalias() = b + ( alpha ) * db.cwiseQuotient ( mb.unaryExpr ( std::ptr_fun ( sqrt_eps ) ) );
+			d2W = dW.cwiseQuotient ( mW.unaryExpr ( std::ptr_fun ( sqrt_eps ) ) );
+			d2b = db.cwiseQuotient ( mb.unaryExpr ( std::ptr_fun ( sqrt_eps ) ) );
+			checkNaNInf ( d2W );
+			checkNaNInf ( d2b );
+			
+			W.noalias() = W + ( alpha ) * d2W ;
+			b.noalias() = b + ( alpha ) * d2b ;
 			
 		}
 		
 		void sgd ( float alpha, float decay = 0 ) {
-		
 		
 			W.noalias() = ( 1.0f - decay ) * W;
 			b.noalias() = ( 1.0f - decay ) * b;

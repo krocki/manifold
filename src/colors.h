@@ -2,8 +2,8 @@
 /*
 * @Author: kmrocki@us.ibm.com
 * @Date:   2017-03-09 22:20:32
-* @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-04-18 06:41:31
+* @Last Modified by:   Kamil Rocki
+* @Last Modified time: 2017-04-18 16:52:11
 */
 
 #include <nanogui/colormaps.h>
@@ -12,6 +12,7 @@
 #define __COLORS_H__
 
 std::vector<std::string> available_colormaps = {"gray", "jet", "parula", "viridis", "hsv", "rgb", "haxby", "seismic"};
+std::vector<std::string> available_blendmodes = {"GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA", "GL_ONE, GL_ONE", "GL_SRC_ALPHA, GL_ONE", "OFF"};
 
 float interpolate_jet ( float val, float y0, float x0, float y1, float x1 ) {
 
@@ -21,11 +22,14 @@ float interpolate_jet ( float val, float y0, float x0, float y1, float x1 ) {
 float jet_base ( float val ) {
 
 	if ( val <= -0.75f ) return 0;
-	else if ( val <= -0.25f ) return interpolate_jet ( val, 0.0f, -0.75f, 1.0f, -0.25f );
-	else if ( val <= 0.25f ) return 1.0f;
-	else if ( val <= 0.75f ) return interpolate_jet ( val, 1.0f, 0.25f, 0.0f, 0.75f );
-	else return 0.0f;
-
+	else
+		if ( val <= -0.25f ) return interpolate_jet ( val, 0.0f, -0.75f, 1.0f, -0.25f );
+		else
+			if ( val <= 0.25f ) return 1.0f;
+			else
+				if ( val <= 0.75f ) return interpolate_jet ( val, 1.0f, 0.25f, 0.0f, 0.75f );
+				else return 0.0f;
+				
 }
 
 float jet_red ( float value ) {
@@ -48,12 +52,12 @@ nanogui::Color jet_colormap ( float value ) {
 
 	value *= 2.0f;
 	value -= 1.0f;
-
+	
 	//MATLAB's jet palette
 	float r = jet_red ( value );
 	float g = jet_green ( value );
 	float b = jet_blue ( value );
-
+	
 	return nanogui::Color ( ( uint8_t ) ( r * 255.0f ), ( uint8_t ) ( g * 255.0f ), ( uint8_t ) ( b * 255.0f ), 127 );
 }
 
@@ -62,24 +66,24 @@ nanogui::Color parula_colormap ( float value ) {
 
 	//simple discretization, NN
 	int index = round ( value * 10.0f - 0.5f );
-
+	
 	index = fmin ( index, nanogui::PARULA_LUT_SIZE - 1 );
 	index = fmax ( index, 0 );
-
+	
 	return nanogui::parula_lut[index];
-
+	
 }
 
 nanogui::Color bar_colormap ( float value ) {
 
 	//simple discretization, NN
 	int index = round ( value * 10.0f - 0.5f );
-
+	
 	index = fmin ( index, nanogui::BARCOLOR_LUT_SIZE - 1 );
 	index = fmax ( index, 0 );
-
+	
 	return nanogui::barcolormap_lut[index];
-
+	
 }
 
 // _float4 haxby_colormap(float value) {

@@ -29,7 +29,7 @@
 #include <gl/tex.h>
 
 #define DEF_WIDTH 1900
-#define DEF_HEIGHT 1420
+#define DEF_HEIGHT 1320
 #define SCREEN_NAME "GAN"
 #define RESIZABLE true
 #define FULLSCREEN false
@@ -81,23 +81,20 @@ class GUI : public nanogui::Screen {
 			std::string t = return_current_time_and_date ( "%y%m%d_%H%M%S" );
 			
 			plots.push_back ( new Plot ( root, "forward", {900, 600}, 0, plot_data, true, true, true, false,
-										 mGLFWWindow, mNVGContext, 80.0f, { -35.2f, -35.8f, -35.0f}, { 0.63, 1.895f, 0.0f}, {box_size * 2, box_size * 2, box_size * 2}, false, 0, string_format ( "%s_plot0", t.c_str() ) ) );
+										 mGLFWWindow, mNVGContext, 80.0f, { -35.2f, -35.8f, -35.0f}, { 0.63, 1.895f, 0.0f}, {box_size * 2, box_size * 2, box_size * 2}, false, 0, string_format ( "%s_plot0", t.c_str() ), 0, true, true ) );
 			// plots.push_back(new Plot ( root, "forward", {DEF_WIDTH / 3, DEF_WIDTH / 3}, 0, plot_data, true, true, true, false, mGLFWWindow, mNVGContext, 6.0f, { -5.0f, -8.0f, -1.0f}, { 0.0f, 0.0f, 0.0f}, {box_size * 2, box_size * 2, box_size * 2}, false, 0, string_format ( "%s_plot0", t.c_str())));
 			
 			plots.push_back ( new Plot ( root, "top frustum", {285, 285}, 1, plot_data, true, false, false,
 										 true, mGLFWWindow, mNVGContext, 66.0f, {0.0f, 35.0f, 0.0f}, {0.0f, 0.0f, -M_PI / 4.0f}, {box_size * 2, box_size * 2, box_size * 2},
-										 false, 0, string_format ( "%s_plot_top", t.c_str() ) ) );
+										 false, 0, string_format ( "%s_plot_top", t.c_str() ), 2, false, false ) );
 										 
 			plots.push_back ( new Plot ( root, "front ortho", {285, 285}, 2, plot_data, true, false, false,
 										 false, mGLFWWindow, mNVGContext, 40.0f, {0.0f, 0.0f, 11.0f}, {0.0f, 0.0f, 0.0f}, {box_size * 2, box_size * 2, box_size * 2},
-										 true, 0, string_format ( "%s_plot_ortho", t.c_str() ) ) );
+										 true, 0, string_format ( "%s_plot_ortho", t.c_str() ), 2, false, false ) );
 										 
 			plots[0]->setPosition ( {3, 3} );
 			plots[1]->setPosition ( {910, 10} );
 			plots[2]->setPosition ( {910, 310} );
-			
-			plots[1]->on = false;
-			plots[2]->on = false;
 			
 			int number_of_cameras = plots.size();
 			
