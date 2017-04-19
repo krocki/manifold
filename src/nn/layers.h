@@ -2,7 +2,7 @@
 * @Author: kmrocki@us.ibm.com
 * @Date:   2017-03-03 15:06:37
 * @Last Modified by:   Kamil Rocki
-* @Last Modified time: 2017-04-18 17:16:09
+* @Last Modified time: 2017-04-18 18:53:21
 */
 
 #ifndef __LAYERS_H__
@@ -335,7 +335,7 @@ class Linear : public Layer {
 		void adam ( float alpha, float decay = 0 ) {
 		
 			// ADAM
-			float lr = 0.001f;
+			float lr = 0.0001f;
 			float beta1 = 0.9f;
 			float beta2 = 0.999f;
 			float epsilon = 1e-8f;
@@ -343,9 +343,11 @@ class Linear : public Layer {
 			mW = mW * beta1 + ( 1 - beta1 ) * dW;
 			vW = vW * beta2 + ( 1 - beta2 ) * dW.cwiseProduct ( dW );
 			eW = vW.unaryExpr ( std::ptr_fun ( sqrtf ) ).array() + epsilon;
+			checkNaNInf ( vW ); checkNaNInf ( eW );
 			mb = mb * beta1 + ( 1 - beta1 ) * db;
 			vb = vb * beta2 + ( 1 - beta2 ) * db.cwiseProduct ( db );
 			eb = vb.unaryExpr ( std::ptr_fun ( sqrtf ) ).array() + epsilon;
+			checkNaNInf ( vb ); checkNaNInf ( eb );
 			
 			t = t + 1.0f;
 			float biasCorrection1 = 1.0f - powf ( beta1, t );

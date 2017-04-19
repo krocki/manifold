@@ -2,7 +2,7 @@
 * @Author: kmrocki@us.ibm.com
 * @Date:   2017-03-20 10:09:39
 * @Last Modified by:   Kamil Rocki
-* @Last Modified time: 2017-04-18 17:52:36
+* @Last Modified time: 2017-04-18 18:00:37
 */
 
 #ifndef __GLPLOT_H__
@@ -1042,7 +1042,7 @@ class Plot : public nanogui::GLCanvas {
 		bool use_textures = false;
 		bool show_reconstructions = false;
 		bool apply_label_color = false;
-		bool show_rays = true;
+		bool show_rays = false;
 		bool show_samples = false;
 		int coord_type = 0;
 		float pt_size = 6.0f;

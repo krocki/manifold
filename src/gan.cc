@@ -2,7 +2,7 @@
 * @Author: Kamil Rocki
 * @Date:   2017-02-28 11:25:34
 * @Last Modified by:   Kamil Rocki
-* @Last Modified time: 2017-04-18 17:58:22
+* @Last Modified time: 2017-04-18 18:03:48
 */
 
 #include <thread>
@@ -74,8 +74,8 @@ int compute() {
 	PlotData *gl_data = screen->plot_data;
 	
 	// NN stuff
-	double learning_rate = 1e-3f;
-	float decay = 1e-6f;
+	double learning_rate = 1e-4f;
+	float decay = 1e-5f;
 	const size_t batch_size = 64;
 	const int input_width = static_cast<int> ( train_data[0].x.size() );
 	assert ( input_width > 0 );
@@ -96,12 +96,13 @@ int compute() {
 	
 	size_t generate_point_count = vis_interval * batch_size;
 	
-	generate ( std::normal_distribution<> ( 0, 1 ),
-			   std::normal_distribution<> ( 0, 1 ),
-			   std::normal_distribution<> ( 0, 1 ),
+	generate ( std::normal_distribution<> ( 0, 0.1 ),
+			   std::normal_distribution<> ( 0, 0.1 ),
+			   std::normal_distribution<> ( 0, 0.1 ),
 			   gl_data->p_vertices, generate_point_count, INDEPENDENT );
 			   
-	func3::set ( {0.0f, 1.0f, 0.0f}, gl_data->p_colors, generate_point_count );
+	func3::set ( {0.5f, 0.5f, 0.5f}, gl_data->p_colors, generate_point_count );
+	generate_ndims ( code_dims, std::normal_distribution<> ( 0, 10 ), gan_train_data.noise.x, batch_size, INDEPENDENT );
 	
 	generate ( std::uniform_real_distribution<> ( -40, 40 ),
 			   std::uniform_real_distribution<> ( -40, 40 ),
