@@ -2,7 +2,7 @@
 * @Author: Kamil Rocki
 * @Date:   2017-02-28 11:25:34
 * @Last Modified by:   Kamil Rocki
-* @Last Modified time: 2017-04-18 17:28:09
+* @Last Modified time: 2017-04-18 17:58:22
 */
 
 #include <thread>
@@ -84,7 +84,7 @@ int compute() {
 	
 	size_t code_dims = 3;
 	
-	nn = std::shared_ptr<NN> ( new NN ( batch_size, decay, learning_rate, AE, {static_cast<int> ( code_dims ), 100, input_width }, RELU ) );
+	nn = std::shared_ptr<NN> ( new NN ( batch_size, decay, learning_rate, AE, {static_cast<int> ( code_dims ), 25, 25, input_width }, RELU ) );
 	discriminator = std::shared_ptr<NN> ( new NN ( batch_size, decay, learning_rate, MLP, {input_width, 100, 1}, RELU ) );
 	
 	nn->otype = SGD;
@@ -96,9 +96,9 @@ int compute() {
 	
 	size_t generate_point_count = vis_interval * batch_size;
 	
-	generate ( std::uniform_real_distribution<> ( -40, 40 ),
-			   std::uniform_real_distribution<> ( -40, 40 ),
-			   std::uniform_real_distribution<> ( -40, 40 ),
+	generate ( std::normal_distribution<> ( 0, 1 ),
+			   std::normal_distribution<> ( 0, 1 ),
+			   std::normal_distribution<> ( 0, 1 ),
 			   gl_data->p_vertices, generate_point_count, INDEPENDENT );
 			   
 	func3::set ( {0.0f, 1.0f, 0.0f}, gl_data->p_colors, generate_point_count );
@@ -158,7 +158,7 @@ int compute() {
 		// generate ( std::normal_distribution<> ( 0, 1 ), std::normal_distribution<> ( 0, 1 ),
 		// 		   std::normal_distribution<> ( 0, 1 ), gan_train_data.noise.x, batch_size, INDEPENDENT );
 		
-		generate_ndims ( code_dims, normal_distribution<> ( 0, 10 ), gan_train_data.noise.x, batch_size, INDEPENDENT );
+		generate_ndims ( code_dims, std::normal_distribution<> ( 0, 10 ), gan_train_data.noise.x, batch_size, INDEPENDENT );
 		
 		// generate_ndims ( code_dims, std::unifl_distribution<> ( 10, 5 ), gan_train_data.noise.x, batch_size, INDEPENDENT );
 		// generate_stratified (
