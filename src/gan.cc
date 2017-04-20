@@ -2,7 +2,7 @@
 * @Author: Kamil Rocki
 * @Date:   2017-02-28 11:25:34
 * @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-04-20 08:31:56
+* @Last Modified time: 2017-04-20 10:52:44
 */
 
 #include <thread>
@@ -81,14 +81,13 @@ int compute() {
 	// NN stuff
 	double learning_rate = 1e-3f;
 	float decay = 0;
-	const size_t batch_size = 16;
+	const size_t batch_size = 64;
 	const int input_width = static_cast<int> ( train_data[0].x.size() );
 	assert ( input_width > 0 );
 
 	size_t e = 0;
 
 	size_t code_dims = 3;
-	float label_smoothing = 0.9f;
 
 	nn = std::shared_ptr<NN> ( new NN ( batch_size, decay, learning_rate, AE, {static_cast<int> ( code_dims ), 64, input_width }, RELU ) );
 	discriminator = std::shared_ptr<NN> ( new NN ( batch_size, decay, learning_rate, MLP, {input_width, 64, 1}, RELU, false ) );
@@ -101,6 +100,8 @@ int compute() {
 	discriminator->pause = true;
 	encoder->otype = SGD;
 	encoder->pause = true;
+	nn->generator_loss_type = NON_SATURATING_LOSS;
+	discriminator->label_smoothing = 0.9f;
 
 	size_t vis_interval = 1000;
 
@@ -245,7 +246,7 @@ int compute() {
 		gan_train_data.real_mask = gan_train_data.mix_indices.cast<float>();
 		generator_loss = 0;//cross_entropy_mask ( discriminator->layers.back()->y, gan_train_data.mixed.y, gan_train_data.real_mask, true );
 
-		gan_train_data.smoothed.y = gan_train_data.mixed.y * label_smoothing;
+		gan_train_data.smoothed.y = gan_train_data.mixed.y * discriminator->label_smoothing;
 
 		discriminator->backward ( gan_train_data.smoothed.y - discriminator->layers.back()->y );
 
@@ -279,13 +280,12 @@ int compute() {
 		// update discriminator weights
 		discriminator->update ( discriminator->learning_rate, discriminator->decay );
 
-		gen_loss generator_loss_type = NON_SATURATING_LOSS;
-
 		//discriminator cost = -1/2 Ez log D(G(z))
-		if (generator_loss_type == NON_SATURATING_LOSS) {
+		if (nn->generator_loss_type == NON_SATURATING_LOSS) {
 
 			// discriminator backward pass
 			discriminator->backward ( 1.0f - discriminator->layers.back()->y.array() );
+			discriminator->layers.back()->dy = discriminator->layers.back()->dy.array().rowwise() * gan_train_data.generated_mask.row ( 0 ).array();
 
 			generator_loss += cross_entropy_mask ( discriminator->layers.back()->y, gan_train_data.mixed.y, gan_train_data.generated_mask, false );
 
@@ -296,8 +296,9 @@ int compute() {
 		}
 
 		//discriminator cost = -1/2 Ez log D(1-G(z))
-		if (generator_loss_type == MINIMAX_LOSS) { //https://filebox.ece.vt.edu/~jbhuang/teaching/ece6554/sp17/lectures/cGAN-topic.pdf {
+		if (nn->generator_loss_type == MINIMAX_LOSS) { //https://filebox.ece.vt.edu/~jbhuang/teaching/ece6554/sp17/lectures/cGAN-topic.pdf {
 
+			discriminator->layers.back()->dy = discriminator->layers.back()->dy.array().rowwise() * gan_train_data.generated_mask.row ( 0 ).array();
 			generator_loss += cross_entropy_mask ( discriminator->layers.back()->y, gan_train_data.mixed.y, gan_train_data.generated_mask, false );
 
 			// remove grads of real examples
@@ -307,9 +308,7 @@ int compute() {
 		}
 
 		// loss gen
-		smooth_generator_loss = isNaNInf ( generator_loss ) ? smooth_generator_loss :
-		                        smooth_generator_loss < 0 ? generator_loss : 0.99 * smooth_generator_loss + 0.01
-		                        * generator_loss;
+		smooth_generator_loss = isNaNInf ( generator_loss ) ? smooth_generator_loss : smooth_generator_loss < 0 ? generator_loss : 0.99 * smooth_generator_loss + 0.01 * generator_loss;
 
 		// update generator weights
 		nn->update ( nn->learning_rate, nn->decay );
@@ -327,7 +326,7 @@ int compute() {
 
 
 		// update graph data
-		if ( iters % 1000 == 0 ) {
+		if ( iters % 100 == 0 ) {
 
 			update_graph_data ( discriminator->loss_data, smooth_generator_loss );
 			update_graph_data ( discriminator->real_acc_data, smooth_discriminator_real_acc );
@@ -338,22 +337,25 @@ int compute() {
 			update_graph_data ( discriminator->out_grad_norm_data, discriminator->layers[0]->dx_norm());
 			update_graph_data ( nn->out_grad_norm_data, nn->layers[0]->dx_norm());
 
-		}
-
-		if ( iters % vis_interval == 0 ) {
-
-			discriminator->clock = true;
-			gl_data->updated();
 			nn->collect_statistics();
 			discriminator->collect_statistics();
 			encoder->collect_statistics();
-			batch_iter = 0;
+
 			update_graph_data ( discriminator->w_norm_data, discriminator->get_total_w_norm() );
 			update_graph_data ( nn->w_norm_data, nn->get_total_w_norm() );
 			update_graph_data ( discriminator->dw_norm_data, discriminator->get_total_dw_norm() );
 			update_graph_data ( nn->dw_norm_data, nn->get_total_dw_norm() );
 			update_graph_data ( discriminator->mw_norm_data, discriminator->get_total_mw_norm() );
 			update_graph_data ( nn->mw_norm_data, nn->get_total_mw_norm() );
+
+		}
+
+		if ( iters % vis_interval == 0 ) {
+
+			discriminator->clock = true;
+			gl_data->updated();
+			batch_iter = 0;
+
 		}
 
 		usleep ( 100 );

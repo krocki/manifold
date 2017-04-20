@@ -2,7 +2,7 @@
 * @Author: kmrocki
 * @Date:   2016-02-24 15:28:10
 * @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-04-20 07:53:01
+* @Last Modified time: 2017-04-20 10:35:05
 */
 
 #ifndef __GAN_NN_H__
@@ -53,8 +53,10 @@ class NN {
 	std::deque<Layer *> layers;
 	float current_loss = -0.01f;
 	Eigen::VectorXf *loss_data, *real_acc_data, *fake_acc_data, *w_norm_data, *dw_norm_data, *mw_norm_data, *in_grad_norm_data, *out_grad_norm_data;
+	gen_loss generator_loss_type = NON_SATURATING_LOSS;
 
 	float learning_rate;
+	float label_smoothing = 0.9f;
 
 	bool use_code_sigmoid = false;
 	bool use_dropout = false;

@@ -328,7 +328,7 @@ class GUI : public nanogui::Screen {
 		layout_2cols->setSpacing ( 0, 10 );
 
 		window = new nanogui::Window ( this, "" );
-		window->setPosition ( Eigen::Vector2i ( COL2X + 280, 550 ) );
+		window->setPosition ( Eigen::Vector2i ( COL2X + 280, 480 ) );
 		window->setLayout ( layout );
 
 		Eigen::Vector2i bsize = Eigen::Vector2i ( 20, 20 );
@@ -436,6 +436,57 @@ class GUI : public nanogui::Screen {
 				nn->set_sparsity_target ( ro );
 
 			} );
+
+			new nanogui::Label ( window_params, "label smoothing", "sans-bold" );
+			nanogui::TextBox *textBox_ls = new nanogui::TextBox ( window_params );
+			textBox_ls->setEditable ( true );
+			textBox_ls->setFixedSize ( Eigen::Vector2i ( 100, 20 ) );
+			textBox_ls->setValue ( "0.9" );
+			textBox_ls->setFontSize ( 16 );
+			textBox_ls->setFormat ( "[-+]?[0-9]*\\.?[0-9]+([eE][-+]?[0-9]+)?" );
+
+			slider = new nanogui::Slider ( window_params );
+			slider->setValue ( 0.9f );
+			slider->setFixedSize ( Eigen::Vector2i ( 100, 20 ) );
+			slider->setCallback ( [textBox_ls] ( float value ) {
+				float s = value;
+				float ls = s; std::cout << "label smoothing: " << ls << std::endl;
+				textBox_ls->setValue ( string_format ( "%.2f", ls ).c_str() );
+				discriminator->label_smoothing = ls;
+
+			} );
+
+			new nanogui::Label ( window_params, "loss type", "sans-bold" );
+			nanogui::TextBox *textBox_loss = new nanogui::TextBox ( window_params );
+			textBox_loss->setEditable ( false );
+			textBox_loss->setFixedSize ( Eigen::Vector2i ( 100, 20 ) );
+			textBox_loss->setValue ( "non-saturating" );
+			textBox_loss->setFontSize ( 16 );
+			textBox_loss->setFormat ( "[-+]?[0-9]*\\.?[0-9]+([eE][-+]?[0-9]+)?" );
+
+			nanogui::Button* b = window_params->add<nanogui::Button> ( "", ENTYPO_ICON_SQUARED_PLUS );
+			b->setFlags ( nanogui::Button::ToggleButton );
+			b->setFixedSize ( bsize );
+			b->setBackgroundColor ( ccolor );
+			b->setPushed ( true );
+			b->setChangeCallback ( [textBox_loss] ( bool state )
+
+			{
+				if (state) {
+
+					nn->generator_loss_type = NON_SATURATING_LOSS;
+					textBox_loss->setValue ( "non-saturating" );
+
+				} else {
+
+					nn->generator_loss_type = MINIMAX_LOSS;
+					textBox_loss->setValue ( "minimax" );
+				}
+
+				//std::cout << "generator_loss_type = " << std::endl;;
+
+			} );
+
 
 		}
 
@@ -926,7 +977,7 @@ class GUI : public nanogui::Screen {
 
 		graph_discriminator_dy_norm = new nanogui::Graph ( graphs, "" );
 		graph_discriminator_dy_norm->setFooter ( "discriminator in grad norm" );
-		graph_discriminator_dy_norm->setGraphColor ( nanogui::Color ( 128, 128, 128, 128 ) );
+		graph_discriminator_dy_norm->setGraphColor ( nanogui::Color ( 200, 200, 200, 192 ) );
 		graph_discriminator_dy_norm->setBackgroundColor ( nanogui::Color ( 0, 0, 0, 64 ) );
 		graph_discriminator_dy_norm->values().resize ( graph_length );
 		graph_discriminator_dy_norm->setFixedSize ( graph_size );
@@ -934,7 +985,7 @@ class GUI : public nanogui::Screen {
 
 		graph_discriminator_dx_norm = new nanogui::Graph ( graphs, "" );
 		graph_discriminator_dx_norm->setFooter ( "discriminator out grad norm" );
-		graph_discriminator_dx_norm->setGraphColor ( nanogui::Color ( 128, 128, 128, 128 ) );
+		graph_discriminator_dx_norm->setGraphColor ( nanogui::Color ( 200, 200, 200, 192 ) );
 		graph_discriminator_dx_norm->setBackgroundColor ( nanogui::Color ( 0, 0, 0, 64 ) );
 		graph_discriminator_dx_norm->values().resize ( graph_length );
 		graph_discriminator_dx_norm->setFixedSize ( graph_size );
@@ -942,7 +993,7 @@ class GUI : public nanogui::Screen {
 
 		graph_generator_dy_norm = new nanogui::Graph ( graphs, "" );
 		graph_generator_dy_norm->setFooter ( "generator in grad norm" );
-		graph_generator_dy_norm->setGraphColor ( nanogui::Color ( 128, 128, 128, 128 ) );
+		graph_generator_dy_norm->setGraphColor ( nanogui::Color ( 200, 200, 200, 192 ) );
 		graph_generator_dy_norm->setBackgroundColor ( nanogui::Color ( 0, 0, 0, 64 ) );
 		graph_generator_dy_norm->values().resize ( graph_length );
 		graph_generator_dy_norm->setFixedSize ( graph_size );
@@ -950,7 +1001,7 @@ class GUI : public nanogui::Screen {
 
 		graph_generator_dx_norm = new nanogui::Graph ( graphs, "" );
 		graph_generator_dx_norm->setFooter ( "generator out grad norm" );
-		graph_generator_dx_norm->setGraphColor ( nanogui::Color ( 128, 128, 128, 128 ) );
+		graph_generator_dx_norm->setGraphColor ( nanogui::Color ( 200, 200, 200, 192 ) );
 		graph_generator_dx_norm->setBackgroundColor ( nanogui::Color ( 0, 0, 0, 64 ) );
 		graph_generator_dx_norm->values().resize ( graph_length );
 		graph_generator_dx_norm->setFixedSize ( graph_size );
