@@ -2,7 +2,7 @@
 * @Author: kmrocki@us.ibm.com
 * @Date:   2017-03-20 10:11:47
 * @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-04-18 20:25:21
+* @Last Modified time: 2017-04-20 08:40:14
 */
 
 #ifndef __PLOTDATA_H__
@@ -23,10 +23,10 @@ class PlotData {
 
 	PlotData() {
 
-		gan_generator_data_textures.save_png = true;
-		gan_real_data_textures.save_png = true;
+		gan_generator_data_textures.save_png = false;
+		gan_real_data_textures.save_png = false;
 		gan_mixed_data_textures.save_png = true;
-		gan_generator_dy_textures.save_png = true;
+		gan_generator_dy_textures.save_png = false;
 
 	};
 
@@ -217,11 +217,9 @@ class PlotData {
 
 					if ( disc->layers[i]->name == "linear" ) {
 						make_textures_from_matrices ( disc_weight_data[i], ( ( Linear * ) disc->layers[i] )->W, nvg, fmt, SQUARES, true, true );
-						make_textures_from_matrices ( disc_weight_data_dW[i], ( ( Linear * ) disc->layers[i] )->dW, nvg, fmt, SQUARES, true,
-						                              true );
+						make_textures_from_matrices ( disc_weight_data_dW[i], ( ( Linear * ) disc->layers[i] )->dW, nvg, fmt, SQUARES, true, true );
 						disc_matrices[i].push_back ( std::make_pair ( disc_weight_data[i].id, "W" ) );
 						disc_matrices[i].push_back ( std::make_pair ( disc_weight_data_dW[i].id, "dW" ) );
-
 					}
 				}
 

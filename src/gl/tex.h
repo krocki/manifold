@@ -2,7 +2,7 @@
 * @Author: kmrocki@us.ibm.com
 * @Date:   2017-03-06 13:20:16
 * @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-04-13 08:37:14
+* @Last Modified time: 2017-04-19 20:54:39
 */
 #ifndef _GL_TEX_
 #define _GL_TEX_

@@ -13,18 +13,21 @@ in vec2 out_g_tex;
 */
 
 uniform float alpha;
-uniform int apply_label_color;
+uniform int apply_color;
+uniform int colormap;
+uniform int discretize;
 
 void main() {
 
 	vec4 in_color = vec4 ( out_g_color, alpha );
 	vec4 col = texture ( image, out_g_tex );
-	
+
 	// if ( apply_label_color == 0 )
 	out_color = vec4 ( col.x, col.y, col.z, alpha );
-	if ( apply_label_color == 1 ) {
-		out_color = out_color / 2 + in_color; //min ( vec4 ( col.x, col.y, col.z, 1.0f ), in_color );
+
+	if ( apply_color == 1 ) {
+		out_color = out_color / 2 + apply_colormap ( out_g_color, colormap, alpha, discretize ); //min ( vec4 ( col.x, col.y, col.z, 1.0f ), in_color );
 	}
 	// out_color = min ( in_color, vec4 ( col.x, col.y, col.z, alpha ) );
-	
+
 }

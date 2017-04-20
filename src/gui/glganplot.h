@@ -2,7 +2,7 @@
 * @Author: kmrocki@us.ibm.com
 * @Date:   2017-03-20 10:09:39
 * @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-04-18 20:28:34
+* @Last Modified time: 2017-04-19 14:53:00
 */
 
 #ifndef __GLPLOT_H__
@@ -183,11 +183,11 @@ class Plot : public nanogui::GLCanvas {
 		b->setPushed ( show_reconstructions );
 		b->setChangeCallback ( [&] ( bool state ) { std::cout << "Reconstructions: " << state << std::endl; show_reconstructions = state;} );
 
-		b = shader_tools->add<nanogui::Button> ( "", ENTYPO_ICON_MONITOR );
+		b = shader_tools->add<nanogui::Button> ( "", ENTYPO_ICON_SIGNAL );
 		b->setFlags ( nanogui::Button::ToggleButton );
 		b->setFixedSize ( bsize );
-		b->setPushed ( apply_label_color );
-		b->setChangeCallback ( [&] ( bool state ) { std::cout << "apply_label_color: " << state << std::endl; apply_label_color = state;} );
+		b->setPushed ( apply_color );
+		b->setChangeCallback ( [&] ( bool state ) { std::cout << "empty " << state << std::endl;} );
 
 		b = shader_tools->add<nanogui::Button> ( "", ENTYPO_ICON_DOT );
 		b->setFlags ( nanogui::Button::ToggleButton );
@@ -323,6 +323,14 @@ class Plot : public nanogui::GLCanvas {
 		b->setBackgroundColor ( nanogui::Color ( 225, 130, 0, 64 ) );
 		b->setPushed ( discretize_colormaps );
 		b->setChangeCallback ( [&] ( bool state ) { discretize_colormaps = !discretize_colormaps; } );
+
+		b = this->add<nanogui::Button> ( "", ENTYPO_ICON_PICTURE );
+		b->setFlags ( nanogui::Button::ToggleButton );
+		b->setFixedSize ( bsize );
+		b->setPosition ( {3, 5 * ( bsize[1] + 5 ) } );
+		b->setBackgroundColor ( nanogui::Color ( 0, 192, 0, 64 ) );
+		b->setPushed ( apply_color );
+		b->setChangeCallback ( [&] ( bool state ) { std::cout << "apply_color: " << state << std::endl; apply_color = state;} );
 
 		// nanogui::PopupButton* popupBtn = new nanogui::PopupButton(this, "", 0);
 		// popupBtn->setBackgroundColor(nanogui::Color(255, 120, 0, 255));
@@ -702,17 +710,10 @@ class Plot : public nanogui::GLCanvas {
 					m_samplePointShader->setUniform ( "alpha", alpha );
 					m_samplePointShader->setUniform ( "colormap", selected_colormap );
 					m_samplePointShader->setUniform ( "discretize", ( int ) discretize_colormaps );
-					int blend_mode = ( int ) apply_label_color;
-
-					m_samplePointShader->setUniform ( "blend_mode", blend_mode );
+					m_samplePointShader->setUniform ( "apply_color", ( int ) apply_color );
 
 					if ( selected_blendmode == 1 ) glBlendFunc ( GL_ONE, GL_ONE );
 					else glBlendFunc ( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
-
-					// if ( apply_label_color )
-					// 	glBlendFunc ( GL_ONE, GL_ONE );
-					// else
-					// 	glBlendFunc ( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
 
 					m_samplePointShader->drawArray ( GL_POINTS, 0, data->s_vertices.cols() );
 
@@ -735,8 +736,9 @@ class Plot : public nanogui::GLCanvas {
 					m_samplePointTexShader->setUniform ( "coord_type", coord_type );
 					m_samplePointTexShader->setUniform ( "alpha", alpha );
 					m_samplePointTexShader->setUniform ( "pt_size", pt_size );
-					m_samplePointTexShader->setUniform ( "apply_label_color", ( int ) apply_label_color );
+					m_samplePointTexShader->setUniform ( "colormap", selected_colormap );
 					m_samplePointTexShader->setUniform ( "discretize", ( int ) discretize_colormaps );
+					m_samplePointTexShader->setUniform ( "apply_color", ( int ) apply_color );
 
 					float quad_size = 0.005f;
 					float radius = sqrtf ( 2 * quad_size );
@@ -765,15 +767,7 @@ class Plot : public nanogui::GLCanvas {
 					m_pointShader->setUniform ( "alpha", alpha );
 					m_pointShader->setUniform ( "colormap", selected_colormap );
 					m_pointShader->setUniform ( "discretize", ( int ) discretize_colormaps );
-
-					int blend_mode = ( int ) apply_label_color;
-
-					m_pointShader->setUniform ( "blend_mode", blend_mode );
-
-					// if ( apply_label_color )
-					// 	glBlendFunc ( GL_ONE, GL_ONE );
-					// else
-					// 	glBlendFunc ( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
+					m_pointShader->setUniform ( "apply_color", ( int ) apply_color );
 
 					m_pointShader->drawArray ( GL_POINTS, 0, data->p_vertices.cols() );
 
@@ -806,7 +800,8 @@ class Plot : public nanogui::GLCanvas {
 					m_pointTexShader->setUniform ( "coord_type", coord_type );
 					m_pointTexShader->setUniform ( "alpha", alpha );
 					m_pointTexShader->setUniform ( "pt_size", pt_size );
-					m_pointTexShader->setUniform ( "apply_label_color", ( int ) !apply_label_color );
+					m_pointTexShader->setUniform ( "apply_color", ( int ) apply_color );
+					m_pointTexShader->setUniform ( "colormap", selected_colormap );
 					m_pointTexShader->setUniform ( "discretize", ( int ) discretize_colormaps );
 
 					float quad_size = 0.005f;
@@ -820,10 +815,6 @@ class Plot : public nanogui::GLCanvas {
 					//glEnable ( GL_DEPTH_TEST );
 
 					m_pointTexShader->drawArray ( GL_POINTS, 0, data->p_vertices.cols() );
-
-					// glDisable ( GL_BLEND );
-					// if ( apply_label_color )
-					// 	glDisable ( GL_DEPTH_TEST );
 
 
 				}
@@ -1037,7 +1028,7 @@ class Plot : public nanogui::GLCanvas {
 	bool depth_test_enabled = true;
 	bool use_textures = false;
 	bool show_reconstructions = false;
-	bool apply_label_color = false;
+	bool apply_color = false;
 	bool show_rays = false;
 	bool show_samples = false;
 	int coord_type = 0;
