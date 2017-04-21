@@ -2,7 +2,7 @@
 * @Author: Kamil Rocki
 * @Date:   2017-02-28 11:25:34
 * @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-04-21 12:19:54
+* @Last Modified time: 2017-04-21 15:07:48
 */
 
 #include <thread>
@@ -79,7 +79,7 @@ int compute() {
 	PlotData *gl_data = screen->plot_data;
 
 	// NN stuff
-	double learning_rate = 1e-3f;
+	double learning_rate = 1e-4f;
 	float decay = 0;
 	const size_t batch_size = 16;
 	const int input_width = static_cast<int> ( train_data[0].x.size() );
@@ -89,8 +89,8 @@ int compute() {
 
 	size_t code_dims = 3;
 
-	nn = std::shared_ptr<NN> ( new NN ( batch_size, decay, learning_rate, AE, {static_cast<int> ( code_dims ), 64, input_width }, RELU ) );
-	discriminator = std::shared_ptr<NN> ( new NN ( batch_size, decay, learning_rate, MLP, {input_width, 64, 1}, RELU, false ) );
+	nn = std::shared_ptr<NN> ( new NN ( batch_size, decay, learning_rate, AE, {static_cast<int> ( code_dims ), 16, 64, input_width }, SIGMOID ) );
+	discriminator = std::shared_ptr<NN> ( new NN ( batch_size, decay, learning_rate, MLP, {input_width, 64, 16, 1}, RELU, false ) );
 	encoder = std::shared_ptr<NN> ( new NN ( batch_size, decay, learning_rate, MLP, {input_width, 16 }, RELU, false ) );
 	encoder->layers.push_back ( new Linear ( encoder->layers.back()->y.rows(), code_dims, batch_size ) );
 
@@ -101,7 +101,7 @@ int compute() {
 	encoder->otype = SGD;
 	encoder->pause = true;
 	nn->generator_loss_type = NON_SATURATING_LOSS;
-	discriminator->label_smoothing = 0.9f;
+	discriminator->label_smoothing = 0.8f;
 
 	size_t vis_interval = 1000;
 
@@ -183,8 +183,8 @@ int compute() {
 		// generate ( std::normal_distribution<> ( 0, 1 ), std::normal_distribution<> ( 0, 1 ),
 		// 		   std::normal_distribution<> ( 0, 1 ), gan_train_data.noise.x, batch_size, INDEPENDENT );
 
-		// generate_ndims ( code_dims, std::uniform_real_distribution <> ( -10, 10 ), gan_train_data.noise.x, batch_size, INDEPENDENT );
-		generate_ndims ( code_dims, std::normal_distribution <> ( 0, 20 ), gan_train_data.noise.x, batch_size, INDEPENDENT );
+		//generate_ndims ( code_dims, std::uniform_real_distribution <> ( -10, 10 ), gan_train_data.noise.x, batch_size, INDEPENDENT );
+		generate_ndims ( code_dims, std::normal_distribution <> ( 0, 10 ), gan_train_data.noise.x, batch_size, INDEPENDENT );
 		// generate_ndims ( code_dims, std::unifl_distribution<> ( 10, 5 ), gan_train_data.noise.x, batch_size, INDEPENDENT );
 		// generate_stratified (
 

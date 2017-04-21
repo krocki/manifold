@@ -2,7 +2,7 @@
 * @Author: kmrocki@us.ibm.com
 * @Date:   2017-03-03 15:06:37
 * @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-04-21 11:28:26
+* @Last Modified time: 2017-04-21 15:07:56
 */
 
 #ifndef __LAYERS_H__
@@ -396,7 +396,7 @@ class Linear : public Layer {
 
 		//rmsprop
 
-		float memory_loss = 1e-1f;
+		float memory_loss = 1e-2f;
 
 		d2W = dW.cwiseProduct ( dW );
 		d2b = db.cwiseProduct ( db );
@@ -469,8 +469,8 @@ class Linear : public Layer {
 
 		//sgd ( alpha, decay );
 		//adagrad ( alpha, decay );
-		//rmsprop ( alpha, decay );
-		adam ( alpha, decay );
+		rmsprop ( alpha, decay );
+		//adam ( alpha, decay );
 
 	}
 
