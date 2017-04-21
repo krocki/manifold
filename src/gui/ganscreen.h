@@ -1061,34 +1061,61 @@ class GUI : public nanogui::Screen {
 		slarge_tex_view[1] = new nanogui::ImageView ( large_image_view, 0, IMAGEVIEW_SHADER_NAME, IMAGEVIEW_VERT_FILE, IMAGEVIEW_FRAG_FILE, IMAGEVIEW_GEOM_FILE, SHARED_GLSL_FILE );
 
 
-		large_tex_view[0]->setGridThreshold ( 20 );
-		large_tex_view[0]->setPixelInfoThreshold ( 20 );
+		large_tex_view[0]->setGridThreshold ( 40 );
+		large_tex_view[0]->setPixelInfoThreshold ( 40 );
+		large_tex_view[0]->setFontScaleFactor(0.1f);
+
 		large_tex_view[0]->setPixelInfoCallback (
 		[&] ( const Eigen::Vector2i & index ) -> pair<std::string, nanogui::Color> {
 
-			Eigen::Matrix<uint32_t, Eigen::Dynamic, Eigen::Dynamic> &image0_data = textures_data[large_tex_view[0]->image_id()]->get_raw_data();
-			// Eigen::MatrixXf &image1_data = textures_data[large_tex_view[1]->image_id()]->get_raw_data();
+			// look for matrix containing the data
+			if ( textures_data.find(large_tex_view[0]->image_id()) == textures_data.end() ) {
 
-			std::string stringData;
-			nanogui::Color textColor = nanogui::Color ( 1.0f, 1.0f, 1.0f, 1.0f );
+				// not found
+				std::string stringData = "";
+				nanogui::Color textColor = nanogui::Color ( 1.0f, 1.0f, 1.0f, 0.0f );
+				return { stringData, textColor };
 
-			stringData += "(" + to_string ( index[0] ) + ", " +  to_string ( index[1] ) + ")\n";
-			stringData += "image0_data size: " + to_string(image0_data.rows()) + ", " + to_string(image0_data.cols()) + "\n";
-			// stringData += "image1_data size: " + to_string(image1_data.rows()) + ", " + to_string(image1_data.cols()) + "\n";
+			} else {
 
-			// 	// auto &textureSize = imageView->imageSize();
-			// 	// string stringData;
-			// 	// uint16_t channelSum = 0;
-			// 	// for ( int i = 0; i != 4; ++i ) {
-			// 	// 	auto &channelData = imageData[4 * index.y() * textureSize.x() + 4 * index.x() + i];
-			// 	// 	channelSum += channelData;
-			// 	// 	stringData += ( to_string ( static_cast<int> ( channelData ) ) + "\n" );
-			// 	// }
-			// 	// float intensity = static_cast<float> ( 255 - ( channelSum / 4 ) ) / 255.0f;
-			// 	// float colorScale = intensity > 0.5f ? ( intensity + 1 ) / 2 : intensity / 2;
-			// 	// Color textColor = Color ( colorScale, 1.0f );
+				// found
+				unsigned char* image0_byte_data = textures_data[large_tex_view[0]->image_id()]->get_raw_data();
 
-			return { stringData, textColor };
+				std::string stringData = "";
+				nanogui::Color textColor = nanogui::Color ( 1.0f, 1.0f, 1.0f, 1.0f );
+				auto &textureSize = large_tex_view[0]->imageSize();
+
+				stringData += "(" + to_string ( index[0] ) + ", " +  to_string ( index[1] ) + ")\n";
+				stringData += to_string(textureSize.x()) + ", " + to_string(textureSize.y()) + "\n";
+
+				int linear_idx = (index[0] + index[1] * textureSize.x()) * 4;
+
+				if (image0_byte_data != nullptr) {
+
+					stringData += to_string(linear_idx) + "\n";
+
+					uint8_t r = image0_byte_data[linear_idx];
+					uint8_t g = image0_byte_data[linear_idx + 1];
+					uint8_t b = image0_byte_data[linear_idx + 2];
+					uint8_t a = image0_byte_data[linear_idx + 3];
+
+					float intensity = static_cast<float> ( 255 - ( r + g + b + a / 4 ) ) / 255.0f;
+					float colorScale = intensity > 0.5f ? ( intensity + 1 ) / 2 : intensity / 2;
+
+					stringData += "value: " + to_string(float(r + g + b) / (255.0f * 3.0f)) + "\n\n";
+
+					stringData += to_string(r) + ", " + to_string_with_precision((float)r / 255.0f, 7, 5) + "\n";
+					stringData += to_string(g) + ", " + to_string_with_precision((float)g / 255.0f, 7, 5) + "\n";
+					stringData += to_string(b) + ", " + to_string_with_precision((float)b / 255.0f, 7, 5) + "\n";
+					stringData += to_string(a) + ", " + to_string_with_precision((float)a / 255.0f, 7, 5) + "\n";
+
+					stringData += "intensity: " + to_string(intensity) + "\n";
+
+					textColor = nanogui::Color ( colorScale, 1.0f );
+				}
+
+				return { stringData, textColor };
+			}
 
 		} );
 

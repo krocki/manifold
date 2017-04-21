@@ -2,7 +2,7 @@
 * @Author: kmrocki@us.ibm.com
 * @Date:   2017-03-06 13:20:16
 * @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-04-20 21:13:22
+* @Last Modified time: 2017-04-21 11:30:05
 */
 #ifndef _GL_TEX_
 #define _GL_TEX_
@@ -223,9 +223,9 @@ class Texture {
 
 	}
 
-	Eigen::Matrix<uint32_t, Eigen::Dynamic, Eigen::Dynamic> &get_raw_data() {
+	unsigned char* get_raw_data() {
 
-		return rgba_image;
+		return (unsigned char*) rgba_image.data();
 
 	}
 
