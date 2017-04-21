@@ -2,7 +2,7 @@
 * @Author: Kamil Rocki
 * @Date:   2017-02-28 11:25:34
 * @Last Modified by:   kmrocki@us.ibm.com
-* @Last Modified time: 2017-04-20 22:14:02
+* @Last Modified time: 2017-04-20 22:20:38
 */
 
 #include <thread>
@@ -79,9 +79,9 @@ int compute() {
 	PlotData *gl_data = screen->plot_data;
 
 	// NN stuff
-	double learning_rate = 1e-3f;
+	double learning_rate = 1e-4f;
 	float decay = 0;
-	const size_t batch_size = 64;
+	const size_t batch_size = 256;
 	const int input_width = static_cast<int> ( train_data[0].x.size() );
 	assert ( input_width > 0 );
 
@@ -183,18 +183,18 @@ int compute() {
 		// generate ( std::normal_distribution<> ( 0, 1 ), std::normal_distribution<> ( 0, 1 ),
 		// 		   std::normal_distribution<> ( 0, 1 ), gan_train_data.noise.x, batch_size, INDEPENDENT );
 
-		generate_ndims ( code_dims, std::uniform_real_distribution<> ( 0, 100 ), gan_train_data.noise.x, batch_size, INDEPENDENT );
+		generate_ndims ( code_dims, std::normal_distribution<> ( 0, 100 ), gan_train_data.noise.x, batch_size, INDEPENDENT );
 
 		// generate_ndims ( code_dims, std::unifl_distribution<> ( 10, 5 ), gan_train_data.noise.x, batch_size, INDEPENDENT );
 		// generate_stratified (
 
-		//     std::uniform_real_distribution<> ( 0, 20 ),
-		//     std::uniform_real_distribution<> ( 0, 20 ),
-		//     std::uniform_real_distribution<> ( 0, 20 ),
+		//     std::uniform_real_distribution<> ( -50, 50 ),
+		//     std::uniform_real_distribution<> ( -50, 50 ),
+		//     std::uniform_real_distribution<> ( -50, 50 ),
 
-		//     std::normal_distribution<> ( 0, 0.4 ),
-		//     std::normal_distribution<> ( 0, 0.4 ),
-		//     std::normal_distribution<> ( 0, 0.4 ),
+		//     std::normal_distribution<> ( 0, 5 ),
+		//     std::normal_distribution<> ( 0, 5 ),
+		//     std::normal_distribution<> ( 0, 5 ),
 
 		//     gan_train_data.noise.x, batch_size
 
