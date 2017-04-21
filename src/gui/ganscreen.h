@@ -1062,6 +1062,37 @@ class GUI : public nanogui::Screen {
 			slarge_tex_view[0] = new nanogui::ImageView ( large_image_view, 0, IMAGEVIEW_SHADER_NAME, IMAGEVIEW_VERT_FILE, IMAGEVIEW_FRAG_FILE, IMAGEVIEW_GEOM_FILE, SHARED_GLSL_FILE );
 			slarge_tex_view[1] = new nanogui::ImageView ( large_image_view, 0, IMAGEVIEW_SHADER_NAME, IMAGEVIEW_VERT_FILE, IMAGEVIEW_FRAG_FILE, IMAGEVIEW_GEOM_FILE, SHARED_GLSL_FILE );
 			
+			
+			// large_tex_view[0]->setGridThreshold ( 20 );
+			// large_tex_view[0]->setPixelInfoThreshold ( 20 );
+			// large_tex_view[0]->setPixelInfoCallback (
+			// [this] ( const Eigen::Vector2i & index ) -> pair<std::string, nanogui::Color> {
+			
+			// 	// Eigen::MatrixXf &image0_data = plot_data->textures_data.get ( large_tex_view[0]->image_id() ).get_raw_data();
+			// 	// Eigen::MatrixXf &image1_data = large_tex_view[1]->get_raw_data();
+			
+			// 	std::string stringData = "";
+			// 	nanogui::Color textColor = nanogui::Color ( 1.0f, 1.0f, 1.0f, 1.0f );
+			
+			// 	// stringData += std::to_string ( index );
+			
+			// 	// auto &textureSize = imageView->imageSize();
+			// 	// string stringData;
+			// 	// uint16_t channelSum = 0;
+			// 	// for ( int i = 0; i != 4; ++i ) {
+			// 	// 	auto &channelData = imageData[4 * index.y() * textureSize.x() + 4 * index.x() + i];
+			// 	// 	channelSum += channelData;
+			// 	// 	stringData += ( to_string ( static_cast<int> ( channelData ) ) + "\n" );
+			// 	// }
+			// 	// float intensity = static_cast<float> ( 255 - ( channelSum / 4 ) ) / 255.0f;
+			// 	// float colorScale = intensity > 0.5f ? ( intensity + 1 ) / 2 : intensity / 2;
+			// 	// Color textColor = Color ( colorScale, 1.0f );
+			
+			// 	return { stringData, textColor };
+			
+			// } );
+			
+			
 			nanogui::Widget *large_w_buttons = new nanogui::Widget ( large_image_view );
 			large_w_buttons->setLayout ( new nanogui::GridLayout ( nanogui::Orientation::Horizontal, 11, nanogui::Alignment::Middle, 2, 2 ) );
 			
