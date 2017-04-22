@@ -2,7 +2,7 @@
 * @Author: kmrocki
 * @Date:   2016-02-24 15:28:10
 * @Last Modified by:   Kamil Rocki
-* @Last Modified time: 2017-04-20 11:18:24
+* @Last Modified time: 2017-04-21 15:59:10
 */
 
 #ifndef __GAN_NN_H__
@@ -128,7 +128,7 @@ class NN {
 			
 		}
 		
-		void backward ( const Matrix &t ) {
+		void backward ( const Matrix &t, bool accumulate = false ) {
 		
 			//set targets at the top
 			layers[layers.size() - 1]->dy = t;
@@ -136,13 +136,14 @@ class NN {
 			//propagate error backward
 			for ( int i = layers.size() - 1; i >= 0; i-- ) {
 			
-				layers[i]->resetGrads();
-				
+				if ( !accumulate )
+					layers[i]->resetGrads();
+					
 				// sparsify dy grads
 				//if ( i == 0 ) layers[i]->sparsify();
 				// if ( i == ( layers.size() - 2 ) ) layers[i]->sparsify();
 				
-				layers[i]->backward();
+				layers[i]->backward ( accumulate );
 				
 				//dy(previous layer) = dx(current layer)
 				if ( i > 0 )
@@ -165,6 +166,14 @@ class NN {
 			
 		}
 		
+		void reset_grads() {
+		
+			for ( int i = layers.size() - 1; i >= 0; i-- )
+			
+				layers[i]->resetGrads();
+				
+				
+		}
 		void collect_statistics ( ) {
 		
 			for ( size_t l = 0; l < layers.size(); l++ )
